@@ -3,7 +3,7 @@
 
 // Auth Container Enhancements
 .auth-container-enhanced {
-  min-height: 100vh;
+  min-height: 85vh;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   position: relative;
   overflow: hidden;
@@ -24,6 +24,9 @@
   .container {
     position: relative;
     z-index: 2;
+    
+    padding-top: .75rem; 
+    padding-bottom: .75rem;
   }
 }
 
@@ -54,7 +57,7 @@
     padding: 2rem;
     
     @include respond-above(lg) {
-      padding: 3rem 4rem;
+      padding: 2rem 3rem;
     }
   }
 }
@@ -410,3 +413,26 @@
 .fade-in-up-delayed {
   animation: fadeInUp 0.8s ease-out 0.2s both;
 }
+
+.remember-me-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 1rem;
+
+  input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    accent-color: #22c55e; 
+    margin: 0;
+  }
+
+  label {
+    margin: 0;
+    font-size: 1rem;
+    color: #333;
+    user-select: none;
+    cursor: pointer;
+  }
+}
+

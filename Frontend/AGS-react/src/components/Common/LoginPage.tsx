@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Container, Row, Col, Card, Form, Button, Alert } from 'react-bootstrap';
+import { Container, Row, Col, Card, Form, Button, Alert, InputGroup } from 'react-bootstrap';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faRobot, faEnvelope, faLock, faChevronRight } from '@fortawesome/free-solid-svg-icons';
+import { faRobot, faEnvelope, faLock, faChevronRight, faEye, faEyeSlash } from '@fortawesome/free-solid-svg-icons';
 import { useAuth } from '../../contexts/AuthContext';
 
 const LoginPage: React.FC = () => {
@@ -12,6 +12,7 @@ const LoginPage: React.FC = () => {
     email: '',
     password: '',
   });
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -88,7 +89,7 @@ const LoginPage: React.FC = () => {
                     />
                   </div>
 
-                  <div className="form-group-enhanced">
+                  <div className="form-group-enhanced position-relative">
                     <Form.Label className="form-label-enhanced">
                       <span className="form-icon">
                         <FontAwesomeIcon icon={faLock} />
@@ -96,7 +97,7 @@ const LoginPage: React.FC = () => {
                       Password
                     </Form.Label>
                     <Form.Control
-                      type="password"
+                      type={showPassword ? "text" : "password"}
                       name="password"
                       value={formData.password}
                       onChange={handleInputChange}
@@ -105,22 +106,41 @@ const LoginPage: React.FC = () => {
                       className="form-control-enhanced"
                       disabled={state.isLoading}
                     />
+                    <span
+                      className="toggle-password-visibility"
+                      style={{
+                        position: "absolute",
+                        right: "16px",
+                        top: "70%",
+                        transform: "translateY(-50%)",
+                        cursor: "pointer",
+                        color: "#dbd8d8ff"
+                      }}
+                      onClick={() => setShowPassword((prev) => !prev)}
+                      tabIndex={0}
+                      role="button"
+                      aria-label={showPassword ? "Hide password" : "Show password"}
+                    >
+                      <FontAwesomeIcon icon={showPassword ? faEyeSlash : faEye} />
+                    </span>
                   </div>
 
                   <div className="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center mb-4">
-                    <div className="form-check form-check-enhanced">
-                      <Form.Check
+                      <div className="d-flex align-items-center gap-2">
+                       <input
                         type="checkbox"
-                        id="remember-me"
-                        label="Remember me"
-                        className="form-check-input"
+                       id="remember-me"
+                       className="form-check-input"
+                       style={{ width: 18, height: 18, marginRight: 8 }}
                       />
-                    </div>
-                    <Button variant="link" className="p-0 auth-link">
-                      Forgot password?
-                    </Button>
+                   <label htmlFor="remember-me" style={{ margin: 0, fontWeight: 400, color: "#6b7280", fontSize: "1rem", cursor: "pointer" }}>
+                      Remember me
+                  </label>
+                   </div>
+                   <Button variant="link" className="p-0 auth-link">
+                    Forgot password?
+                  </Button>
                   </div>
-
                   <Button
                     type="submit"
                     className="btn-auth-enhanced w-100"
