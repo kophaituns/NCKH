@@ -3,7 +3,11 @@
 
 // Auth Container Enhancements
 .auth-container-enhanced {
+<<<<<<< HEAD
   min-height: 100vh;
+=======
+  min-height: 85vh;
+>>>>>>> d10b605ae1d1ea72009642866363dbf201a1e5b0
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   position: relative;
   overflow: hidden;
@@ -24,6 +28,12 @@
   .container {
     position: relative;
     z-index: 2;
+<<<<<<< HEAD
+=======
+    
+    padding-top: .75rem; 
+    padding-bottom: .75rem;
+>>>>>>> d10b605ae1d1ea72009642866363dbf201a1e5b0
   }
 }
 
@@ -54,7 +64,11 @@
     padding: 2rem;
     
     @include respond-above(lg) {
+<<<<<<< HEAD
       padding: 3rem 4rem;
+=======
+      padding: 2rem 3rem;
+>>>>>>> d10b605ae1d1ea72009642866363dbf201a1e5b0
     }
   }
 }
@@ -409,4 +423,31 @@
 
 .fade-in-up-delayed {
   animation: fadeInUp 0.8s ease-out 0.2s both;
+<<<<<<< HEAD
 }
+=======
+}
+
+.remember-me-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 1rem;
+
+  input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    accent-color: #22c55e; 
+    margin: 0;
+  }
+
+  label {
+    margin: 0;
+    font-size: 1rem;
+    color: #333;
+    user-select: none;
+    cursor: pointer;
+  }
+}
+
+>>>>>>> d10b605ae1d1ea72009642866363dbf201a1e5b0
