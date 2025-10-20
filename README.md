@@ -1,7 +1,10 @@
 <<<<<<< HEAD
+<<<<<<< HEAD
 # NCKH
 capston project 
 =======
+=======
+>>>>>>> d10b605ae1d1ea72009642866363dbf201a1e5b0
 # ALLMTAGS - AI-Powered Survey Generation System
 
 ## 🎯 Tổng quan
@@ -181,5 +184,9 @@ MIT License - Xem file LICENSE để biết thêm chi tiết
 
 ---
 
+<<<<<<< HEAD
 🌟 **Hệ thống ALLMTAGS - Cách mạng hóa khảo sát giáo dục với AI!** 🌟
 >>>>>>> d154165 (Initial commit)
+=======
+🌟 **Hệ thống ALLMTAGS - Cách mạng hóa khảo sát giáo dục với AI!** 🌟
+>>>>>>> d10b605ae1d1ea72009642866363dbf201a1e5b0
