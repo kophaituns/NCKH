@@ -1,101 +1,3 @@
-<<<<<<< HEAD
-import React, { useState, useEffect } from 'react';
-import { Container, Row, Col, Card, Button, Nav, Table, Badge } from 'react-bootstrap';
-import { useNavigate } from 'react-router-dom';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { 
-  faPlus, 
-  faUsers, 
-  faFileText, 
-  faChartLine, 
-  faEdit, 
-  faTrash,
-  faCog,
-  faUserShield,
-  faSignOutAlt
-} from '@fortawesome/free-solid-svg-icons';
-import { useAuth } from '../../contexts/AuthContext';
-import { UserRole } from '../../types';
-import { getRoleDisplayName } from '../../utils/roleUtils';
-
-const AdminDashboard: React.FC = () => {
-  const navigate = useNavigate();
-  const { state, logout } = useAuth();
-  const [activeTab, setActiveTab] = useState('overview');
-
-  // Mock data - sẽ được thay thế bằng API calls
-  const [users, setUsers] = useState([
-    { id: 1, username: 'admin', email: 'admin@example.com', role: 'admin', status: 'active' },
-    { id: 2, username: 'teacher1', email: 'teacher1@example.com', role: 'teacher', status: 'active' },
-    { id: 3, username: 'student1', email: 'student1@example.com', role: 'student', status: 'active' },
-  ]);
-
-  const [surveys, setSurveys] = useState([
-    { id: 1, title: 'Course Evaluation Q1 2025', creator: 'teacher1', responses: 45, status: 'active' },
-    { id: 2, title: 'Teaching Quality Assessment', creator: 'teacher1', responses: 23, status: 'draft' },
-  ]);
-
-  const stats = {
-    totalUsers: users.length,
-    totalSurveys: surveys.length,
-    totalResponses: 68,
-    activeUsers: users.filter(u => u.status === 'active').length
-  };
-
-  useEffect(() => {
-    if (!state.isAuthenticated || state.user?.role !== UserRole.ADMIN) {
-      navigate('/login');
-    }
-  }, [state.isAuthenticated, state.user, navigate]);
-
-  const handleLogout = () => {
-    logout();
-    navigate('/');
-  };
-
-  const handleDeleteUser = (userId: number) => {
-    setUsers(users.filter(u => u.id !== userId));
-  };
-
-  const handleDeleteSurvey = (surveyId: number) => {
-    setSurveys(surveys.filter(s => s.id !== surveyId));
-  };
-
-  const getStatusBadge = (status: string) => {
-    const variants = {
-      active: 'success',
-      draft: 'warning',
-      inactive: 'secondary'
-    };
-    return <Badge bg={variants[status as keyof typeof variants] || 'secondary'}>{status}</Badge>;
-  };
-
-  return (
-    <div className="min-vh-100 bg-light dashboard-responsive">
-      {/* Header */}
-      <div className="bg-white shadow-sm dashboard-header">
-        <Container fluid className="px-3 px-lg-4">
-          <div className="d-flex justify-content-between align-items-center py-3">
-            <div className="d-flex align-items-center">
-              <FontAwesomeIcon icon={faUserShield} className="text-danger me-2" size="lg" />
-              <h4 className="mb-0 text-danger dashboard-title">
-                <span className="hidden-mobile">Admin </span>Dashboard
-              </h4>
-            </div>
-            <div className="d-flex align-items-center">
-              <div className="text-end me-3 hidden-mobile">
-                <div className="fw-semibold">Welcome, {state.user?.username}</div>
-                <small className="text-muted">{state.user ? getRoleDisplayName(state.user.role) : ''}</small>
-              </div>
-              <Button variant="outline-danger" size="sm" className="btn-responsive">
-                <FontAwesomeIcon icon={faSignOutAlt} className="me-1" />
-                <span className="hidden-mobile">Logout</span>
-              </Button>
-            </div>
-          </div>
-        </Container>
-      </div>
-=======
 import React, { useEffect, useMemo, useState, useCallback } from "react";
 import {
   Container,
@@ -342,7 +244,7 @@ const AdminDashboard: React.FC = () => {
     );
   }
 
-  // Inline styles (không cần file CSS)
+  // Inline styles
   const compactBtnStyle: React.CSSProperties = {
     padding: "0.15rem 0.45rem",
     fontSize: ".8rem",
@@ -360,106 +262,14 @@ const AdminDashboard: React.FC = () => {
   return (
     <div className="min-vh-100 bg-light">
       <Header />
->>>>>>> d10b605ae1d1ea72009642866363dbf201a1e5b0
 
       <Container fluid className="py-3 py-lg-4 px-3 px-lg-4">
         <Row>
-          {/* Sidebar */}
-<<<<<<< HEAD
-          <Col lg={3} className="mb-4 mb-lg-0">
-            <Card className="border-0 shadow-sm card-responsive">
-              <Card.Body>
-                <Nav variant="pills" className="flex-column flex-lg-column flex-row d-lg-block overflow-auto">
-                  <Nav.Item className="mb-2 flex-shrink-0">
-                    <Nav.Link 
-                      className={`${activeTab === 'overview' ? 'active' : ''} text-nowrap`}
-                      onClick={() => setActiveTab('overview')}
-                    >
-                      <FontAwesomeIcon icon={faChartLine} className="me-2" />
-                      <span className="hidden-mobile">Overview</span>
-                    </Nav.Link>
-                  </Nav.Item>
-                  <Nav.Item className="mb-2 flex-shrink-0">
-                    <Nav.Link 
-                      className={`${activeTab === 'users' ? 'active' : ''} text-nowrap`}
-                      onClick={() => setActiveTab('users')}
-                    >
-                      <FontAwesomeIcon icon={faUsers} className="me-2" />
-                      <span className="hidden-mobile">Users</span>
-                    </Nav.Link>
-                  </Nav.Item>
-                  <Nav.Item className="mb-2">
-                    <Nav.Link 
-                      className={activeTab === 'surveys' ? 'active' : ''}
-                      onClick={() => setActiveTab('surveys')}
-                    >
-                      <FontAwesomeIcon icon={faFileText} className="me-2" />
-                      Survey Management
-                    </Nav.Link>
-                  </Nav.Item>
-                  <Nav.Item className="mb-2">
-                    <Nav.Link 
-                      className={activeTab === 'settings' ? 'active' : ''}
-                      onClick={() => setActiveTab('settings')}
-                    >
-                      <FontAwesomeIcon icon={faCog} className="me-2" />
-                      System Settings
-                    </Nav.Link>
-                  </Nav.Item>
-                </Nav>
-              </Card.Body>
-            </Card>
-          </Col>
-
-          {/* Main Content */}
-          <Col md={9}>
-            {/* Overview Tab */}
-            {activeTab === 'overview' && (
-              <>
-                <Row className="mb-4">
-                  <Col md={3}>
-                    <Card className="border-0 shadow-sm text-center">
-                      <Card.Body>
-                        <FontAwesomeIcon icon={faUsers} size="2x" className="text-primary mb-2" />
-                        <h3 className="mb-1">{stats.totalUsers}</h3>
-                        <p className="text-muted mb-0">Total Users</p>
-                      </Card.Body>
-                    </Card>
-                  </Col>
-                  <Col md={3}>
-                    <Card className="border-0 shadow-sm text-center">
-                      <Card.Body>
-                        <FontAwesomeIcon icon={faFileText} size="2x" className="text-success mb-2" />
-                        <h3 className="mb-1">{stats.totalSurveys}</h3>
-                        <p className="text-muted mb-0">Total Surveys</p>
-                      </Card.Body>
-                    </Card>
-                  </Col>
-                  <Col md={3}>
-                    <Card className="border-0 shadow-sm text-center">
-                      <Card.Body>
-                        <FontAwesomeIcon icon={faChartLine} size="2x" className="text-warning mb-2" />
-                        <h3 className="mb-1">{stats.totalResponses}</h3>
-                        <p className="text-muted mb-0">Total Responses</p>
-                      </Card.Body>
-                    </Card>
-                  </Col>
-                  <Col md={3}>
-                    <Card className="border-0 shadow-sm text-center">
-                      <Card.Body>
-                        <FontAwesomeIcon icon={faUsers} size="2x" className="text-info mb-2" />
-                        <h3 className="mb-1">{stats.activeUsers}</h3>
-                        <p className="text-muted mb-0">Active Users</p>
-                      </Card.Body>
-                    </Card>
-=======
           <Col lg={3} md={12} className="mb-4 mb-lg-0">
             <Sidebar />
           </Col>
 
-          {/* Main */}
           <Col lg={9} md={12}>
-            {/* Overview */}
             {activeTab === "overview" && (
               <>
                 <Row xs={1} md={2} xl={4} className="g-3 mb-4">
@@ -474,18 +284,10 @@ const AdminDashboard: React.FC = () => {
                   </Col>
                   <Col>
                     <StatCard icon={faUsers} value={stats.activeUsers} label="Active Users" iconClass="text-info" />
->>>>>>> d10b605ae1d1ea72009642866363dbf201a1e5b0
                   </Col>
                 </Row>
 
                 <Card className="border-0 shadow-sm">
-<<<<<<< HEAD
-                  <Card.Header className="bg-white">
-                    <h5 className="mb-0">System Activity</h5>
-                  </Card.Header>
-                  <Card.Body>
-                    <p className="text-muted">Recent system activities and statistics will be displayed here.</p>
-=======
                   <Card.Header className="bg-white d-flex align-items-center justify-content-between">
                     <h5 className="mb-0">System Activity</h5>
                     <Button variant="outline-secondary" size="sm" style={compactBtnStyle}>
@@ -494,31 +296,11 @@ const AdminDashboard: React.FC = () => {
                   </Card.Header>
                   <Card.Body>
                     <p className="text-muted mb-0">Recent system activities and statistics will appear here.</p>
->>>>>>> d10b605ae1d1ea72009642866363dbf201a1e5b0
                   </Card.Body>
                 </Card>
               </>
             )}
 
-<<<<<<< HEAD
-            {/* Users Tab */}
-            {activeTab === 'users' && (
-              <Card className="border-0 shadow-sm">
-                <Card.Header className="bg-white d-flex justify-content-between align-items-center">
-                  <h5 className="mb-0">User Management</h5>
-                  <Button 
-                    variant="primary" 
-                    size="sm"
-                    onClick={() => navigate('/admin/users/create')}
-                  >
-                    <FontAwesomeIcon icon={faPlus} className="me-1" />
-                    Add User
-                  </Button>
-                </Card.Header>
-                <Card.Body>
-                  <Table responsive hover>
-=======
-            {/* Users */}
             {activeTab === "users" && (
               <Card className="border-0 shadow-sm">
                 <Card.Header className="bg-white d-flex flex-wrap gap-2 align-items-center justify-content-between">
@@ -550,7 +332,6 @@ const AdminDashboard: React.FC = () => {
                 </Card.Header>
                 <Card.Body>
                   <Table responsive hover className="align-middle">
->>>>>>> d10b605ae1d1ea72009642866363dbf201a1e5b0
                     <thead>
                       <tr>
                         <th>ID</th>
@@ -558,36 +339,15 @@ const AdminDashboard: React.FC = () => {
                         <th>Email</th>
                         <th>Role</th>
                         <th>Status</th>
-<<<<<<< HEAD
-                        <th>Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {users.map(user => (
-=======
                         <th className="text-end">Actions</th>
                       </tr>
                     </thead>
                     <tbody>
                       {filteredUsers.map((user) => (
->>>>>>> d10b605ae1d1ea72009642866363dbf201a1e5b0
                         <tr key={user.id}>
                           <td>{user.id}</td>
                           <td>{user.username}</td>
                           <td>{user.email}</td>
-<<<<<<< HEAD
-                          <td>{getRoleDisplayName(user.role as UserRole)}</td>
-                          <td>{getStatusBadge(user.status)}</td>
-                          <td>
-                            <Button variant="outline-primary" size="sm" className="me-1">
-                              <FontAwesomeIcon icon={faEdit} />
-                            </Button>
-                            <Button 
-                              variant="outline-danger" 
-                              size="sm"
-                              onClick={() => handleDeleteUser(user.id)}
-                            >
-=======
                           <td>{getRoleDisplayName(toUserRoleEnum(user.role))}</td>
                           <td>
                             <StatusBadge status={user.status} />
@@ -597,14 +357,11 @@ const AdminDashboard: React.FC = () => {
                               <FontAwesomeIcon icon={faPen} />
                             </Button>
                             <Button variant="outline-danger" size="sm" onClick={() => handleDeleteUser(user.id)} aria-label={`Delete ${user.username}`} style={compactBtnStyle}>
->>>>>>> d10b605ae1d1ea72009642866363dbf201a1e5b0
                               <FontAwesomeIcon icon={faTrash} />
                             </Button>
                           </td>
                         </tr>
                       ))}
-<<<<<<< HEAD
-=======
                       {filteredUsers.length === 0 && (
                         <tr>
                           <td colSpan={6} className="text-center text-muted py-4">
@@ -612,32 +369,12 @@ const AdminDashboard: React.FC = () => {
                           </td>
                         </tr>
                       )}
->>>>>>> d10b605ae1d1ea72009642866363dbf201a1e5b0
                     </tbody>
                   </Table>
                 </Card.Body>
               </Card>
             )}
 
-<<<<<<< HEAD
-            {/* Surveys Tab */}
-            {activeTab === 'surveys' && (
-              <Card className="border-0 shadow-sm">
-                <Card.Header className="bg-white d-flex justify-content-between align-items-center">
-                  <h5 className="mb-0">Survey Management</h5>
-                  <Button 
-                    variant="primary" 
-                    size="sm"
-                    onClick={() => navigate('/create-survey')}
-                  >
-                    <FontAwesomeIcon icon={faPlus} className="me-1" />
-                    Create Survey
-                  </Button>
-                </Card.Header>
-                <Card.Body>
-                  <Table responsive hover>
-=======
-            {/* Surveys */}
             {activeTab === "surveys" && (
               <Card className="border-0 shadow-sm">
                 <Card.Header className="bg-white d-flex flex-wrap gap-2 align-items-center justify-content-between">
@@ -669,7 +406,6 @@ const AdminDashboard: React.FC = () => {
                 </Card.Header>
                 <Card.Body>
                   <Table responsive hover className="align-middle">
->>>>>>> d10b605ae1d1ea72009642866363dbf201a1e5b0
                     <thead>
                       <tr>
                         <th>ID</th>
@@ -677,36 +413,16 @@ const AdminDashboard: React.FC = () => {
                         <th>Creator</th>
                         <th>Responses</th>
                         <th>Status</th>
-<<<<<<< HEAD
-                        <th>Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {surveys.map(survey => (
-=======
                         <th className="text-end">Actions</th>
                       </tr>
                     </thead>
                     <tbody>
                       {filteredSurveys.map((survey) => (
->>>>>>> d10b605ae1d1ea72009642866363dbf201a1e5b0
                         <tr key={survey.id}>
                           <td>{survey.id}</td>
                           <td>{survey.title}</td>
                           <td>{survey.creator}</td>
                           <td>{survey.responses}</td>
-<<<<<<< HEAD
-                          <td>{getStatusBadge(survey.status)}</td>
-                          <td>
-                            <Button variant="outline-primary" size="sm" className="me-1">
-                              <FontAwesomeIcon icon={faEdit} />
-                            </Button>
-                            <Button 
-                              variant="outline-danger" 
-                              size="sm"
-                              onClick={() => handleDeleteSurvey(survey.id)}
-                            >
-=======
                           <td>
                             <StatusBadge status={survey.status} />
                           </td>
@@ -715,14 +431,11 @@ const AdminDashboard: React.FC = () => {
                               <FontAwesomeIcon icon={faPen} />
                             </Button>
                             <Button variant="outline-danger" size="sm" onClick={() => handleDeleteSurvey(survey.id)} aria-label={`Delete ${survey.title}`} style={compactBtnStyle}>
->>>>>>> d10b605ae1d1ea72009642866363dbf201a1e5b0
                               <FontAwesomeIcon icon={faTrash} />
                             </Button>
                           </td>
                         </tr>
                       ))}
-<<<<<<< HEAD
-=======
                       {filteredSurveys.length === 0 && (
                         <tr>
                           <td colSpan={6} className="text-center text-muted py-4">
@@ -730,30 +443,19 @@ const AdminDashboard: React.FC = () => {
                           </td>
                         </tr>
                       )}
->>>>>>> d10b605ae1d1ea72009642866363dbf201a1e5b0
                     </tbody>
                   </Table>
                 </Card.Body>
               </Card>
             )}
 
-<<<<<<< HEAD
-            {/* Settings Tab */}
-            {activeTab === 'settings' && (
-=======
-            {/* Settings */}
             {activeTab === "settings" && (
->>>>>>> d10b605ae1d1ea72009642866363dbf201a1e5b0
               <Card className="border-0 shadow-sm">
                 <Card.Header className="bg-white">
                   <h5 className="mb-0">System Settings</h5>
                 </Card.Header>
                 <Card.Body>
-<<<<<<< HEAD
-                  <p className="text-muted">System configuration and settings will be available here.</p>
-=======
                   <p className="text-muted mb-0">System configuration and settings will be available here.</p>
->>>>>>> d10b605ae1d1ea72009642866363dbf201a1e5b0
                 </Card.Body>
               </Card>
             )}
@@ -764,8 +466,4 @@ const AdminDashboard: React.FC = () => {
   );
 };
 
-<<<<<<< HEAD
 export default AdminDashboard;
-=======
-export default AdminDashboard;
->>>>>>> d10b605ae1d1ea72009642866363dbf201a1e5b0

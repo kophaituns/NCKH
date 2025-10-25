@@ -1,4 +1,4 @@
-import axios, { AxiosResponse, AxiosError } from 'axios';
+import axios, { AxiosError, AxiosResponse, InternalAxiosRequestConfig } from 'axios';
 import { 
   User, 
   Survey, 
@@ -13,40 +13,109 @@ import {
   LLMResponse,
   DashboardStats
 } from '../types';
+import { TokenService } from './tokenService';
+import { logger, LogLevel, network } from './services';
 
 // API base configuration
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+export const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
 
 const api = axios.create({
-  baseURL: API_BASE_URL,
+  baseURL: API_URL,
+  timeout: 10000,
   headers: {
     'Content-Type': 'application/json',
   },
 });
 
-// Request interceptor to add auth token
+// Request interceptor
 api.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem('authToken');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+  (config: InternalAxiosRequestConfig) => {
+    // Check network connectivity
+    if (!network.checkConnectivity()) {
+      return Promise.reject(new Error('No internet connection'));
+    }
+
+    const tokens = TokenService.getStoredTokensSync();
+    if (tokens?.accessToken) {
+      config.headers.Authorization = `Bearer ${tokens.accessToken}`;
     }
     return config;
   },
-  (error) => {
+  (error: AxiosError) => {
+    console.error('Request error:', error);
     return Promise.reject(error);
   }
 );
 
-// Response interceptor for error handling
+// Response interceptor
 api.interceptors.response.use(
-  (response: AxiosResponse) => response,
-  (error: AxiosError) => {
-    if (error.response?.status === 401) {
-      localStorage.removeItem('authToken');
-      localStorage.removeItem('user');
-      window.location.href = '/login';
+  (response: AxiosResponse) => {
+    // Log successful responses if needed
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`[${response.config.method?.toUpperCase()}] ${response.config.url}`, {
+        status: response.status,
+        data: response.data,
+      });
     }
+    return response;
+  },
+  async (error: AxiosError) => {
+    const originalRequest = error.config;
+
+    // Log error with logger service
+    logger.log(LogLevel.ERROR, '[API Error]', {
+      url: originalRequest?.url,
+      method: originalRequest?.method,
+      status: error.response?.status,
+      error: error.response?.data || error.message,
+    });
+
+    // Handle token expiration
+    if (error.response?.status === 401 && originalRequest && !originalRequest?.headers?.['X-Retry']) {
+      try {
+        const tokens = TokenService.getStoredTokensSync();
+        if (!tokens?.refreshToken) {
+          throw new Error('No refresh token available');
+        }
+
+        // Try to refresh the token
+        const response = await axios.post(`${API_URL}/auth/refresh`, {
+          refreshToken: tokens.refreshToken,
+        });
+
+        const { token: newToken, refreshToken: newRefreshToken } = response.data;
+        await TokenService.saveTokens(newToken, newRefreshToken);
+
+        // Retry the original request
+        if (originalRequest.headers) {
+          originalRequest.headers.Authorization = `Bearer ${newToken}`;
+          originalRequest.headers['X-Retry'] = 'true';
+        }
+        return axios(originalRequest);
+      } catch (refreshError) {
+        // If refresh fails, log out the user
+        TokenService.clearAll();
+        window.location.href = '/login';
+        return Promise.reject(refreshError);
+      }
+    }
+
+    // Handle network errors
+    if (!error.response) {
+      return Promise.reject({
+        message: 'Network error. Please check your internet connection.',
+        isNetworkError: true,
+      });
+    }
+
+    // Handle rate limiting
+    if (error.response.status === 429) {
+      return Promise.reject({
+        message: 'Too many requests. Please try again later.',
+        isRateLimit: true,
+      });
+    }
+
     return Promise.reject(error);
   }
 );

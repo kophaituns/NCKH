@@ -1,6 +1,7 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
+import ErrorBoundary from './components/Common/ErrorBoundary';
 import LandingPage from './components/Common/LandingPage';
 import LoginPage from './components/Common/LoginPage';
 import SignUpPage from './components/Common/SignUpPage';
@@ -19,10 +20,11 @@ import './styles/main.scss';
 
 function App() {
   return (
-    <AuthProvider>
-      <Router>
-        <div className="App">
-          <Routes>
+    <ErrorBoundary>
+      <AuthProvider>
+        <Router>
+          <div className="App">
+            <Routes>
             {/* Public Routes */}
             <Route path="/" element={<LandingPage />} />
             <Route path="/login" element={<LoginPage />} />
@@ -97,6 +99,7 @@ function App() {
         </div>
       </Router>
     </AuthProvider>
+    </ErrorBoundary>
   );
 }
 

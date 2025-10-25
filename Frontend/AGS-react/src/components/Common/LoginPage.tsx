@@ -1,43 +1,67 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-<<<<<<< HEAD
+import { useFormValidation } from '../../hooks/useFormValidation';
+import { emailRules } from '../../services/validationService';
 import { Container, Row, Col, Card, Form, Button, Alert } from 'react-bootstrap';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faRobot, faEnvelope, faLock, faChevronRight } from '@fortawesome/free-solid-svg-icons';
-=======
-import { Container, Row, Col, Card, Form, Button, Alert, InputGroup } from 'react-bootstrap';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faRobot, faEnvelope, faLock, faChevronRight, faEye, faEyeSlash } from '@fortawesome/free-solid-svg-icons';
->>>>>>> d10b605ae1d1ea72009642866363dbf201a1e5b0
 import { useAuth } from '../../contexts/AuthContext';
 
 const LoginPage: React.FC = () => {
   const navigate = useNavigate();
-  const { login, state } = useAuth();
-  const [formData, setFormData] = useState({
-    email: '',
-    password: '',
-  });
-<<<<<<< HEAD
-=======
+  const { login, state, dispatch } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
->>>>>>> d10b605ae1d1ea72009642866363dbf201a1e5b0
-
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value,
-    }));
-  };
+  
+  const {
+    values: formData,
+    errors,
+    touched,
+    handleChange: handleInputChange,
+    handleBlur,
+    validateForm,
+  } = useFormValidation({
+    initialValues: {
+      email: '',
+      password: '',
+    },
+    validations: {
+      email: {
+        required: true,
+        customRules: emailRules,
+      },
+      password: {
+        required: true,
+        minLength: 6,
+      },
+    },
+  });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validate all fields
+    if (!validateForm()) {
+      return;
+    }
+
     try {
       await login(formData.email, formData.password);
       navigate('/dashboard');
     } catch (error) {
+      // Handle error display
+      const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
+      dispatch({
+        type: 'LOGIN_FAILURE',
+        payload: errorMessage
+      });
+      
+      // Log error for debugging
       console.error('Login failed:', error);
+      
+      // Clear error after 5 seconds
+      setTimeout(() => {
+        dispatch({ type: 'CLEAR_ERROR' });
+      }, 5000);
     }
   };
 
@@ -91,18 +115,20 @@ const LoginPage: React.FC = () => {
                       name="email"
                       value={formData.email}
                       onChange={handleInputChange}
+                      onBlur={handleBlur}
                       placeholder="Enter your email address"
-                      required
+                      isInvalid={touched.email && errors.email.length > 0}
                       className="form-control-enhanced"
                       disabled={state.isLoading}
                     />
+                    {touched.email && errors.email.length > 0 && (
+                      <Form.Control.Feedback type="invalid">
+                        {errors.email[0]}
+                      </Form.Control.Feedback>
+                    )}
                   </div>
 
-<<<<<<< HEAD
-                  <div className="form-group-enhanced">
-=======
                   <div className="form-group-enhanced position-relative">
->>>>>>> d10b605ae1d1ea72009642866363dbf201a1e5b0
                     <Form.Label className="form-label-enhanced">
                       <span className="form-icon">
                         <FontAwesomeIcon icon={faLock} />
@@ -110,37 +136,21 @@ const LoginPage: React.FC = () => {
                       Password
                     </Form.Label>
                     <Form.Control
-<<<<<<< HEAD
-                      type="password"
-=======
                       type={showPassword ? "text" : "password"}
->>>>>>> d10b605ae1d1ea72009642866363dbf201a1e5b0
                       name="password"
                       value={formData.password}
                       onChange={handleInputChange}
+                      onBlur={handleBlur}
                       placeholder="Enter your password"
-                      required
+                      isInvalid={touched.password && errors.password.length > 0}
                       className="form-control-enhanced"
                       disabled={state.isLoading}
                     />
-<<<<<<< HEAD
-                  </div>
-
-                  <div className="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center mb-4">
-                    <div className="form-check form-check-enhanced">
-                      <Form.Check
-                        type="checkbox"
-                        id="remember-me"
-                        label="Remember me"
-                        className="form-check-input"
-                      />
-                    </div>
-                    <Button variant="link" className="p-0 auth-link">
-                      Forgot password?
-                    </Button>
-                  </div>
-
-=======
+                    {touched.password && errors.password.length > 0 && (
+                      <Form.Control.Feedback type="invalid">
+                        {errors.password[0]}
+                      </Form.Control.Feedback>
+                    )}
                     <span
                       className="toggle-password-visibility"
                       style={{
@@ -161,22 +171,21 @@ const LoginPage: React.FC = () => {
                   </div>
 
                   <div className="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center mb-4">
-                      <div className="d-flex align-items-center gap-2">
-                       <input
+                    <div className="d-flex align-items-center gap-2">
+                      <input
                         type="checkbox"
-                       id="remember-me"
-                       className="form-check-input"
-                       style={{ width: 18, height: 18, marginRight: 8 }}
+                        id="remember-me"
+                        className="form-check-input"
+                        style={{ width: 18, height: 18, marginRight: 8 }}
                       />
-                   <label htmlFor="remember-me" style={{ margin: 0, fontWeight: 400, color: "#6b7280", fontSize: "1rem", cursor: "pointer" }}>
-                      Remember me
-                  </label>
-                   </div>
-                   <Button variant="link" className="p-0 auth-link">
-                    Forgot password?
-                  </Button>
+                      <label htmlFor="remember-me" style={{ margin: 0, fontWeight: 400, color: "#6b7280", fontSize: "1rem", cursor: "pointer" }}>
+                        Remember me
+                      </label>
+                    </div>
+                    <Button variant="link" className="p-0 auth-link">
+                      Forgot password?
+                    </Button>
                   </div>
->>>>>>> d10b605ae1d1ea72009642866363dbf201a1e5b0
                   <Button
                     type="submit"
                     className="btn-auth-enhanced w-100"
