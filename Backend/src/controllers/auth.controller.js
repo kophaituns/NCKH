@@ -59,10 +59,18 @@ exports.register = async (req, res) => {
       { expiresIn: process.env.JWT_EXPIRES_IN }
     );
 
+    // Generate refresh token (longer expiration)
+    const refreshToken = jwt.sign(
+      { id: newUser.id, username: newUser.username },
+      process.env.JWT_SECRET,
+      { expiresIn: '7d' }
+    );
+
     return res.status(201).json({
       success: true,
       message: 'User registered successfully',
       token,
+      refreshToken,
       user: {
         id: newUser.id,
         username: newUser.username,
@@ -134,10 +142,18 @@ exports.login = async (req, res) => {
       { expiresIn: process.env.JWT_EXPIRES_IN }
     );
 
+    // Generate refresh token (longer expiration)
+    const refreshToken = jwt.sign(
+      { id: user.id, username: user.username },
+      process.env.JWT_SECRET,
+      { expiresIn: '7d' }
+    );
+
     return res.status(200).json({
       success: true,
       message: 'Login successful',
       token,
+      refreshToken,
       user: {
         id: user.id,
         username: user.username,
@@ -267,6 +283,63 @@ exports.changePassword = async (req, res) => {
     return res.status(500).json({
       error: true,
       message: 'Internal server error',
+    });
+  }
+};
+
+/**
+ * Refresh access token
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ */
+exports.refreshToken = async (req, res) => {
+  try {
+    const { refreshToken } = req.body;
+
+    if (!refreshToken) {
+      return res.status(400).json({
+        success: false,
+        message: 'Refresh token is required'
+      });
+    }
+
+    // Verify refresh token
+    const decoded = jwt.verify(refreshToken, process.env.JWT_SECRET);
+
+    // Find user
+    const user = await User.findByPk(decoded.id);
+    if (!user) {
+      return res.status(401).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    // Generate new access token
+    const newAccessToken = jwt.sign(
+      { id: user.id, username: user.username, role: user.role },
+      process.env.JWT_SECRET,
+      { expiresIn: process.env.JWT_EXPIRES_IN }
+    );
+
+    // Generate new refresh token
+    const newRefreshToken = jwt.sign(
+      { id: user.id, username: user.username },
+      process.env.JWT_SECRET,
+      { expiresIn: '7d' }
+    );
+
+    return res.status(200).json({
+      success: true,
+      message: 'Token refreshed successfully',
+      token: newAccessToken,
+      refreshToken: newRefreshToken
+    });
+  } catch (error) {
+    logger.error('Error refreshing token:', error);
+    return res.status(401).json({
+      success: false,
+      message: 'Invalid or expired refresh token'
     });
   }
 };

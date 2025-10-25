@@ -24,14 +24,16 @@ const PORT = process.env.PORT || 5000;
 app.use(helmet()); // Security headers
 app.use(cors({
   origin: [
-    'http://localhost:3001', // React dev server (Frontend)
-    'http://127.0.0.1:3001', // Alternative localhost format
-    'http://localhost:3000', // Fallback for other dev environments
-    'http://127.0.0.1:3000'
+    'http://localhost:3000', // React dev server (Frontend)
+    'http://127.0.0.1:3000', // Alternative localhost format
+    'http://localhost:3001', // Fallback for other dev environments
+    'http://127.0.0.1:3001',
+    'http://localhost:3002', // Additional port
+    'http://127.0.0.1:3002'
   ],
   credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-CSRF-Token']
 })); // Enable CORS for frontend
 app.use(express.json()); // Parse JSON bodies
 app.use(express.urlencoded({ extended: true })); // Parse URL-encoded bodies
