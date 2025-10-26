@@ -1,0 +1,43 @@
+.container {
+  max-width: 600px;
+  margin: 2rem auto;
+}
+
+.alert {
+  border-radius: 8px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.buttonGroup {
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.button {
+  min-width: 120px;
+  transition: all 0.2s ease;
+
+  &:hover {
+    transform: translateY(-2px);
+  }
+}
+
+.details {
+  margin: 1.5rem 0;
+  padding: 1rem;
+  background-color: #f3f4f6;
+  border-radius: 6px;
+  border: 1px solid #e5e7eb;
+}
+
+.errorStack {
+  background-color: white;
+  padding: 1rem;
+  border-radius: 4px;
+  border: 1px solid #e5e7eb;
+  font-size: 0.85rem;
+  color: #1f2937;
+  overflow-x: auto;
+  max-height: 300px;
+  overflow-y: auto;
+}

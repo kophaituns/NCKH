@@ -1,0 +1,178 @@
+.container {
+  background-color: white;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.tableWrapper {
+  overflow-x: auto;
+
+  &::-webkit-scrollbar {
+    height: 6px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: #f9fafb;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: #d1d5db;
+    border-radius: 3px;
+
+    &:hover {
+      background: #9ca3af;
+    }
+  }
+}
+
+.table {
+  margin-bottom: 0;
+  border-collapse: collapse;
+
+  th,
+  td {
+    border-color: #e5e7eb;
+  }
+}
+
+.thead {
+  background-color: #f9fafb;
+  border-bottom: 2px solid #e5e7eb;
+
+  th {
+    font-weight: 600;
+    color: #374151;
+    text-transform: uppercase;
+    font-size: 0.8rem;
+    letter-spacing: 0.05em;
+    padding: 1rem;
+    vertical-align: middle;
+
+    &.sortable {
+      cursor: pointer;
+      user-select: none;
+      transition: background-color 0.2s ease;
+
+      &:hover {
+        background-color: #f3f4f6;
+      }
+    }
+  }
+}
+
+.headerContent {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.sortIcon {
+  color: #d1d5db;
+  font-size: 0.75rem;
+}
+
+.sortIconActive {
+  color: #10b981;
+  font-size: 0.75rem;
+}
+
+.tbody {
+  tr {
+    transition: background-color 0.2s ease;
+
+    &:hover {
+      background-color: #f9fafb;
+    }
+
+    td {
+      padding: 1rem;
+      vertical-align: middle;
+      color: #6b7280;
+    }
+  }
+}
+
+.row {
+  border-bottom: 1px solid #e5e7eb;
+
+  &:last-child {
+    border-bottom: none;
+  }
+}
+
+.actionsHeader {
+  text-align: center;
+  font-weight: 600;
+  color: #374151;
+  text-transform: uppercase;
+  font-size: 0.8rem;
+  letter-spacing: 0.05em;
+  padding: 1rem;
+}
+
+.actionsCell {
+  text-align: center;
+}
+
+.actions {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.actionBtn {
+  padding: 0.35rem 0.6rem;
+  font-size: 0.85rem;
+  transition: all 0.2s ease;
+
+  &:hover {
+    transform: translateY(-2px);
+  }
+}
+
+.center {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 200px;
+}
+
+.emptyCard {
+  background-color: #f9fafb;
+  border-radius: 8px;
+  border: 1px dashed #d1d5db;
+}
+
+.emptyBody {
+  padding: 3rem 2rem;
+  text-align: center;
+}
+
+.emptyText {
+  color: #9ca3af;
+  margin: 0;
+  font-size: 1rem;
+}
+
+@media (max-width: 768px) {
+  .table {
+    font-size: 0.9rem;
+
+    th,
+    td {
+      padding: 0.75rem;
+    }
+  }
+
+  .actionBtn {
+    padding: 0.25rem 0.4rem;
+    font-size: 0.75rem;
+
+    span {
+      display: none;
+    }
+  }
+}
