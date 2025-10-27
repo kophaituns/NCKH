@@ -1,5 +1,4 @@
 import React, { Component } from 'react';
-import { Alert, Button, Container } from 'react-bootstrap';
 import styles from './ErrorBoundary.module.scss';
 
 class ErrorBoundary extends Component {
@@ -41,32 +40,30 @@ class ErrorBoundary extends Component {
   render() {
     if (this.state.hasError) {
       return (
-        <Container className={`my-5 ${styles.container}`}>
-          <Alert variant="danger" className={`text-center py-5 ${styles.alert}`}>
-            <Alert.Heading>Oops! Something went wrong</Alert.Heading>
-            <p>
+        <div className={styles.container}>
+          <div className={styles.alert}>
+            <h2 className={styles.heading}>Oops! Something went wrong</h2>
+            <p className={styles.message}>
               {this.state.error?.message || 'An unexpected error occurred'}
             </p>
-            <div className={`d-flex justify-content-center mt-3 ${styles.buttonGroup}`}>
-              <Button
-                variant="outline-danger"
+            <div className={styles.buttonGroup}>
+              <button
                 onClick={this.handleRetry}
-                className={styles.button}
+                className={`${styles.button} ${styles.buttonOutline}`}
               >
                 Try Again
-              </Button>
-              <Button
-                variant="danger"
+              </button>
+              <button
                 onClick={() => window.location.href = '/'}
-                className={styles.button}
+                className={`${styles.button} ${styles.buttonDanger}`}
               >
                 Go to Home
-              </Button>
+              </button>
             </div>
-          </Alert>
+          </div>
           {process.env.NODE_ENV === 'development' && this.state.errorInfo && (
-            <details className={`mt-3 text-muted ${styles.details}`}>
-              <summary>Error Details</summary>
+            <details className={styles.details}>
+              <summary className={styles.summary}>Error Details</summary>
               <pre className={styles.errorStack}>
                 {this.state.error?.toString()}
                 <br />
@@ -74,7 +71,7 @@ class ErrorBoundary extends Component {
               </pre>
             </details>
           )}
-        </Container>
+        </div>
       );
     }
 

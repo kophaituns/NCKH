@@ -1,5 +1,5 @@
 import React from 'react';
-import { default as LoginPageComponent } from '../../../../components/Common/LoginPage.jsx';
+import { default as LoginPageComponent } from '../../../component/Common/LoginPage.jsx';
 import styles from './Login.module.scss';
 
 function Login() {

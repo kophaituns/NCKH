@@ -1,5 +1,5 @@
-import React from 'react';
-import { default as ManageUsersPageComponent } from '../../../../components/Admin/ManageUsersPage.jsx';
+
+import { default as ManageUsersPageComponent } from '../../../component/Admin/ManageUsersPage.jsx';
 import styles from './ManageUsers.module.scss';
 
 function ManageUsers() {

@@ -1,5 +1,5 @@
 import React from 'react';
-import { default as SurveyResponsePageComponent } from '../../../../components/Student/SurveyResponsePage.jsx';
+import { default as SurveyResponsePageComponent } from '../../../component/Student/SurveyResponsePage.jsx';
 import styles from './Response.module.scss';
 
 function SurveyResponse() {

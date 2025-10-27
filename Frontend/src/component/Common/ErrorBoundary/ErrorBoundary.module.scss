@@ -1,24 +1,69 @@
 .container {
   max-width: 600px;
   margin: 2rem auto;
+  padding: 0 1rem;
 }
 
 .alert {
+  border: 1px solid #fecaca;
   border-radius: 8px;
+  background-color: #fef2f2;
+  padding: 2rem;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  text-align: center;
+}
+
+.heading {
+  color: #dc2626;
+  margin-bottom: 1rem;
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+.message {
+  color: #991b1b;
+  margin-bottom: 1.5rem;
+  line-height: 1.6;
 }
 
 .buttonGroup {
+  display: flex;
   gap: 0.75rem;
+  justify-content: center;
   flex-wrap: wrap;
 }
 
 .button {
-  min-width: 120px;
+  padding: 0.75rem 1.5rem;
+  font-size: 1rem;
+  font-weight: 500;
+  border-radius: 6px;
+  cursor: pointer;
   transition: all 0.2s ease;
+  border: none;
+  min-width: 120px;
 
   &:hover {
     transform: translateY(-2px);
+  }
+}
+
+.buttonOutline {
+  border: 2px solid #dc2626;
+  color: #dc2626;
+  background-color: white;
+
+  &:hover {
+    background-color: #fef2f2;
+  }
+}
+
+.buttonDanger {
+  background-color: #dc2626;
+  color: white;
+
+  &:hover {
+    background-color: #991b1b;
   }
 }
 
@@ -28,6 +73,18 @@
   background-color: #f3f4f6;
   border-radius: 6px;
   border: 1px solid #e5e7eb;
+  color: #6b7280;
+}
+
+.summary {
+  cursor: pointer;
+  font-weight: 600;
+  padding: 0.5rem;
+  user-select: none;
+
+  &:hover {
+    color: #374151;
+  }
 }
 
 .errorStack {
@@ -40,4 +97,6 @@
   overflow-x: auto;
   max-height: 300px;
   overflow-y: auto;
+  margin-top: 0.75rem;
+  font-family: 'Courier New', monospace;
 }
