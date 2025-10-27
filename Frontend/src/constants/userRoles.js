@@ -1,11 +1,11 @@
-// User Types
+// User Role Constants
 export const UserRole = {
   ADMIN: 'admin',
-  TEACHER: 'teacher', 
+  TEACHER: 'teacher',
   STUDENT: 'student'
 };
 
-// Survey Types
+// Survey Status Constants
 export const SurveyStatus = {
   DRAFT: 'draft',
   ACTIVE: 'active',
@@ -13,7 +13,7 @@ export const SurveyStatus = {
   COMPLETED: 'completed'
 };
 
-// Question Types
+// Question Type Constants
 export const QuestionType = {
   MULTIPLE_CHOICE: 'multiple_choice',
   SINGLE_CHOICE: 'single_choice',
@@ -25,4 +25,3 @@ export const QuestionType = {
   RATING: 'rating',
   BOOLEAN: 'boolean'
 };
- 

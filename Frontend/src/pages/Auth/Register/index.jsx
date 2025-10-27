@@ -1,5 +1,5 @@
 import React from 'react';
-import { default as SignUpPageComponent } from '../../../../components/Common/SignUpPage.jsx';
+import { default as SignUpPageComponent } from '../../../component/Common/SignUpPage.jsx';
 import styles from './Register.module.scss';
 
 function Register() {

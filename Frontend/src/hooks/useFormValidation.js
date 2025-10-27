@@ -1,130 +1,105 @@
-import { useState, useCallback } from 'react';
-import { ValidationService, FieldValidation, ValidationResult } from '../services/validationService.jsx';
+import { useState } from 'react';
 
-interface UseFormValidationProps<T> {
-  initialValues: T;
-  validations: Record<keyof T, FieldValidation>;
-}
-
-interface UseFormValidationReturn<T> {
-  values: T;
-  errors: Record<keyof T, string[]>;
-  touched: Record<keyof T, boolean>;
-  handleChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  handleBlur: (e: React.FocusEvent<HTMLInputElement>) => void;
-  validateField: (name: keyof T) => void;
-  validateForm: () => boolean;
-  setFieldValue: (name: keyof T, value) => void;
-  resetForm: () => void;
-  isValid: boolean;
-}
-
-export function useFormValidation<T extends Record<string, string>>({
-  initialValues,
-  validations,
-}): UseFormValidationReturn<T> {
+// Simple form validation hook
+export function useFormValidation({ initialValues = {}, validations = {} }) {
   const [values, setValues] = useState(initialValues);
-  const [errors, setErrors] = useState>(() => {
-    const initialErrors: Partial<Record<keyof T, string[]>> = {};
-    Object.keys(initialValues).forEach((key) => {
-      initialErrors[key T] = [];
-    });
-    return initialErrors;
-  });
-  const [touched, setTouched] = useState>(() => {
-    const initialTouched: Partial<Record<keyof T, boolean>> = {};
-    Object.keys(initialValues).forEach((key) => {
-      initialTouched[key T] = false;
-    });
-    return initialTouched;
-  });
+  const [errors, setErrors] = useState({});
+  const [touched, setTouched] = useState({});
 
-  const validateField = useCallback((name: keyof T) => {
-    const validation = validations[name];
-    const value = values[name];
-    const result = ValidationService.validateField(value, validation);
-    
-    setErrors(prev => ({
-      ...prev,
-      [name]: result.errors,
-    }));
-
-    return result.isValid;
-  }, [values, validations]);
-
-  const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleChange = (e) => {
     const { name, value } = e.target;
     setValues(prev => ({
       ...prev,
-      [name],
+      [name]: value
     }));
     
-    if (touched[name T]) {
-      validateField(name T);
+    // Clear error when user types
+    if (errors[name]) {
+      setErrors(prev => ({
+        ...prev,
+        [name]: []
+      }));
     }
-  }, [touched, validateField]);
+  };
 
-  const handleBlur = useCallback((e: React.FocusEvent<HTMLInputElement>) => {
+  const handleBlur = (e) => {
     const { name } = e.target;
     setTouched(prev => ({
       ...prev,
-      [name],
+      [name]: true
     }));
-    validateField(name T);
-  }, [validateField]);
+    
+    // Validate field on blur
+    validateField(name);
+  };
 
-  const validateForm = useCallback((): boolean => {
-    const validationResults: Record<keyof T, ValidationResult> = {};
+  const validateField = (fieldName) => {
+    const fieldValidations = validations[fieldName];
+    if (!fieldValidations) return true;
 
-    Object.keys(values).forEach((key) => {
-      const fieldKey = key T;
-      validationResults[fieldKey] = ValidationService.validateField(
-        values[fieldKey],
-        validations[fieldKey]
-      );
+    const fieldErrors = [];
+    const value = values[fieldName];
+
+    // Check each validation rule
+    Object.entries(fieldValidations).forEach(([ruleName, rule]) => {
+      if (typeof rule === 'function') {
+        const error = rule(value);
+        if (error) {
+          fieldErrors.push(error);
+        }
+      } else if (typeof rule === 'object' && rule.validate) {
+        const error = rule.validate(value);
+        if (error) {
+          fieldErrors.push(error);
+        }
+      }
     });
 
-    const newErrors: Record<keyof T, string[]> = {};
-    Object.keys(validationResults).forEach((key) => {
-      const fieldKey = key T;
-      newErrors[fieldKey] = validationResults[fieldKey].errors;
+    setErrors(prev => ({
+      ...prev,
+      [fieldName]: fieldErrors
+    }));
+
+    return fieldErrors.length === 0;
+  };
+
+  const validateForm = () => {
+    let isValid = true;
+    const newErrors = {};
+
+    Object.keys(validations).forEach(fieldName => {
+      const fieldValidations = validations[fieldName];
+      const fieldErrors = [];
+      const value = values[fieldName];
+
+      Object.entries(fieldValidations).forEach(([ruleName, rule]) => {
+        if (typeof rule === 'function') {
+          const error = rule(value);
+          if (error) {
+            fieldErrors.push(error);
+            isValid = false;
+          }
+        } else if (typeof rule === 'object' && rule.validate) {
+          const error = rule.validate(value);
+          if (error) {
+            fieldErrors.push(error);
+            isValid = false;
+          }
+        }
+      });
+
+      newErrors[fieldName] = fieldErrors;
+      
+      // Mark field as touched
+      setTouched(prev => ({
+        ...prev,
+        [fieldName]: true
+      }));
     });
 
     setErrors(newErrors);
-    setTouched(
-      Object.keys(values).reduce(
-        (acc, key) => ({ ...acc, [key]: true }),
-        {}
-      )
-    );
-
-    return ValidationService.isFormValid(validationResults);
-  }, [values, validations]);
-
-  const setFieldValue = useCallback((name: keyof T, value) => {
-    setValues(prev => ({
-      ...prev,
-      [name],
-    }));
-  }, []);
-
-  const resetForm = useCallback(() => {
-    setValues(initialValues);
-    setErrors(
-      Object.keys(initialValues).reduce(
-        (acc, key) => ({ ...acc, [key]: [] }),
-        {}
-      )
-    );
-    setTouched(
-      Object.keys(initialValues).reduce(
-        (acc, key) => ({ ...acc, [key]: false }),
-        {}
-      )
-    );
-  }, [initialValues]);
-
-  const isValid = Object.values(errors).every((fieldErrors) => fieldErrors.length === 0);
+    return isValid;
+  };
 
   return {
     values,
@@ -133,9 +108,7 @@ export function useFormValidation<T extends Record<string, string>>({
     handleChange,
     handleBlur,
     validateField,
-    validateForm,
-    setFieldValue,
-    resetForm,
-    isValid,
+    validateForm
   };
 }
+

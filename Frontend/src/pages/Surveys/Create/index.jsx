@@ -1,5 +1,5 @@
 import React from 'react';
-import { default as CreateSurveyPageComponent } from '../../../../components/Admin/CreateSurveyPage.jsx';
+import { default as CreateSurveyPageComponent } from '../../../component/Admin/CreateSurveyPage.jsx';
 import styles from './Create.module.scss';
 
 function CreateSurvey() {

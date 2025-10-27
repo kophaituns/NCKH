@@ -1,5 +1,5 @@
 import React from 'react';
-import { default as SurveyManagementComponent } from '../../../../components/Common/SurveyManagement.jsx';
+import { default as SurveyManagementComponent } from '../../../component/Common/SurveyManagement.jsx';
 import styles from './List.module.scss';
 
 function SurveysList() {

@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { Table, Button, Card, Spinner } from 'react-bootstrap';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faEye, faEdit, faTrash, faSort, faSortUp, faSortDown } from '@fortawesome/free-solid-svg-icons';
 import styles from './ResponsiveTable.module.scss';
@@ -44,37 +43,34 @@ function ResponsiveTable({
   const renderActions = (item) => (
     <div className={styles.actions}>
       {onView && (
-        <Button 
-          size="sm" 
-          variant="outline-primary" 
+        <button 
           onClick={() => onView(item)}
           className={styles.actionBtn}
           title="View"
+          type="button"
         >
           <FontAwesomeIcon icon={faEye} />
-        </Button>
+        </button>
       )}
       {onEdit && (
-        <Button 
-          size="sm" 
-          variant="outline-warning" 
+        <button 
           onClick={() => onEdit(item)}
-          className={styles.actionBtn}
+          className={`${styles.actionBtn} ${styles.actionBtnWarning}`}
           title="Edit"
+          type="button"
         >
           <FontAwesomeIcon icon={faEdit} />
-        </Button>
+        </button>
       )}
       {onDelete && (
-        <Button 
-          size="sm" 
-          variant="outline-danger" 
+        <button 
           onClick={() => onDelete(item)}
-          className={styles.actionBtn}
+          className={`${styles.actionBtn} ${styles.actionBtnDanger}`}
           title="Delete"
+          type="button"
         >
           <FontAwesomeIcon icon={faTrash} />
-        </Button>
+        </button>
       )}
     </div>
   );
@@ -82,33 +78,31 @@ function ResponsiveTable({
   if (loading) {
     return (
       <div className={styles.center}>
-        <Spinner animation="border" role="status">
-          <span className="visually-hidden">Loading...</span>
-        </Spinner>
+        <div className={styles.spinner}></div>
       </div>
     );
   }
 
   if (data.length === 0) {
     return (
-      <Card className={`${styles.emptyCard} border-0`}>
-        <Card.Body className={styles.emptyBody}>
+      <div className={styles.emptyCard}>
+        <div className={styles.emptyBody}>
           <p className={styles.emptyText}>{emptyMessage}</p>
-        </Card.Body>
-      </Card>
+        </div>
+      </div>
     );
   }
 
   return (
     <div className={styles.container}>
       <div className={styles.tableWrapper}>
-        <Table responsive className={styles.table} hover>
+        <table className={styles.table}>
           <thead className={styles.thead}>
             <tr>
               {columns.map((column) => (
                 <th 
                   key={column.key}
-                  className={`${column.sortable ? styles.sortable : ''} ${column.hideMobile ? 'd-none d-md-table-cell' : ''}`}
+                  className={`${column.sortable ? styles.sortable : ''} ${column.hideMobile ? styles.hideMobile : ''}`}
                   onClick={column.sortable ? () => handleSort(column.key) : undefined}
                 >
                   <div className={styles.headerContent}>
@@ -128,7 +122,7 @@ function ResponsiveTable({
                 {columns.map((column) => (
                   <td 
                     key={column.key}
-                    className={`${column.hideMobile ? 'd-none d-md-table-cell' : ''}`}
+                    className={column.hideMobile ? styles.hideMobile : ''}
                   >
                     {column.render ? column.render(item[column.key], item) : item[column.key]}
                   </td>
@@ -139,7 +133,7 @@ function ResponsiveTable({
               </tr>
             ))}
           </tbody>
-        </Table>
+        </table>
       </div>
     </div>
   );

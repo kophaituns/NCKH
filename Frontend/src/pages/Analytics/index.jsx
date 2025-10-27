@@ -1,5 +1,5 @@
 import React from 'react';
-import { default as AnalyticsPageComponent } from '../../../components/Teacher/AnalyticsPage.jsx';
+import { default as AnalyticsPageComponent } from '../../component/Teacher/AnalyticsPage.jsx';
 import styles from './Analytics.module.scss';
 
 function Analytics() {

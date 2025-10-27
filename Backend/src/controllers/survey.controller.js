@@ -92,19 +92,19 @@ exports.getAllSurveys = async (req, res) => {
       ];
     }
 
-    // Get surveys
+    // Get surveys with creator info
     const { count, rows: surveys } = await Survey.findAndCountAll({
       where: whereClause,
       include: [
         {
-          model: User,
-          as: 'creator',
-          attributes: ['id', 'username', 'full_name', 'role']
-        },
-        {
           model: SurveyTemplate,
           as: 'template',
           attributes: ['id', 'title']
+        },
+        {
+          model: User,
+          as: 'creator',
+          attributes: ['id', 'username', 'full_name']
         }
       ],
       limit,

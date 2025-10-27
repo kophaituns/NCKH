@@ -1,38 +1,25 @@
-import React, { createContext, useContext, useReducer, ReactNode, useEffect } from 'react';
-import { User, UserRole } from '../types.jsx';
-import { TokenService } from '../services/tokenService.jsx';
-
-// Auth State
-
-// Auth Actions
- payload: { user: User; token: string; refreshToken: string } }
-  | { type: 'LOGIN_FAILURE'; payload: string }
-  | { type: 'LOGOUT' }
-  | { type: 'SET_USER'; payload: User }
-  | { type: 'CLEAR_ERROR' }
-  | { type: 'REFRESH_TOKEN_START' }
-  | { type: 'REFRESH_TOKEN_SUCCESS'; payload: { token: string; refreshToken: string } }
-  | { type: 'REFRESH_TOKEN_FAILURE' };
+import React, { createContext, useContext, useReducer, useEffect } from 'react';
+import { TokenService } from '../services/tokenService.js';
 
 // Initial state
-const initialState: AuthState = {
-  user,
+const initialState = {
+  user: null,
   token: TokenService.getStoredTokensSync()?.accessToken || null,
   refreshToken: TokenService.getStoredTokensSync()?.refreshToken || null,
-  isAuthenticated,
-  isLoading,
-  error,
+  isAuthenticated: false,
+  isLoading: false,
+  error: null,
   isRefreshing: false
 };
 
 // Auth reducer
-const authReducer = (state, action): AuthState => {
+const authReducer = (state, action) => {
   switch (action.type) {
     case 'LOGIN_START':
       return {
         ...state,
-        isLoading,
-        error,
+        isLoading: true,
+        error: null,
       };
     case 'LOGIN_SUCCESS':
       return {
@@ -40,62 +27,62 @@ const authReducer = (state, action): AuthState => {
         user: action.payload.user,
         token: action.payload.token,
         refreshToken: action.payload.refreshToken,
-        isAuthenticated,
-        isLoading,
-        error,
+        isAuthenticated: true,
+        isLoading: false,
+        error: null,
       };
     case 'LOGIN_FAILURE':
       return {
         ...state,
-        user,
-        token,
-        refreshToken,
-        isAuthenticated,
-        isLoading,
+        user: null,
+        token: null,
+        refreshToken: null,
+        isAuthenticated: false,
+        isLoading: false,
         error: action.payload,
       };
     case 'LOGOUT':
       return {
         ...state,
-        user,
-        token,
-        refreshToken,
-        isAuthenticated,
-        isLoading,
-        error,
-        isRefreshing,
+        user: null,
+        token: null,
+        refreshToken: null,
+        isAuthenticated: false,
+        isLoading: false,
+        error: null,
+        isRefreshing: false,
       };
     case 'SET_USER':
       return {
         ...state,
         user: action.payload,
-        isAuthenticated,
+        isAuthenticated: true,
       };
     case 'CLEAR_ERROR':
       return {
         ...state,
-        error,
+        error: null,
       };
     case 'REFRESH_TOKEN_START':
       return {
         ...state,
-        isRefreshing,
+        isRefreshing: true,
       };
     case 'REFRESH_TOKEN_SUCCESS':
       return {
         ...state,
         token: action.payload.token,
         refreshToken: action.payload.refreshToken,
-        isRefreshing,
+        isRefreshing: false,
       };
     case 'REFRESH_TOKEN_FAILURE':
       return {
         ...state,
-        user,
-        token,
-        refreshToken,
-        isAuthenticated,
-        isRefreshing,
+        user: null,
+        token: null,
+        refreshToken: null,
+        isAuthenticated: false,
+        isRefreshing: false,
       };
     default:
       return state;
@@ -103,16 +90,14 @@ const authReducer = (state, action): AuthState => {
 };
 
 // Auth Context
-
 const AuthContext = createContext(undefined);
 
 // Auth Provider
-
-export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
+export const AuthProvider = ({ children }) => {
   const [state, dispatch] = useReducer(authReducer, initialState);
 
   // Refresh token function
-  const refreshAuthToken = async (): Promise<void> => {
+  const refreshAuthToken = async () => {
     dispatch({ type: 'REFRESH_TOKEN_START' });
     try {
       const refreshToken = state.refreshToken;
@@ -120,7 +105,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         throw new Error('No refresh token available');
       }
 
-      const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+      const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api/v1';
       const response = await fetch(`${API_URL}/auth/refresh`, {
         method: 'POST',
         headers: {
@@ -179,10 +164,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   }, [state.token]);
 
   // Login function
-  const login = async (email, password): Promise<void> => {
+  const login = async (email, password) => {
     dispatch({ type: 'LOGIN_START' });
     try {
-      const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+      const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api/v1';
       
       // Input validation
       if (!email || !password) {
@@ -222,7 +207,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       }
 
       const data = await response.json();
-      const user: User = {
+      const userObj = {
         id: data.user.id.toString(),
         username: data.user.username,
         email: data.user.email,
@@ -236,12 +221,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       };
 
       TokenService.saveTokens(data.token, data.refreshToken);
-      TokenService.saveUser(user);
+      TokenService.saveUser(userObj);
 
       dispatch({
         type: 'LOGIN_SUCCESS',
         payload: { 
-          user, 
+          user: userObj, 
           token: data.token,
           refreshToken: data.refreshToken
         },
@@ -261,11 +246,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     email,
     password,
     full_name,
-    role: UserRole
-  ): Promise<void> => {
+    role
+  ) => {
     dispatch({ type: 'LOGIN_START' });
     try {
-      const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+      const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api/v1';
       // Real API call to backend
       const response = await fetch(`${API_URL}/auth/register`, {
         method: 'POST',
@@ -282,7 +267,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       }
 
       const data = await response.json();
-      const user: User = {
+      const userObj = {
         id: data.user.id.toString(),
         username: data.user.username,
         email: data.user.email,
@@ -295,12 +280,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         updatedAt: new Date(data.user.updated_at || data.user.updatedAt),
       };
 
-      localStorage.setItem('authToken', data.token);
-      localStorage.setItem('user', JSON.stringify(user));
+      TokenService.saveTokens(data.token, data.refreshToken);
+      TokenService.saveUser(userObj);
 
       dispatch({
         type: 'LOGIN_SUCCESS',
-        payload: { user, token: data.token, refreshToken: data.refreshToken },
+        payload: { user: userObj, token: data.token, refreshToken: data.refreshToken },
       });
     } catch (error) {
       dispatch({
@@ -312,13 +297,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   // Logout function
-  const logout = (): void => {
+  const logout = () => {
     TokenService.clearAll();
     dispatch({ type: 'LOGOUT' });
   };
 
   // Clear error function
-  const clearError = (): void => {
+  const clearError = () => {
     dispatch({ type: 'CLEAR_ERROR' });
   };
 
@@ -332,11 +317,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         const tokens = TokenService.getStoredTokensSync();
         
         if (tokens && userStr) {
-          const user: User = JSON.parse(userStr);
+          const userObj = JSON.parse(userStr);
           dispatch({
             type: 'LOGIN_SUCCESS',
             payload: { 
-              user,
+              user: userObj,
               token: tokens.accessToken,
               refreshToken: tokens.refreshToken
             },
@@ -349,7 +334,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   }, []);
 
-  const value: AuthContextType = {
+  const value = {
     state,
     dispatch,
     login,
@@ -362,7 +347,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 };
 
 // Custom hook to use auth context
-export const useAuth = (): AuthContextType => {
+export const useAuth = () => {
   const context = useContext(AuthContext);
   if (context === undefined) {
     throw new Error('useAuth must be used within an AuthProvider');

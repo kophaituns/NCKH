@@ -29,11 +29,11 @@ Question.belongsTo(QuestionType, { foreignKey: 'question_type_id' });
 Question.hasMany(QuestionOption, { foreignKey: 'question_id' });
 QuestionOption.belongsTo(Question, { foreignKey: 'question_id' });
 
-SurveyTemplate.hasMany(Survey, { foreignKey: 'template_id' });
-Survey.belongsTo(SurveyTemplate, { foreignKey: 'template_id' });
+SurveyTemplate.hasMany(Survey, { foreignKey: 'template_id', as: 'surveys' });
+Survey.belongsTo(SurveyTemplate, { foreignKey: 'template_id', as: 'template' });
 
-User.hasMany(Survey, { foreignKey: 'created_by' });
-Survey.belongsTo(User, { foreignKey: 'created_by' });
+User.hasMany(Survey, { foreignKey: 'created_by', as: 'surveys' });
+Survey.belongsTo(User, { foreignKey: 'created_by', as: 'creator' });
 
 Survey.hasMany(SurveyResponse, { foreignKey: 'survey_id' });
 SurveyResponse.belongsTo(Survey, { foreignKey: 'survey_id' });

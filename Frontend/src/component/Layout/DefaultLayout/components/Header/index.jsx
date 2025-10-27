@@ -1,14 +1,15 @@
-import React from 'react';
-import { useAuth } from '../../../contexts/AuthContext.jsx';
+import React, { useState } from 'react';
+import { useAuth } from '../../../../../contexts/AuthContext.jsx';
 import { useNavigate } from 'react-router-dom';
-import { Container, Button, Dropdown, Nav, Navbar } from 'react-bootstrap';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faUser, faSignOut, faHome, faCog } from '@fortawesome/free-solid-svg-icons';
+import { faUser, faSignOut, faHome, faCog, faBars, faTimes } from '@fortawesome/free-solid-svg-icons';
 import styles from './Header.module.scss';
 
 function Header() {
   const { state, logout } = useAuth();
   const navigate = useNavigate();
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const handleLogout = () => {
     logout();
@@ -16,65 +17,76 @@ function Header() {
   };
 
   return (
-    <Navbar bg="white" expand="lg" className={`shadow-sm sticky-top ${styles.header}`}>
-      <Container fluid className="px-3 px-lg-4">
-        <Navbar.Brand 
+    <header className={`${styles.header}`}>
+      <div className={styles.container}>
+        <div 
           onClick={() => navigate('/')}
           className={styles.brand}
         >
           <span className={styles.brandText}>AllMTags</span>
-        </Navbar.Brand>
+        </div>
 
-        <Navbar.Toggle aria-controls="basic-navbar-nav" />
-        <Navbar.Collapse id="basic-navbar-nav">
-          <Nav className="ms-auto d-flex align-items-center">
-            {state.isAuthenticated && state.user && (
-              <>
-                <Nav.Link 
-                  onClick={() => navigate('/dashboard')}
-                  className={styles.navLink}
+        {/* Mobile Menu Toggle */}
+        <button 
+          className={styles.mobileToggle}
+          onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+          aria-label="Toggle menu"
+        >
+          <FontAwesomeIcon icon={isMobileMenuOpen ? faTimes : faBars} />
+        </button>
+
+        {/* Navigation */}
+        <nav className={`${styles.nav} ${isMobileMenuOpen ? styles.mobileOpen : ''}`}>
+          {state.isAuthenticated && state.user && (
+            <>
+              <button 
+                onClick={() => navigate('/dashboard')}
+                className={styles.navLink}
+              >
+                <FontAwesomeIcon icon={faHome} className={styles.icon} />
+                <span>Dashboard</span>
+              </button>
+
+              {/* User Dropdown */}
+              <div className={styles.dropdownContainer}>
+                <button
+                  className={styles.dropdownToggle}
+                  onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                  aria-expanded={isDropdownOpen}
                 >
-                  <FontAwesomeIcon icon={faHome} className="me-2" />
-                  Dashboard
-                </Nav.Link>
+                  <FontAwesomeIcon icon={faUser} className={styles.icon} />
+                  <span>{state.user.name || state.user.email}</span>
+                  <span className={styles.chevron}>▼</span>
+                </button>
 
-                <Dropdown className="ms-3">
-                  <Dropdown.Toggle 
-                    variant="link" 
-                    id="user-dropdown"
-                    className={styles.dropdownToggle}
-                  >
-                    <FontAwesomeIcon icon={faUser} className="me-2" />
-                    {state.user.name || state.user.email}
-                  </Dropdown.Toggle>
-
-                  <Dropdown.Menu align="end">
-                    <Dropdown.Item disabled>
+                {isDropdownOpen && (
+                  <div className={styles.dropdownMenu}>
+                    <div className={styles.dropdownHeader}>
                       <small className={styles.userEmail}>{state.user.email}</small>
-                    </Dropdown.Item>
-                    <Dropdown.Divider />
-                    <Dropdown.Item 
+                    </div>
+                    <hr className={styles.divider} />
+                    <button 
                       onClick={() => navigate('/profile')}
                       className={styles.dropdownItem}
                     >
-                      <FontAwesomeIcon icon={faCog} className="me-2" />
+                      <FontAwesomeIcon icon={faCog} className={styles.icon} />
                       Settings
-                    </Dropdown.Item>
-                    <Dropdown.Item 
+                    </button>
+                    <button 
                       onClick={handleLogout}
-                      className={styles.dropdownItemLogout}
+                      className={`${styles.dropdownItem} ${styles.logoutItem}`}
                     >
-                      <FontAwesomeIcon icon={faSignOut} className="me-2" />
+                      <FontAwesomeIcon icon={faSignOut} className={styles.icon} />
                       Logout
-                    </Dropdown.Item>
-                  </Dropdown.Menu>
-                </Dropdown>
-              </>
-            )}
-          </Nav>
-        </Navbar.Collapse>
-      </Container>
-    </Navbar>
+                    </button>
+                  </div>
+                )}
+              </div>
+            </>
+          )}
+        </nav>
+      </div>
+    </header>
   );
 }
 
