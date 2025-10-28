@@ -39,12 +39,14 @@ ALLMTAGS (Applying Large Language Models to Automatically Generate Surveys) là 
 ```bash
 cd d:\NCKH\Backend
 npm install
+npm i openai
+npm run dev
 node src/index.js
 ```
 
 ### 3. Cài đặt Frontend
 ```bash
-cd d:\NCKH\Frontend\hms-react
+cd d:\NCKH\Frontend
 npm install
 npm start
 ```
@@ -53,7 +55,9 @@ npm start
 ```bash
 # Sử dụng Docker
 cd d:\NCKH\Docker
-docker-compose up -d
+docker compose down -v
+docker compose up -d --build
+docker ps
 
 # Hoặc import trực tiếp vào MySQL
 mysql -u root -p < init.sql
