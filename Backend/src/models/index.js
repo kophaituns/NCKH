@@ -9,6 +9,7 @@ const QuestionType = require('./questionType.model')(sequelize, DataTypes);
 const Question = require('./question.model')(sequelize, DataTypes);
 const QuestionOption = require('./questionOption.model')(sequelize, DataTypes);
 const Survey = require('./survey.model')(sequelize, DataTypes);
+const SurveyCollector = require('./surveyCollector.model')(sequelize, DataTypes);
 const SurveyResponse = require('./surveyResponse.model')(sequelize, DataTypes);
 const Answer = require('./answer.model')(sequelize, DataTypes);
 const AnalysisResult = require('./analysisResult.model')(sequelize, DataTypes);
@@ -20,8 +21,8 @@ const LlmInteraction = require('./llmInteraction.model')(sequelize, DataTypes);
 User.hasMany(SurveyTemplate, { foreignKey: 'created_by' });
 SurveyTemplate.belongsTo(User, { foreignKey: 'created_by' });
 
-SurveyTemplate.hasMany(Question, { foreignKey: 'survey_template_id' });
-Question.belongsTo(SurveyTemplate, { foreignKey: 'survey_template_id' });
+SurveyTemplate.hasMany(Question, { foreignKey: 'template_id' });
+Question.belongsTo(SurveyTemplate, { foreignKey: 'template_id' });
 
 QuestionType.hasMany(Question, { foreignKey: 'question_type_id' });
 Question.belongsTo(QuestionType, { foreignKey: 'question_type_id' });
@@ -65,6 +66,13 @@ LlmInteraction.belongsTo(LlmPrompt, { foreignKey: 'prompt_id' });
 User.hasMany(LlmInteraction, { foreignKey: 'user_id' });
 LlmInteraction.belongsTo(User, { foreignKey: 'user_id' });
 
+// SurveyCollector associations
+Survey.hasMany(SurveyCollector, { foreignKey: 'survey_id' });
+SurveyCollector.belongsTo(Survey, { foreignKey: 'survey_id' });
+
+User.hasMany(SurveyCollector, { foreignKey: 'created_by' });
+SurveyCollector.belongsTo(User, { foreignKey: 'created_by' });
+
 module.exports = {
   sequelize,
   User,
@@ -73,6 +81,7 @@ module.exports = {
   Question,
   QuestionOption,
   Survey,
+  SurveyCollector,
   SurveyResponse,
   Answer,
   AnalysisResult,

@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useReducer, useEffect } from 'react';
 import { TokenService } from '../services/tokenService.js';
+import AuthService from '../api/services/auth.service.js';
 
 // Initial state
 const initialState = {
@@ -105,28 +106,14 @@ export const AuthProvider = ({ children }) => {
         throw new Error('No refresh token available');
       }
 
-      const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api/v1';
-      const response = await fetch(`${API_URL}/auth/refresh`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-        body: JSON.stringify({ refreshToken }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to refresh token');
-      }
-
-      const data = await response.json();
-      TokenService.saveTokens(data.token, data.refreshToken);
+      const data = await AuthService.refreshToken(refreshToken);
+      TokenService.saveTokens(data.data.token, data.data.refreshToken);
 
       dispatch({
         type: 'REFRESH_TOKEN_SUCCESS',
         payload: {
-          token: data.token,
-          refreshToken: data.refreshToken,
+          token: data.data.token,
+          refreshToken: data.data.refreshToken,
         },
       });
     } catch (error) {
@@ -164,79 +151,50 @@ export const AuthProvider = ({ children }) => {
   }, [state.token]);
 
   // Login function
-  const login = async (email, password) => {
+  const login = async (loginData) => {
     dispatch({ type: 'LOGIN_START' });
     try {
-      const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api/v1';
-      
       // Input validation
-      if (!email || !password) {
-        throw new Error('Email and password are required');
+      if (!loginData || (!loginData.email && !loginData.username) || !loginData.password) {
+        throw new Error('Username/Email and password are required');
       }
 
-      if (!email.includes('@')) {
-        throw new Error('Invalid email format');
-      }
-
-      // Real API call to backend
-      const response = await fetch(`${API_URL}/auth/login`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-        body: JSON.stringify({ email, password }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        
-        // Handle specific error cases
-        switch (response.status) {
-          case 400:
-            throw new Error(errorData.message || 'Invalid email or password format');
-          case 401:
-            throw new Error('Invalid credentials. Please check your email and password');
-          case 429:
-            throw new Error('Too many login attempts. Please try again later');
-          case 503:
-            throw new Error('Service is temporarily unavailable. Please try again later');
-          default:
-            throw new Error(errorData.message || 'Login failed. Please try again');
-        }
-      }
-
-      const data = await response.json();
+      // Use identifier (email or username)
+      const identifier = loginData.email || loginData.username;
+      const data = await AuthService.login(identifier, loginData.password);
+      
+      // Backend returns: { success, data: { user, token, refreshToken } }
+      const responseData = data.data;
+      const user = responseData.user;
+      
       const userObj = {
-        id: data.user.id.toString(),
-        username: data.user.username,
-        email: data.user.email,
-        full_name: data.user.full_name,
-        role: data.user.role,
-        student_id: data.user.student_id,
-        faculty: data.user.faculty,
-        class_name: data.user.class_name,
-        createdAt: new Date(data.user.created_at || data.user.createdAt),
-        updatedAt: new Date(data.user.updated_at || data.user.updatedAt),
+        id: user.id.toString(),
+        username: user.username,
+        email: user.email,
+        full_name: user.full_name,
+        role: user.role,
+        createdAt: new Date(user.created_at || user.createdAt),
+        updatedAt: new Date(user.updated_at || user.updatedAt),
       };
 
-      TokenService.saveTokens(data.token, data.refreshToken);
+      TokenService.saveTokens(responseData.token, responseData.refreshToken);
       TokenService.saveUser(userObj);
 
       dispatch({
         type: 'LOGIN_SUCCESS',
         payload: { 
           user: userObj, 
-          token: data.token,
-          refreshToken: data.refreshToken
+          token: responseData.token,
+          refreshToken: responseData.refreshToken
         },
       });
     } catch (error) {
+      const errorMessage = error.response?.data?.message || error.message || 'Login failed';
       dispatch({
         type: 'LOGIN_FAILURE',
-        payload: error instanceof Error ? error.message : 'Login failed',
+        payload: errorMessage,
       });
-      throw error;
+      throw new Error(errorMessage);
     }
   };
 
@@ -250,56 +208,46 @@ export const AuthProvider = ({ children }) => {
   ) => {
     dispatch({ type: 'LOGIN_START' });
     try {
-      const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api/v1';
-      // Real API call to backend
-      const response = await fetch(`${API_URL}/auth/register`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-        body: JSON.stringify({ username, email, password, full_name, role }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Registration failed');
-      }
-
-      const data = await response.json();
+      const data = await AuthService.register({ username, email, password, full_name, role });
+      
+      const user = data.data.user;
       const userObj = {
-        id: data.user.id.toString(),
-        username: data.user.username,
-        email: data.user.email,
-        full_name: data.user.full_name,
-        role: data.user.role,
-        student_id: data.user.student_id,
-        faculty: data.user.faculty,
-        class_name: data.user.class_name,
-        createdAt: new Date(data.user.created_at || data.user.createdAt),
-        updatedAt: new Date(data.user.updated_at || data.user.updatedAt),
+        id: user.id.toString(),
+        username: user.username,
+        email: user.email,
+        full_name: user.full_name,
+        role: user.role,
+        createdAt: new Date(user.created_at || user.createdAt),
+        updatedAt: new Date(user.updated_at || user.updatedAt),
       };
 
-      TokenService.saveTokens(data.token, data.refreshToken);
+      TokenService.saveTokens(data.data.token, data.data.refreshToken);
       TokenService.saveUser(userObj);
 
       dispatch({
         type: 'LOGIN_SUCCESS',
-        payload: { user: userObj, token: data.token, refreshToken: data.refreshToken },
+        payload: { user: userObj, token: data.data.token, refreshToken: data.data.refreshToken },
       });
     } catch (error) {
+      const errorMessage = error.response?.data?.message || error.message || 'Registration failed';
       dispatch({
         type: 'LOGIN_FAILURE',
-        payload: error instanceof Error ? error.message : 'Registration failed',
+        payload: errorMessage,
       });
-      throw error;
+      throw new Error(errorMessage);
     }
   };
 
   // Logout function
-  const logout = () => {
-    TokenService.clearAll();
-    dispatch({ type: 'LOGOUT' });
+  const logout = async () => {
+    try {
+      await AuthService.logout();
+    } catch (error) {
+      console.error('Logout error:', error);
+    } finally {
+      TokenService.clearAll();
+      dispatch({ type: 'LOGOUT' });
+    }
   };
 
   // Clear error function

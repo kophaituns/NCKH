@@ -1,5 +1,5 @@
 // Import responsive utilities
-@import './responsive.scss';
+@use './responsive.scss' as *;
 
 // Custom variables
 :root {

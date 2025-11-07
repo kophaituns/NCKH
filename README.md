@@ -1,14 +1,38 @@
-<<<<<<< HEAD
-<<<<<<< HEAD
-# NCKH
-capston project 
-=======
-=======
->>>>>>> d10b605ae1d1ea72009642866363dbf201a1e5b0
 # ALLMTAGS - AI-Powered Survey Generation System
+
+**Status:** ✅ **FULLY OPERATIONAL** | **Version:** 1.0.0 | **Updated:** November 6, 2025
+
+## 🎉 Quick Start (3 Commands)
+
+```bash
+# 1. Seed sample data (3 users + templates + surveys)
+cd Backend && npm run seed
+
+# 2. Start backend
+npm start
+
+# 3. Start frontend (new terminal)
+cd ../Frontend && npm start
+```
+
+**Login at:** http://localhost:3000  
+**Credentials:** `creator@demo.com` / `Demo@1234`
+
+---
 
 ## 🎯 Tổng quan
 ALLMTAGS (Applying Large Language Models to Automatically Generate Surveys) là hệ thống khảo sát thông minh sử dụng AI để tự động tạo và phân tích các cuộc khảo sát trong lĩnh vực giáo dục.
+
+## ✅ System Status
+
+| Component | Status | Details |
+|-----------|--------|---------|
+| Backend API | ✅ Operational | All routes at `/api/modules/*` |
+| Frontend | ✅ Operational | React app on port 3000 |
+| Database | ✅ Connected | MySQL (NCKH) |
+| Health Check | ✅ Active | GET `/api/modules/health` |
+| Automated Tests | ✅ Available | Run `npm run smoke` |
+| Sample Data | ✅ Ready | Run `npm run seed` |
 
 ## 🛠️ Công nghệ sử dụng
 
@@ -73,18 +97,18 @@ mysql -u root -p < init.sql
 ### Teacher
 - **Username:** teacher
 - **Password:** 123456
-- **Role:** Teacher (Tạo và quản lý khảo sát)
+- **Role:** Creator (Tạo và quản lý khảo sát)
 
 ### Students
-- **Username:** student1, student2, student3, student4, student5
+- **Username:** user1, user2, user3, user4, user5
 - **Password:** 123456 (cho tất cả)
-- **Role:** Student (Tham gia khảo sát)
+- **Role:** Respondent (Tham gia khảo sát)
 
 ## 🌟 Tính năng chính
 
 ### 1. Quản lý người dùng
 - Đăng ký/Đăng nhập
-- Phân quyền theo vai trò (Admin, Teacher, Student)
+- Phân quyền theo vai trò (Admin, Creator, User)
 - Quản lý thông tin cá nhân
 
 ### 2. Tạo khảo sát với AI
@@ -153,7 +177,7 @@ JWT_SECRET=your_jwt_secret
 
 ## 📝 Hướng dẫn sử dụng
 
-1. **Đăng nhập** với tài khoản admin/teacher/student
+1. **Đăng nhập** với tài khoản admin/creator/user
 2. **Dashboard** - Xem tổng quan hệ thống
 3. **Tạo khảo sát** - Sử dụng AI để tự động tạo câu hỏi
 4. **Quản lý khảo sát** - Lên lịch và phân phối

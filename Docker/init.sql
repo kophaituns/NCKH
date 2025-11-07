@@ -14,10 +14,10 @@ CREATE TABLE users (
     email VARCHAR(100) NOT NULL UNIQUE,
     password VARCHAR(255) NOT NULL,
     full_name VARCHAR(100) NOT NULL,
-    role ENUM('admin', 'teacher', 'student') NOT NULL DEFAULT 'student',
-    student_id VARCHAR(20) NULL,
-    faculty VARCHAR(100) NULL,
-    class_name VARCHAR(50) NULL,
+    role ENUM('admin', 'creator', 'user') NOT NULL DEFAULT 'user',
+     NULL,
+     NULL,
+     NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
@@ -80,8 +80,8 @@ CREATE TABLE surveys (
     description TEXT,
     start_date DATETIME NOT NULL,
     end_date DATETIME NOT NULL,
-    target_audience ENUM('all_students', 'specific_faculty', 'specific_class') DEFAULT 'all_students',
-    target_value VARCHAR(100) NULL, -- e.g., faculty name or class name if targeting specific groups
+    target_audience ENUM('all_users', 'specific_group', 'custom') DEFAULT 'all_users',
+    target_value VARCHAR(100) NULL, -- e.g. name or class name if targeting specific groups
     created_by INT NOT NULL,
     status ENUM('draft', 'active', 'closed', 'analyzed') DEFAULT 'draft',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -168,26 +168,25 @@ CREATE TABLE llm_interactions (
     FOREIGN KEY (user_id) REFERENCES users(id)
 );
 
--- Create sample admin user
+-- Create sample admin user (password: test123)
+-- Hash generated with: bcrypt.hash('test123', 10)
 INSERT INTO users (username, email, password, full_name, role) VALUES
-('admin', 'admin@example.com', '$2b$10$1234567890123456789012uDZ93/QFmPwVOIlP0OGOw3lhm0iWegu', 'System Administrator', 'admin');
+('admin', 'admin@example.com', '$2b$10$d8g.i.ye5T6ZUZor0V3keu83m9hA/HMPCbNK8ZDkl34sx4XTgxsKy', 'System Administrator', 'admin');
 
--- Create sample teacher user
-INSERT INTO users (username, email, password, full_name, role, faculty) VALUES
-('teacher', 'teacher@example.com', '$2b$10$1234567890123456789012uDZ93/QFmPwVOIlP0OGOw3lhm0iWegu', 'Trần Kim Sanh', 'teacher', 'Computer Science');
+-- Create sample creator user (password: test123)
+INSERT INTO users (username, email, password, full_name, role) VALUES
+('creator1', 'creator@example.com', '$2b$10$CKXLQeA/OVWPNXDi6SIyS.74eS5oGNHbGYfHt3UhNrXKw.BpkuGZC', 'Trần Kim Sanh', 'creator');
 
--- Create sample student users
-INSERT INTO users (username, email, password, full_name, role, student_id, faculty, class_name) VALUES
-('student1', 'student1@example.com', '$2b$10$1234567890123456789012uDZ93/QFmPwVOIlP0OGOw3lhm0iWegu', 'Phạm Thục Anh', 'student', '28201103447', 'Computer Science', 'K28 CMU TPM'),
-('student2', 'student2@example.com', '$2b$10$1234567890123456789012uDZ93/QFmPwVOIlP0OGOw3lhm0iWegu', 'Ngô Nguyễn Thùy Linh', 'student', '28201139984', 'Computer Science', 'K28 CMU TPM'),
-('student3', 'student3@example.com', '$2b$10$1234567890123456789012uDZ93/QFmPwVOIlP0OGOw3lhm0iWegu', 'Nguyễn Minh Quân', 'student', '28214605702', 'Computer Science', 'K28 CMU TPM'),
-('student4', 'student4@example.com', '$2b$10$1234567890123456789012uDZ93/QFmPwVOIlP0OGOw3lhm0iWegu', 'Phạm Anh Tuấn', 'student', '28211102415', 'Computer Science', 'K28 CMU TPM'),
-('student5', 'student5@example.com', '$2b$10$1234567890123456789012uDZ93/QFmPwVOIlP0OGOw3lhm0iWegu', 'Trần Việt Anh', 'student', '28211144354', 'Computer Science', 'K28 CMU TPM');
+-- Create sample respondent users (password: test123)
+INSERT INTO users (username, email, password, full_name, role) VALUES
+('user1', 'user1@example.com', '$2b$10$hHuUseL4///HhyRmO41YiuIVXi9Ulciq.J1H1FGRue/Ndva/WBePq', 'Phạm Thục Anh', 'user'),
+('user2', 'user2@example.com', '$2b$10$71pimim/U3Ru7YthwGz5W.lB7HJL9qGjkn1JwYvt6PMzQIHYb2cFW', 'Ngô Nguyễn Thùy Linh', 'user'),
+('user3', 'user3@example.com', '$2b$10$sk.DjGKVJJcUMLWb1niIp.tPqHL3KzuMF3ZtAhus.2M45o5VNoBa6', 'Nguyễn Minh Quân', 'user');
 
 -- Create sample LLM prompts
 INSERT INTO llm_prompts (prompt_name, prompt_type, prompt_text, created_by) VALUES
-('Generate Teaching Survey', 'survey_generation', 'Generate a comprehensive survey to evaluate teaching effectiveness for the following course: {{course_name}}. Include questions about teaching methods, materials, and instructor effectiveness. The questions should be appropriate for {{student_level}} students.', 1),
-('Analyze Open Feedback', 'analysis', 'Analyze the following student feedback responses and identify common themes, sentiment, and actionable suggestions: {{feedback_text}}', 1),
+('Generate Survey', 'survey_generation', 'Generate a comprehensive survey to evaluate effectiveness for the following topic: {{course_name}}. Include questions about methods, materials, and overall satisfaction. The questions should be appropriate for {{user_level}} audience.', 1),
+('Analyze Open Feedback', 'analysis', 'Analyze the following respondent feedback responses and identify common themes, sentiment, and actionable suggestions: {{feedback_text}}', 1),
 ('Summarize Survey Results', 'summary', 'Provide a concise summary of the following survey results, highlighting key findings, areas of strength, and opportunities for improvement: {{survey_results}}', 1),
 ('Generate Improvement Recommendations', 'recommendation', 'Based on the following survey analysis, provide specific recommendations for improving: {{analysis_results}}', 1);
 
@@ -199,7 +198,7 @@ INSERT INTO survey_templates (title, description, created_by, status) VALUES
 INSERT INTO questions (survey_template_id, question_text, question_type_id, required, display_order) VALUES
 (1, 'Giảng viên truyền đạt kiến thức rõ ràng và dễ hiểu?', 3, TRUE, 1),
 (1, 'Giảng viên chuẩn bị bài giảng đầy đủ và chất lượng?', 3, TRUE, 2),
-(1, 'Giảng viên khuyến khích sự tham gia và thảo luận của sinh viên?', 3, TRUE, 3),
+(1, 'Giảng viên khuyến khích sự tham gia và thảo luận của người trả lời?', 3, TRUE, 3),
 (1, 'Tài liệu học tập được cung cấp có hữu ích và đầy đủ không?', 3, TRUE, 4),
 (1, 'Bạn đánh giá cao điểm nào trong phương pháp giảng dạy của giảng viên?', 4, FALSE, 5),
 (1, 'Những khía cạnh nào của môn học cần được cải thiện?', 4, FALSE, 6),
@@ -230,4 +229,4 @@ INSERT INTO question_options (question_id, option_text, display_order) VALUES
 
 -- Create a sample active survey
 INSERT INTO surveys (template_id, title, description, start_date, end_date, target_audience, created_by, status) VALUES
-(1, 'Khảo sát đánh giá chất lượng giảng dạy Học kỳ 1/2025-2026', 'Khảo sát này nhằm thu thập ý kiến của sinh viên về chất lượng giảng dạy của giảng viên trong học kỳ 1 năm học 2025-2026', '2025-07-19 00:00:00', '2025-12-29 23:59:59', 'specific_class', 'K28 CMU TPM', 1, 'active');
+(1, 'Khảo sát đánh giá chất lượng giảng dạy Học kỳ 1/2025-2026', 'Khảo sát này nhằm thu thập ý kiến của người trả lời về chất lượng giảng dạy của giảng viên trong học kỳ 1 năm học 2025-2026', '2025-07-19 00:00:00', '2025-12-29 23:59:59', 'custom', 'K28 CMU TPM', 1, 'active');

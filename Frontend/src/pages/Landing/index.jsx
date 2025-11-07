@@ -1,5 +1,5 @@
 import React from 'react';
-import { default as LandingPageComponent } from '../../component/Common/LandingPage.jsx';
+import { default as LandingPageComponent } from '../../components/pages/LandingPage.jsx';
 import styles from './Landing.module.scss';
 
 function Landing() {

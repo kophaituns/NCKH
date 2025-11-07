@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Direct API Test - Survey System</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h1 { color: #333; margin-bottom: 30px; }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #555;
+        }
+        input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+            box-sizing: border-box;
+        }
+        button {
+            background: #4CAF50;
+            color: white;
+            padding: 12px 30px;
+            border: none;
+            border-radius: 4px;
+            font-size: 16px;
+            cursor: pointer;
+            margin-right: 10px;
+        }
+        button:hover { background: #45a049; }
+        button:disabled { background: #ccc; cursor: not-allowed; }
+        #result {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 12px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        .success { background: #d4edda; border: 1px solid #c3e6cb; color: #155724; }
+        .error { background: #f8d7da; border: 1px solid #f5c6cb; color: #721c24; }
+        .info { background: #d1ecf1; border: 1px solid #bee5eb; color: #0c5460; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 Direct API Test - Survey System</h1>
+        
+        <div class="form-group">
+            <label>API Base URL:</label>
+            <input type="text" id="apiUrl" value="http://localhost:5000/api">
+        </div>
+        
+        <div class="form-group">
+            <label>Username or Email:</label>
+            <input type="text" id="username" value="admin1" placeholder="admin1 or admin1@example.com">
+        </div>
+        
+        <div class="form-group">
+            <label>Password:</label>
+            <input type="password" id="password" value="pass123">
+        </div>
+        
+        <button onclick="testLogin()">🔐 Test Login</button>
+        <button onclick="testSurveys()" id="surveysBtn" disabled>📋 Test Surveys API</button>
+        <button onclick="clearResult()">🗑️ Clear</button>
+        
+        <div id="result"></div>
+    </div>
+
+    <script>
+        let currentToken = null;
+
+        function log(message, type = 'info') {
+            const resultDiv = document.getElementById('result');
+            resultDiv.className = type;
+            resultDiv.textContent = message;
+        }
+
+        async function testLogin() {
+            const apiUrl = document.getElementById('apiUrl').value;
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            
+            log('🔄 Testing login...', 'info');
+            
+            try {
+                // Determine if input is email or username
+                const isEmail = username.includes('@');
+                const loginData = isEmail 
+                    ? { email: username, password: password }
+                    : { username: username, password: password };
+                
+                const response = await fetch(`${apiUrl}/auth/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(loginData)
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    currentToken = data.data.token || data.data.access_token;
+                    document.getElementById('surveysBtn').disabled = false;
+                    
+                    log(`✅ LOGIN SUCCESS!\n\n` +
+                        `Status: ${response.status}\n` +
+                        `User: ${data.data.user.username}\n` +
+                        `Role: ${data.data.user.role}\n` +
+                        `Email: ${data.data.user.email}\n` +
+                        `Token: ${currentToken.substring(0, 50)}...\n\n` +
+                        `Full Response:\n${JSON.stringify(data, null, 2)}`,
+                        'success');
+                } else {
+                    log(`❌ LOGIN FAILED!\n\n` +
+                        `Status: ${response.status}\n` +
+                        `Message: ${data.message || 'Unknown error'}\n\n` +
+                        `Full Response:\n${JSON.stringify(data, null, 2)}`,
+                        'error');
+                }
+            } catch (error) {
+                log(`❌ NETWORK ERROR!\n\n${error.message}\n\n` +
+                    `Make sure backend is running on: ${apiUrl}`,
+                    'error');
+            }
+        }
+
+        async function testSurveys() {
+            if (!currentToken) {
+                log('❌ Please login first!', 'error');
+                return;
+            }
+            
+            const apiUrl = document.getElementById('apiUrl').value;
+            log('🔄 Testing surveys API...', 'info');
+            
+            try {
+                const response = await fetch(`${apiUrl}/surveys`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${currentToken}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    const surveys = data.data.surveys;
+                    const pagination = data.data.pagination;
+                    
+                    log(`✅ SURVEYS API SUCCESS!\n\n` +
+                        `Status: ${response.status}\n` +
+                        `Total Surveys: ${pagination.total}\n` +
+                        `Page: ${pagination.page}/${pagination.totalPages}\n\n` +
+                        `Surveys:\n${surveys.map((s, i) => 
+                            `${i+1}. ${s.title} (ID: ${s.id}, Status: ${s.status})`
+                        ).join('\n')}\n\n` +
+                        `Full Response:\n${JSON.stringify(data, null, 2)}`,
+                        'success');
+                } else {
+                    log(`❌ SURVEYS API FAILED!\n\n` +
+                        `Status: ${response.status}\n` +
+                        `Message: ${data.message || 'Unknown error'}\n\n` +
+                        `Full Response:\n${JSON.stringify(data, null, 2)}`,
+                        'error');
+                }
+            } catch (error) {
+                log(`❌ NETWORK ERROR!\n\n${error.message}`, 'error');
+            }
+        }
+
+        function clearResult() {
+            document.getElementById('result').textContent = '';
+            document.getElementById('result').className = '';
+        }
+
+        // Auto-test on load
+        window.addEventListener('load', () => {
+            log('Ready to test! Click "Test Login" to start.\n\n' +
+                'Default credentials: admin1 / pass123', 'info');
+        });
+    </script>
+</body>
+</html>

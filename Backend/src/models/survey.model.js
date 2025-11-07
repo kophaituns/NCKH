@@ -29,12 +29,16 @@ module.exports = (sequelize, DataTypes) => {
         allowNull: false,
       },
       target_audience: {
-        type: DataTypes.ENUM('all_students', 'specific_faculty', 'specific_class'),
-        defaultValue: 'all_students',
+        type: DataTypes.ENUM('all_users', 'specific_group', 'custom'),
+        defaultValue: 'all_users',
       },
       target_value: {
         type: DataTypes.STRING(100),
         allowNull: true,
+      },
+      creator_id: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
       },
       created_by: {
         type: DataTypes.INTEGER,

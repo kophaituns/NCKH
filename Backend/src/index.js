@@ -1,4 +1,4 @@
-// src/index.js
+﻿// src/index.js
 require('dotenv').config();
 const express = require('express');
 const helmet = require('helmet');
@@ -8,13 +8,7 @@ const { sequelize } = require('./models');
 const logger = require('./utils/logger');
 
 // Import routes
-const authRoutes = require('./routes/auth.routes');
-const userRoutes = require('./routes/user.routes');
-const surveyRoutes = require('./routes/survey.routes');
 const questionRoutes = require('./routes/question.routes');
-const responseRoutes = require('./routes/response.routes');
-const analysisRoutes = require('./routes/analysis.routes');
-const llmRoutes = require('./routes/llm.routes');
 
 // Initialize Express app
 const app = express();
@@ -41,14 +35,13 @@ app.use(morgan('dev')); // HTTP request logger
 
 // API Routes
 const testRoutes = require('./routes/test.routes');
+const moduleRoutes = require('./routes/modules.routes'); // Modular architecture routes
 
-app.use('/api/auth', authRoutes);
-app.use('/api/users', userRoutes);
-app.use('/api/surveys', surveyRoutes);
+// Modular architecture routes (primary endpoints)
+app.use('/api/modules', moduleRoutes);
+
+// Legacy routes (kept for backward compatibility)
 app.use('/api/questions', questionRoutes);
-app.use('/api/responses', responseRoutes);
-app.use('/api/analysis', analysisRoutes);
-app.use('/api/llm', llmRoutes);
 app.use('/api/test', testRoutes); // Test routes for development
 
 // Root route
