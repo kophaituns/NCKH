@@ -30,20 +30,8 @@ module.exports = (sequelize, DataTypes) => {
         allowNull: false,
       },
       role: {
-        type: DataTypes.ENUM('admin', 'teacher', 'student'),
-        defaultValue: 'student',
-      },
-      student_id: {
-        type: DataTypes.STRING(20),
-        allowNull: true,
-      },
-      faculty: {
-        type: DataTypes.STRING(100),
-        allowNull: true,
-      },
-      class_name: {
-        type: DataTypes.STRING(50),
-        allowNull: true,
+        type: DataTypes.ENUM('admin', 'creator', 'user'),
+        defaultValue: 'user',
       },
       created_at: {
         type: DataTypes.DATE,

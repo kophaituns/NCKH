@@ -1,5 +1,5 @@
 
-import { default as ManageUsersPageComponent } from '../../../component/Admin/ManageUsersPage.jsx';
+import { default as ManageUsersPageComponent } from '../../../components/pages/ManageUsersPage.jsx';
 import styles from './ManageUsers.module.scss';
 
 function ManageUsers() {

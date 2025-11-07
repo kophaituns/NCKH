@@ -8,9 +8,10 @@ module.exports = (sequelize, DataTypes) => {
         autoIncrement: true,
         primaryKey: true,
       },
-      survey_template_id: {
+      template_id: {
         type: DataTypes.INTEGER,
         allowNull: false,
+        field: 'template_id',
       },
       question_text: {
         type: DataTypes.TEXT,
@@ -24,24 +25,16 @@ module.exports = (sequelize, DataTypes) => {
         type: DataTypes.BOOLEAN,
         defaultValue: false,
       },
-      display_order: {
+      order: {
         type: DataTypes.INTEGER,
         defaultValue: 0,
-      },
-      created_at: {
-        type: DataTypes.DATE,
-        defaultValue: DataTypes.NOW,
-      },
-      updated_at: {
-        type: DataTypes.DATE,
-        defaultValue: DataTypes.NOW,
+        field: 'order',
       },
     },
     {
       tableName: 'questions',
-      timestamps: true,
-      createdAt: 'created_at',
-      updatedAt: 'updated_at',
+      timestamps: false,
+      underscored: true,
     }
   );
 

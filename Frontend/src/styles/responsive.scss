@@ -1,5 +1,6 @@
 // Responsive Design System - Mobile First Approach
 // ============================================================
+@use "sass:map";
 
 // Breakpoints following Bootstrap 5.3
 $breakpoints: (
@@ -13,24 +14,24 @@ $breakpoints: (
 
 // Mixins for responsive design
 @mixin respond-above($breakpoint) {
-  @if map-has-key($breakpoints, $breakpoint) {
-    @media (min-width: map-get($breakpoints, $breakpoint)) {
+  @if map.has-key($breakpoints, $breakpoint) {
+    @media (min-width: map.get($breakpoints, $breakpoint)) {
       @content;
     }
   }
 }
 
 @mixin respond-below($breakpoint) {
-  @if map-has-key($breakpoints, $breakpoint) {
-    @media (max-width: #{map-get($breakpoints, $breakpoint) - 1px}) {
+  @if map.has-key($breakpoints, $breakpoint) {
+    @media (max-width: #{map.get($breakpoints, $breakpoint) - 1px}) {
       @content;
     }
   }
 }
 
 @mixin respond-between($lower, $upper) {
-  @if map-has-key($breakpoints, $lower) and map-has-key($breakpoints, $upper) {
-    @media (min-width: map-get($breakpoints, $lower)) and (max-width: #{map-get($breakpoints, $upper) - 1px}) {
+  @if map.has-key($breakpoints, $lower) and map.has-key($breakpoints, $upper) {
+    @media (min-width: map.get($breakpoints, $lower)) and (max-width: #{map.get($breakpoints, $upper) - 1px}) {
       @content;
     }
   }

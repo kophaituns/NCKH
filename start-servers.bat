@@ -32,8 +32,8 @@ echo 📊 API Base: http://localhost:5000/api
 echo.
 echo 🧪 Test Accounts:
 echo   Username: admin     Password: test123
-echo   Username: teacher1  Password: test123  
-echo   Username: student1  Password: test123
+echo   Username: creator1  Password: test123  
+echo   Username: user1  Password: test123
 echo.
 echo 💡 Tip: Wait 10-15 seconds for both servers to fully start
 echo Press any key to exit this window...

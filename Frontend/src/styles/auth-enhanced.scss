@@ -1,7 +1,7 @@
 // Enhanced Authentication Form Styles for PC/Desktop
 // ============================================================
 
-@import './responsive.scss';
+@use './responsive.scss' as *;
 
 // Auth Container Enhancements
 .auth-container-enhanced {

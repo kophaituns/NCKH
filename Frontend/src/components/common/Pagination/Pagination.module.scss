@@ -1,0 +1,68 @@
+// Pagination.module.scss
+.paginationWrapper {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 0;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.paginationInfo {
+  font-size: 0.875rem;
+  color: #6b7280;
+}
+
+.pagination {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.pageButton {
+  min-width: 36px;
+  height: 36px;
+  padding: 0.5rem;
+  border: 1px solid #d1d5db;
+  background: white;
+  color: #374151;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: all 0.2s;
+
+  &:hover:not(:disabled) {
+    background: #f3f4f6;
+    border-color: #10b981;
+    color: #10b981;
+  }
+
+  &.active {
+    background: #10b981;
+    border-color: #10b981;
+    color: white;
+
+    &:hover {
+      background: #059669;
+      border-color: #059669;
+    }
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+.ellipsis {
+  color: #9ca3af;
+  padding: 0 0.25rem;
+}
+
+@media (max-width: 640px) {
+  .paginationWrapper {
+    flex-direction: column;
+    text-align: center;
+  }
+}

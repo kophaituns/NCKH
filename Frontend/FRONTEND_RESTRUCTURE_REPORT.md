@@ -120,7 +120,7 @@ Frontend/src/
 - `component/Layout/DefaultLayout/components/Sidebar/index.jsx` + `Sidebar.module.scss`
   - Sticky sidebar for navigation
   - Collapsible menu items
-  - Role-based menu items (Admin, Teacher, Student)
+  - Role-based menu items (Admin, Creator, Respondent)
   - Active route highlighting
 
 - `component/Layout/HeaderOnly/index.jsx` + `HeaderOnly.module.scss`
@@ -167,9 +167,9 @@ All route-level components moved to `/pages/*` with structure:
 | `components/Common/DashboardPage.jsx` + `DashboardRouter.jsx` | `pages/Dashboard/index.jsx` | ✅ Merged + SCSS module |
 | `components/Common/SurveyManagement.jsx` | `pages/Surveys/List/index.jsx` | ✅ Moved + SCSS module |
 | `components/Admin/CreateSurveyPage.jsx` | `pages/Surveys/Create/index.jsx` | ✅ Moved + SCSS module |
-| `components/Student/SurveyResponsePage.jsx` | `pages/Surveys/Response/index.jsx` | ✅ Moved + SCSS module |
+| `components/Respondent/SurveyResponsePage.jsx` | `pages/Surveys/Response/index.jsx` | ✅ Moved + SCSS module |
 | `components/Admin/ManageUsersPage.jsx` | `pages/Admin/ManageUsers/index.jsx` | ✅ Moved + SCSS module |
-| `components/Teacher/AnalyticsPage.jsx` | `pages/Analytics/index.jsx` | ✅ Moved + SCSS module |
+| `components/Creator/AnalyticsPage.jsx` | `pages/Analytics/index.jsx` | ✅ Moved + SCSS module |
 
 **Each page now follows pattern**:
 ```jsx
@@ -224,7 +224,7 @@ export default PageName;
 <Route 
   path="/surveys" 
   element={
-    <ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.TEACHER]}>
+    <ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.CREATOR]}>
       <DefaultLayout><SurveysList /></DefaultLayout>
     </ProtectedRoute>
   } 

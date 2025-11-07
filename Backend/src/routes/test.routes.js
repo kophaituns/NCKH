@@ -21,21 +21,18 @@ router.post('/create-test-accounts', async (req, res) => {
         role: 'admin'
       },
       {
-        username: 'teacher1',
-        email: 'teacher1@test.com',
+        username: 'creator1',
+        email: 'creator1@test.com',
         password: hashedPassword,
-        full_name: 'Teacher One',
-        role: 'teacher'
+        full_name: 'Creator One',
+        role: 'creator'
       },
       {
-        username: 'student1',
-        email: 'student1@test.com',
+        username: 'user1',
+        email: 'user1@test.com',
         password: hashedPassword,
-        full_name: 'Student One',
-        role: 'student',
-        student_id: '123456',
-        faculty: 'Computer Science',
-        class_name: 'CS2024'
+        full_name: 'User One',
+        role: 'user'
       }
     ];
 
@@ -78,8 +75,8 @@ router.post('/create-test-accounts', async (req, res) => {
         note: 'Use these credentials to login:',
         accounts: [
           { username: 'admin', password: 'test123', role: 'admin' },
-          { username: 'teacher1', password: 'test123', role: 'teacher' },
-          { username: 'student1', password: 'test123', role: 'student' }
+          { username: 'creator1', password: 'test123', role: 'creator' },
+          { username: 'user1', password: 'test123', role: 'user' }
         ]
       }
     });
