@@ -11,7 +11,7 @@ services:
       MYSQL_USER: llm_survey_user
       MYSQL_PASSWORD: password123
     ports:
-      - "3307:3307"
+      - "3307:3306"
     volumes:
       - mysql-data:/var/lib/mysql
       - ./init.sql:/docker-entrypoint-initdb.d/init.sql

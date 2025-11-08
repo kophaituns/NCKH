@@ -52,21 +52,6 @@ exports.isAdmin = (req, res, next) => {
 
 /**
  * Middleware to check if user is creator or admin
- * @deprecated Use isCreatorOrAdmin instead
- */
-exports.isTeacherOrAdmin = (req, res, next) => {
-  if (req.user && (req.user.role === 'admin' || req.user.role === 'creator')) {
-    next();
-  } else {
-    return res.status(403).json({
-      success: false,
-      message: 'Access denied. Creator or Admin role required.'
-    });
-  }
-};
-
-/**
- * Middleware to check if user is creator or admin
  */
 exports.isCreatorOrAdmin = (req, res, next) => {
   if (req.user && (req.user.role === 'admin' || req.user.role === 'creator')) {
@@ -78,6 +63,12 @@ exports.isCreatorOrAdmin = (req, res, next) => {
     });
   }
 };
+
+/**
+ * @deprecated Legacy alias for backwards compatibility. Use isCreatorOrAdmin instead.
+ * Will be removed in v2.0
+ */
+exports.isTeacherOrAdmin = exports.isCreatorOrAdmin;
 
 /**
  * Middleware to check if user owns the resource or is admin

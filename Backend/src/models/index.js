@@ -21,13 +21,13 @@ const LlmInteraction = require('./llmInteraction.model')(sequelize, DataTypes);
 User.hasMany(SurveyTemplate, { foreignKey: 'created_by' });
 SurveyTemplate.belongsTo(User, { foreignKey: 'created_by' });
 
-SurveyTemplate.hasMany(Question, { foreignKey: 'template_id' });
+SurveyTemplate.hasMany(Question, { foreignKey: 'template_id', as: 'Questions' });
 Question.belongsTo(SurveyTemplate, { foreignKey: 'template_id' });
 
 QuestionType.hasMany(Question, { foreignKey: 'question_type_id' });
-Question.belongsTo(QuestionType, { foreignKey: 'question_type_id' });
+Question.belongsTo(QuestionType, { foreignKey: 'question_type_id', as: 'QuestionType' });
 
-Question.hasMany(QuestionOption, { foreignKey: 'question_id' });
+Question.hasMany(QuestionOption, { foreignKey: 'question_id', as: 'QuestionOptions' });
 QuestionOption.belongsTo(Question, { foreignKey: 'question_id' });
 
 SurveyTemplate.hasMany(Survey, { foreignKey: 'template_id', as: 'surveys' });
@@ -67,11 +67,14 @@ User.hasMany(LlmInteraction, { foreignKey: 'user_id' });
 LlmInteraction.belongsTo(User, { foreignKey: 'user_id' });
 
 // SurveyCollector associations
-Survey.hasMany(SurveyCollector, { foreignKey: 'survey_id' });
-SurveyCollector.belongsTo(Survey, { foreignKey: 'survey_id' });
+Survey.hasMany(SurveyCollector, { foreignKey: 'survey_id', as: 'Collectors' });
+SurveyCollector.belongsTo(Survey, { foreignKey: 'survey_id', as: 'Survey' });
 
 User.hasMany(SurveyCollector, { foreignKey: 'created_by' });
 SurveyCollector.belongsTo(User, { foreignKey: 'created_by' });
+
+SurveyCollector.hasMany(SurveyResponse, { foreignKey: 'collector_id' });
+SurveyResponse.belongsTo(SurveyCollector, { foreignKey: 'collector_id' });
 
 module.exports = {
   sequelize,

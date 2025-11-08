@@ -2,7 +2,7 @@
 const express = require('express');
 const router = express.Router();
 const templateController = require('../controller/template.controller');
-const { authenticate, isTeacherOrAdmin } = require('../../auth-rbac/middleware/auth.middleware');
+const { authenticate, isCreatorOrAdmin } = require('../../auth-rbac/middleware/auth.middleware');
 
 /**
  * @route   GET /api/templates/question-types
@@ -26,31 +26,38 @@ router.get('/', authenticate, templateController.getAllTemplates);
 router.get('/:id', authenticate, templateController.getTemplateById);
 
 /**
- * @route   POST /api/templates
+ * @route   POST /api/modules/templates
  * @desc    Create new template
- * @access  Private (Teacher/Admin only)
+ * @access  Private (Creator/Admin only)
  */
-router.post('/', authenticate, isTeacherOrAdmin, templateController.createTemplate);
+router.post('/', authenticate, isCreatorOrAdmin, templateController.createTemplate);
 
 /**
  * @route   PUT /api/templates/:id
  * @desc    Update template
  * @access  Private (Owner/Admin only)
  */
-router.put('/:id', authenticate, isTeacherOrAdmin, templateController.updateTemplate);
+router.put('/:id', authenticate, isCreatorOrAdmin, templateController.updateTemplate);
 
 /**
- * @route   DELETE /api/templates/:id
+ * @route   DELETE /api/modules/templates/:id
  * @desc    Delete template
- * @access  Private (Owner/Admin only)
+ * @access  Private (Admin only)
  */
-router.delete('/:id', authenticate, isTeacherOrAdmin, templateController.deleteTemplate);
+router.delete('/:id', authenticate, isCreatorOrAdmin, templateController.deleteTemplate);
 
 /**
- * @route   POST /api/templates/:id/questions
+ * @route   POST /api/modules/templates/:id/questions
  * @desc    Add question to template
- * @access  Private (Owner/Admin only)
+ * @access  Private (Admin only)
  */
-router.post('/:id/questions', authenticate, isTeacherOrAdmin, templateController.addQuestion);
+router.post('/:id/questions', authenticate, isCreatorOrAdmin, templateController.addQuestion);
+
+/**
+ * @route   GET /api/templates/:id/questions
+ * @desc    Get questions for template
+ * @access  Private
+ */
+router.get('/:id/questions', authenticate, templateController.getQuestionsByTemplate);
 
 module.exports = router;

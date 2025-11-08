@@ -1,11 +1,11 @@
 -- init.sql
 
 -- Drop database if exists and create a new one
-DROP DATABASE IF EXISTS NCKH;
-CREATE DATABASE NCKH CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+DROP DATABASE IF EXISTS llm_survey_db;
+CREATE DATABASE llm_survey_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- Use the database
-USE NCKH;
+USE llm_survey_db;
 
 -- Create users table
 CREATE TABLE users (
@@ -15,9 +15,6 @@ CREATE TABLE users (
     password VARCHAR(255) NOT NULL,
     full_name VARCHAR(100) NOT NULL,
     role ENUM('admin', 'creator', 'user') NOT NULL DEFAULT 'user',
-     NULL,
-     NULL,
-     NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
@@ -52,14 +49,14 @@ INSERT INTO question_types (type_name, description) VALUES
 -- Create questions table
 CREATE TABLE questions (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    survey_template_id INT NOT NULL,
+    template_id INT NOT NULL,
     question_text TEXT NOT NULL,
     question_type_id INT NOT NULL,
     required BOOLEAN DEFAULT FALSE,
     display_order INT DEFAULT 0,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (survey_template_id) REFERENCES survey_templates(id) ON DELETE CASCADE,
+    FOREIGN KEY (template_id) REFERENCES survey_templates(id) ON DELETE CASCADE,
     FOREIGN KEY (question_type_id) REFERENCES question_types(id)
 );
 
@@ -195,7 +192,7 @@ INSERT INTO survey_templates (title, description, created_by, status) VALUES
 ('Đánh giá chất lượng giảng dạy', 'Mẫu khảo sát đánh giá chất lượng giảng dạy của giảng viên', 1, 'active');
 
 -- Add sample questions to the template
-INSERT INTO questions (survey_template_id, question_text, question_type_id, required, display_order) VALUES
+INSERT INTO questions (template_id, question_text, question_type_id, required, display_order) VALUES
 (1, 'Giảng viên truyền đạt kiến thức rõ ràng và dễ hiểu?', 3, TRUE, 1),
 (1, 'Giảng viên chuẩn bị bài giảng đầy đủ và chất lượng?', 3, TRUE, 2),
 (1, 'Giảng viên khuyến khích sự tham gia và thảo luận của người trả lời?', 3, TRUE, 3),
@@ -228,5 +225,5 @@ INSERT INTO question_options (question_id, option_text, display_order) VALUES
 (4, '5 - Rất hài lòng', 5);
 
 -- Create a sample active survey
-INSERT INTO surveys (template_id, title, description, start_date, end_date, target_audience, created_by, status) VALUES
+INSERT INTO surveys (template_id, title, description, start_date, end_date, target_audience, target_value, created_by, status) VALUES
 (1, 'Khảo sát đánh giá chất lượng giảng dạy Học kỳ 1/2025-2026', 'Khảo sát này nhằm thu thập ý kiến của người trả lời về chất lượng giảng dạy của giảng viên trong học kỳ 1 năm học 2025-2026', '2025-07-19 00:00:00', '2025-12-29 23:59:59', 'custom', 'K28 CMU TPM', 1, 'active');

@@ -25,10 +25,10 @@ module.exports = (sequelize, DataTypes) => {
         type: DataTypes.BOOLEAN,
         defaultValue: false,
       },
-      order: {
+      display_order: {
         type: DataTypes.INTEGER,
         defaultValue: 0,
-        field: 'order',
+        field: 'display_order',
       },
     },
     {

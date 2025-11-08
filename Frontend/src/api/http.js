@@ -30,6 +30,20 @@ http.interceptors.request.use(
 // Response interceptor - Handle 401 and refresh token
 http.interceptors.response.use(
   (response) => {
+    // Safely extract data, handle cases where response might not have expected structure
+    const data = response.data;
+    
+    // Ensure we always return an object with ok/success flag
+    if (typeof data === 'object' && data !== null) {
+      // If backend sent ok or success, keep it
+      if (!('ok' in data) && 'success' in data) {
+        data.ok = data.success;
+      }
+      if (!('success' in data) && 'ok' in data) {
+        data.success = data.ok;
+      }
+    }
+    
     return response;
   },
   async (error) => {
@@ -70,6 +84,16 @@ http.interceptors.response.use(
         localStorage.clear();
         window.location.href = '/login';
         return Promise.reject(refreshError);
+      }
+    }
+
+    // Enhance error with safe message extraction
+    if (error.response) {
+      const errorData = error.response.data;
+      if (typeof errorData === 'object' && errorData !== null) {
+        error.message = errorData.message || error.message;
+        error.ok = false;
+        error.success = false;
       }
     }
 

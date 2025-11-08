@@ -44,13 +44,21 @@ const TemplateEditor = () => {
   const fetchTemplateData = async () => {
     try {
       setLoading(true);
-      const templateData = await TemplateService.getById(id);
-      setTemplate({ title: templateData.title, description: templateData.description });
+      const response = await TemplateService.getById(id);
       
-      const questionsData = await TemplateService.getQuestions(id);
-      setQuestions(questionsData);
+      if (response && response.ok) {
+        const templateData = response.template;
+        setTemplate({ 
+          title: templateData?.title || '', 
+          description: templateData?.description || '' 
+        });
+        setQuestions(response.questions || []);
+      } else {
+        throw new Error('Failed to load template');
+      }
     } catch (error) {
-      showToast(error.response?.data?.message || 'Failed to fetch template', 'error');
+      console.error('Error fetching template:', error);
+      showToast(error.response?.data?.message || error.message || 'Failed to fetch template', 'error');
       navigate('/templates');
     } finally {
       setLoading(false);
@@ -69,12 +77,19 @@ const TemplateEditor = () => {
         await TemplateService.update(id, template);
         showToast('Template updated successfully', 'success');
       } else {
-        const newTemplate = await TemplateService.create(template);
-        showToast('Template created successfully', 'success');
-        navigate(`/templates/${newTemplate.id}/edit`);
+        const response = await TemplateService.create(template);
+        
+        if (response && response.ok && response.id) {
+          showToast('Template created successfully', 'success');
+          // Navigate to edit page with the new template ID
+          navigate(`/templates/${response.id}/edit`);
+        } else {
+          throw new Error(response?.message || 'Failed to create template');
+        }
       }
     } catch (error) {
-      showToast(error.response?.data?.message || 'Failed to save template', 'error');
+      console.error('Error saving template:', error);
+      showToast(error.response?.data?.message || error.message || 'Failed to save template', 'error');
     } finally {
       setSaving(false);
     }
@@ -108,27 +123,50 @@ const TemplateEditor = () => {
       return;
     }
 
-    if (!isEditMode || !id) {
+    if (!isEditMode || !id || id === 'undefined') {
       showToast('Please save the template first before adding questions', 'error');
       return;
     }
 
     try {
-      const payload = { ...questionForm, template_id: parseInt(id) };
+      const payload = {
+        question_text: questionForm.question_text,
+        question_type_id: getQuestionTypeId(questionForm.question_type),
+        required: questionForm.is_required,
+        order: questionForm.display_order
+      };
       
       if (editingQuestion) {
         await QuestionService.update(editingQuestion.id, payload);
         showToast('Question updated successfully', 'success');
       } else {
-        await QuestionService.create(payload);
-        showToast('Question added successfully', 'success');
+        // Use TemplateService.addQuestion instead
+        const response = await TemplateService.addQuestion(id, payload);
+        if (response && response.ok) {
+          showToast('Question added successfully', 'success');
+        } else {
+          throw new Error(response?.message || 'Failed to add question');
+        }
       }
       
       setShowQuestionModal(false);
       fetchTemplateData();
     } catch (error) {
-      showToast(error.response?.data?.message || 'Failed to save question', 'error');
+      console.error('Error saving question:', error);
+      showToast(error.response?.data?.message || error.message || 'Failed to save question', 'error');
     }
+  };
+  
+  // Helper function to map question type string to ID
+  const getQuestionTypeId = (typeName) => {
+    const typeMap = {
+      'multiple_choice': 1,
+      'checkbox': 2,
+      'text': 3,
+      'rating': 4,
+      'dropdown': 5
+    };
+    return typeMap[typeName] || 1;
   };
 
   const handleDeleteQuestion = async (questionId) => {

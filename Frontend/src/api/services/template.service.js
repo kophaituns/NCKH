@@ -28,9 +28,19 @@ const TemplateService = {
    * Get template by ID
    */
   async getById(id) {
-    const response = await http.get(`/templates/${id}`);
-    // Backend returns { success: true, data: { template: {...} } }
-    return response.data.data?.template || null;
+    try {
+      const response = await http.get(`/templates/${id}`);
+      // Backend returns { success: true, ok: true, template: {...}, questions: [...] }
+      const data = response.data;
+      return {
+        ok: data.ok || data.success || false,
+        template: data.template || data.data?.template || null,
+        questions: data.questions || data.data?.questions || []
+      };
+    } catch (error) {
+      console.error('Error in TemplateService.getById:', error);
+      throw error;
+    }
   },
 
   // Alias for compatibility
@@ -42,16 +52,37 @@ const TemplateService = {
    * Get questions for a template
    */
   async getQuestions(templateId) {
-    const response = await http.get(`/templates/${templateId}/questions`);
-    return response.data;
+    try {
+      const response = await http.get(`/templates/${templateId}/questions`);
+      const data = response.data;
+      return {
+        ok: data.ok || data.success || false,
+        questions: data.questions || []
+      };
+    } catch (error) {
+      console.error('Error in TemplateService.getQuestions:', error);
+      return { ok: false, questions: [] };
+    }
   },
 
   /**
    * Create new template
    */
   async create(templateData) {
-    const response = await http.post('/templates', templateData);
-    return response.data.data;
+    try {
+      const response = await http.post('/templates', templateData);
+      const data = response.data;
+      // Backend returns { success: true, ok: true, id: X, data: { template, template_id } }
+      return {
+        ok: data.ok || data.success || false,
+        id: data.id || data.data?.template_id || data.data?.template?.id,
+        template: data.data?.template || data.template,
+        message: data.message
+      };
+    } catch (error) {
+      console.error('Error in TemplateService.create:', error);
+      throw error;
+    }
   },
 
   // Alias for compatibility
@@ -97,8 +128,22 @@ const TemplateService = {
    * Add question to template
    */
   async addQuestion(templateId, questionData) {
-    const response = await http.post(`/templates/${templateId}/questions`, questionData);
-    return response.data;
+    try {
+      if (!templateId || templateId === 'undefined') {
+        throw new Error('Invalid template ID');
+      }
+      const response = await http.post(`/templates/${templateId}/questions`, questionData);
+      const data = response.data;
+      return {
+        ok: data.ok || data.success || false,
+        question: data.data?.question || data.question,
+        question_id: data.data?.question_id || data.question_id,
+        message: data.message
+      };
+    } catch (error) {
+      console.error('Error in TemplateService.addQuestion:', error);
+      throw error;
+    }
   },
 
   /**

@@ -16,6 +16,10 @@ module.exports = (sequelize, DataTypes) => {
         type: DataTypes.INTEGER,
         allowNull: false,
       },
+      collector_id: {
+        type: DataTypes.INTEGER,
+        allowNull: true,
+      },
       start_time: {
         type: DataTypes.DATE,
         allowNull: true,

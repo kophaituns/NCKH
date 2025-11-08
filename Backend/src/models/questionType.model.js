@@ -8,10 +8,11 @@ module.exports = (sequelize, DataTypes) => {
         autoIncrement: true,
         primaryKey: true,
       },
-      name: {
+      type_name: {
         type: DataTypes.STRING(50),
         allowNull: false,
         unique: true,
+        field: 'type_name',
       },
       description: {
         type: DataTypes.TEXT,

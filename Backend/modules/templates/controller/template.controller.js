@@ -46,7 +46,14 @@ class TemplateController {
 
       res.status(200).json({
         success: true,
-        data: { template }
+        ok: true,
+        data: { 
+          template,
+          template_id: template.id,
+          title: template.title
+        },
+        template: template,
+        questions: template.Questions || []
       });
     } catch (error) {
       logger.error('Get template error:', error);
@@ -76,8 +83,13 @@ class TemplateController {
 
       res.status(201).json({
         success: true,
+        ok: true,
         message: 'Template created successfully',
-        data: { template }
+        id: template.id,
+        data: { 
+          template,
+          template_id: template.id
+        }
       });
     } catch (error) {
       logger.error('Create template error:', error);
@@ -180,11 +192,22 @@ class TemplateController {
       }
 
       const template = await templateService.addQuestion(id, req.body, req.user);
+      
+      // Get the last added question
+      const lastQuestion = template.Questions && template.Questions.length > 0 
+        ? template.Questions[template.Questions.length - 1]
+        : null;
 
       res.status(201).json({
         success: true,
+        ok: true,
         message: 'Question added successfully',
-        data: { template }
+        question: lastQuestion,
+        data: { 
+          template,
+          question_id: lastQuestion ? lastQuestion.id : null,
+          question: lastQuestion
+        }
       });
     } catch (error) {
       logger.error('Add question error:', error);
@@ -226,6 +249,46 @@ class TemplateController {
       res.status(500).json({
         success: false,
         message: error.message || 'Error fetching question types'
+      });
+    }
+  }
+
+  /**
+   * Get questions by template ID
+   */
+  async getQuestionsByTemplate(req, res) {
+    try {
+      const { id } = req.params;
+      
+      if (!id || isNaN(id)) {
+        return res.status(400).json({
+          success: false,
+          ok: false,
+          message: 'Invalid template ID'
+        });
+      }
+
+      const template = await templateService.getTemplateById(id);
+      
+      if (!template) {
+        return res.status(404).json({
+          success: false,
+          ok: false,
+          message: 'Template not found'
+        });
+      }
+
+      res.status(200).json({
+        success: true,
+        ok: true,
+        questions: template.Questions || []
+      });
+    } catch (error) {
+      logger.error('Get questions by template error:', error);
+      res.status(500).json({
+        success: false,
+        ok: false,
+        message: error.message || 'Error fetching questions'
       });
     }
   }

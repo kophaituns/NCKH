@@ -51,8 +51,12 @@ class CollectorController {
 
       res.status(201).json({
         success: true,
-        message: 'Collector created (placeholder)',
-        data: collector
+        message: 'Collector created successfully',
+        data: {
+          collector_id: collector.id,
+          token: collector.token,
+          collector
+        }
       });
     } catch (error) {
       logger.error('Create collector error:', error);
