@@ -1,6 +1,6 @@
 // modules/collectors/service/collector.service.js
 // Placeholder for survey collectors (distribution methods: email, link, QR code)
-const { Survey } = require('../../../src/models');
+const { Survey, SurveyCollector } = require('../../../src/models');
 
 class CollectorService {
   /**
@@ -42,7 +42,7 @@ class CollectorService {
   }
 
   /**
-   * Create collector (placeholder)
+   * Create collector
    */
   async createCollector(surveyId, collectorData, user) {
     const survey = await Survey.findByPk(surveyId);
@@ -55,12 +55,27 @@ class CollectorService {
       throw new Error('Access denied');
     }
 
-    // Placeholder response
-    return {
-      message: 'Collector creation not yet implemented',
-      collector_type: collectorData.type,
-      survey_id: surveyId
-    };
+    // Generate unique token
+    const token = require('crypto').randomBytes(16).toString('hex');
+
+    // Map type to collector_type (handle both weblink and web_link)
+    let collectorType = collectorData.type || 'web_link';
+    if (collectorType === 'weblink') {
+      collectorType = 'web_link';
+    }
+
+    const collector = await SurveyCollector.create({
+      survey_id: surveyId,
+      collector_type: collectorType,
+      token: token,
+      name: collectorData.name || `Collector for ${survey.title}`,
+      is_active: true,
+      allow_multiple_responses: collectorData.allow_multiple_responses || false,
+      response_count: 0,
+      created_by: user.id
+    });
+
+    return collector;
   }
 }
 

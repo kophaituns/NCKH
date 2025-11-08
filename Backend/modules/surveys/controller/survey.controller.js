@@ -77,7 +77,10 @@ class SurveyController {
       res.status(201).json({
         success: true,
         message: 'Survey created successfully',
-        data: { survey }
+        data: { 
+          survey_id: survey.id,
+          survey 
+        }
       });
     } catch (error) {
       logger.error('Create survey error:', error);
@@ -122,6 +125,55 @@ class SurveyController {
       res.status(500).json({
         success: false,
         message: error.message || 'Error updating survey'
+      });
+    }
+  }
+
+  /**
+   * Update survey status
+   */
+  async updateSurveyStatus(req, res) {
+    try {
+      const { id } = req.params;
+      const { status } = req.body;
+
+      if (!status) {
+        return res.status(400).json({
+          success: false,
+          message: 'Status is required'
+        });
+      }
+
+      const survey = await surveyService.updateSurvey(id, { status }, req.user);
+
+      res.status(200).json({
+        success: true,
+        message: `Survey status updated to ${status}`,
+        data: { 
+          status: survey.status,
+          survey 
+        }
+      });
+    } catch (error) {
+      logger.error('Update survey status error:', error);
+      
+      if (error.message.includes('not found')) {
+        return res.status(404).json({
+          success: false,
+          message: error.message
+        });
+      }
+
+      if (error.message.includes('Access denied')) {
+        return res.status(403).json({
+          success: false,
+          message: error.message
+        });
+      }
+
+      res.status(500).json({
+        success: false,
+        message: error.message || 'Error updating survey status'
       });
     }
   }

@@ -68,11 +68,28 @@ app.get('/', (req, res) => {
 
 // Error handling middleware
 app.use((err, req, res, next) => {
+  console.error('[API ERROR]', err);
   logger.error(err.stack);
-  res.status(err.statusCode || 500).json({
+  
+  const status = err.status || err.statusCode || 500;
+  const payload = {
+    success: false,
+    ok: false,
     error: true,
+    code: err.code || 'INTERNAL_ERROR',
     message: err.message || 'Internal Server Error',
     stack: process.env.NODE_ENV === 'development' ? err.stack : undefined,
+  };
+  
+  res.status(status).json(payload);
+});
+
+// 404 handler - must be after all routes
+app.use((req, res) => {
+  res.status(404).json({
+    success: false,
+    ok: false,
+    message: `Cannot ${req.method} ${req.path}`
   });
 });
 

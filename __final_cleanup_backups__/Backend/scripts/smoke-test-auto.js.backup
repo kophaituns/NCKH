@@ -64,7 +64,7 @@ async function testHealthCheck() {
 async function testLogin() {
   await runTest('User Login', async () => {
     const response = await axios.post(`${API_BASE}/auth/login`, {
-      email: 'creator@example.com',
+      email: 'teacher@example.com',
       password: 'test123'
     });
     
@@ -181,15 +181,10 @@ async function testTemplateWithQuestions() {
  */
 async function testCreateSurvey() {
   await runTest('Create Survey', async () => {
-    const now = new Date();
-    const endDate = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000); // 7 days from now
-    
     const response = await axios.post(`${API_BASE}/surveys`, {
       title: 'Smoke Test Survey',
       description: 'Automated testing survey',
       template_id: createdIds.template,
-      start_date: now.toISOString(),
-      end_date: endDate.toISOString(),
       status: 'draft'
     }, {
       headers: { Authorization: `Bearer ${authToken}` }

@@ -16,10 +16,10 @@ module.exports = (sequelize, DataTypes) => {
         type: DataTypes.TEXT,
         allowNull: false,
       },
-      order: {
+      display_order: {
         type: DataTypes.INTEGER,
         defaultValue: 0,
-        field: 'order',
+        field: 'display_order',
       },
     },
     {

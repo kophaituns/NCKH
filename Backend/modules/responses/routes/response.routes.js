@@ -2,7 +2,30 @@
 const express = require('express');
 const router = express.Router();
 const responseController = require('../controller/response.controller');
+const publicResponsesController = require('../controller/public-responses.controller');
 const { authenticate, isCreatorOrAdmin } = require('../../auth-rbac/middleware/auth.middleware');
+
+/**
+ * PUBLIC ROUTES (no authentication required)
+ */
+
+/**
+ * @route   GET /api/responses/public/:token
+ * @desc    Get survey by public token
+ * @access  Public
+ */
+router.get('/public/:token', publicResponsesController.getSurveyByToken);
+
+/**
+ * @route   POST /api/responses/public/:token
+ * @desc    Submit response to survey via public token
+ * @access  Public
+ */
+router.post('/public/:token', publicResponsesController.submitResponse);
+
+/**
+ * AUTHENTICATED ROUTES
+ */
 
 /**
  * @route   POST /api/responses

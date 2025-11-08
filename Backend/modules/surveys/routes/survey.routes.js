@@ -2,7 +2,7 @@
 const express = require('express');
 const router = express.Router();
 const surveyController = require('../controller/survey.controller');
-const { authenticate, isTeacherOrAdmin } = require('../../auth-rbac/middleware/auth.middleware');
+const { authenticate, isCreatorOrAdmin } = require('../../auth-rbac/middleware/auth.middleware');
 
 /**
  * @route   GET /api/surveys
@@ -26,24 +26,31 @@ router.get('/:id', authenticate, surveyController.getSurveyById);
 router.get('/:id/stats', authenticate, surveyController.getSurveyStats);
 
 /**
- * @route   POST /api/surveys
+ * @route   POST /api/modules/surveys
  * @desc    Create new survey
- * @access  Private (Teacher/Admin only)
+ * @access  Private (Creator/Admin only)
  */
-router.post('/', authenticate, isTeacherOrAdmin, surveyController.createSurvey);
+router.post('/', authenticate, isCreatorOrAdmin, surveyController.createSurvey);
 
 /**
- * @route   PUT /api/surveys/:id
+ * @route   PUT /api/modules/surveys/:id
  * @desc    Update survey
- * @access  Private (Owner/Admin only)
+ * @access  Private (Creator/Admin only)
  */
-router.put('/:id', authenticate, isTeacherOrAdmin, surveyController.updateSurvey);
+router.put('/:id', authenticate, isCreatorOrAdmin, surveyController.updateSurvey);
 
 /**
- * @route   DELETE /api/surveys/:id
- * @desc    Delete survey
- * @access  Private (Owner/Admin only)
+ * @route   PATCH /api/modules/surveys/:id/status
+ * @desc    Update survey status (publish, close, etc.)
+ * @access  Private (Creator/Admin only)
  */
-router.delete('/:id', authenticate, isTeacherOrAdmin, surveyController.deleteSurvey);
+router.patch('/:id/status', authenticate, isCreatorOrAdmin, surveyController.updateSurveyStatus);
+
+/**
+ * @route   DELETE /api/modules/surveys/:id
+ * @desc    Delete survey
+ * @access  Private (Creator/Admin only)
+ */
+router.delete('/:id', authenticate, isCreatorOrAdmin, surveyController.deleteSurvey);
 
 module.exports = router;

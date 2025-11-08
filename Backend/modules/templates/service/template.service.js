@@ -55,17 +55,20 @@ class TemplateService {
         },
         {
           model: Question,
+          as: 'Questions',
           include: [
             {
               model: QuestionType,
-              attributes: ['id', 'name', 'description']
+              as: 'QuestionType',
+              attributes: ['id', 'type_name', 'description']
             },
             {
               model: QuestionOption,
-              attributes: ['id', 'option_text', 'order']
+              as: 'QuestionOptions',
+              attributes: ['id', 'option_text', 'display_order']
             }
           ],
-          order: [['order', 'ASC']]
+          order: [['display_order', 'ASC']]
         }
       ]
     });
@@ -94,7 +97,7 @@ class TemplateService {
           question_type_id: q.question_type_id,
           question_text: q.question_text,
           required: q.required !== undefined ? q.required : false,
-          order: q.order !== undefined ? q.order : index + 1
+          display_order: q.display_order !== undefined ? q.display_order : index + 1
         });
       });
 
@@ -108,7 +111,7 @@ class TemplateService {
             return QuestionOption.create({
               question_id: createdQuestions[i].id,
               option_text: opt.option_text,
-              order: opt.order !== undefined ? opt.order : optIndex + 1
+              display_order: opt.display_order !== undefined ? opt.display_order : optIndex + 1
             });
           });
 
@@ -184,7 +187,7 @@ class TemplateService {
       question_type_id: questionData.question_type_id,
       question_text: questionData.question_text,
       required: questionData.required || false,
-      order: questionData.order || 1
+      display_order: questionData.display_order || 1
     });
 
     // Create options if provided
@@ -193,7 +196,7 @@ class TemplateService {
         return QuestionOption.create({
           question_id: question.id,
           option_text: opt.option_text,
-          order: opt.order !== undefined ? opt.order : index + 1
+          display_order: opt.display_order !== undefined ? opt.display_order : index + 1
         });
       });
 
