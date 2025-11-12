@@ -41,15 +41,29 @@ router.put('/:id', authenticate, isCreatorOrAdmin, templateController.updateTemp
 
 /**
  * @route   DELETE /api/modules/templates/:id
- * @desc    Delete template
- * @access  Private (Admin only)
+ * @desc    Delete template (with safety checks)
+ * @access  Private (Creator/Admin - with restrictions)
  */
 router.delete('/:id', authenticate, isCreatorOrAdmin, templateController.deleteTemplate);
 
 /**
+ * @route   PATCH /api/modules/templates/:id/archive
+ * @desc    Archive template (soft delete for templates in use)
+ * @access  Private (Creator/Admin)
+ */
+router.patch('/:id/archive', authenticate, isCreatorOrAdmin, templateController.archiveTemplate);
+
+/**
+ * @route   PATCH /api/modules/templates/:id/unarchive
+ * @desc    Unarchive template
+ * @access  Private (Creator/Admin)
+ */
+router.patch('/:id/unarchive', authenticate, isCreatorOrAdmin, templateController.unarchiveTemplate);
+
+/**
  * @route   POST /api/modules/templates/:id/questions
  * @desc    Add question to template
- * @access  Private (Admin only)
+ * @access  Private (Creator/Admin)
  */
 router.post('/:id/questions', authenticate, isCreatorOrAdmin, templateController.addQuestion);
 

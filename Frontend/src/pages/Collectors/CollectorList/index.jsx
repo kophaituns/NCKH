@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { QRCodeSVG } from 'qrcode.react';
 import CollectorService from '../../../api/services/collector.service';
@@ -29,36 +29,59 @@ const CollectorList = () => {
   });
   const itemsPerPage = 10;
 
-  useEffect(() => {
-    fetchCollectors();
-    fetchSurveys();
-    
-    // Auto-refresh every 30 seconds
-    const interval = setInterval(fetchCollectors, 30000);
-    return () => clearInterval(interval);
-  }, []);
-
-  const fetchCollectors = async () => {
+  const fetchCollectors = useCallback(async (surveyList) => {
     try {
       setLoading(true);
-      const data = await CollectorService.getAll();
-      setCollectors(data);
+      // Fetch collectors for all surveys
+      const allCollectors = [];
+      for (const survey of surveyList) {
+        try {
+          const collectors = await CollectorService.getBySurvey(survey.id);
+          // Add survey info to each collector
+          allCollectors.push(...collectors.map(c => ({ ...c, survey })));
+        } catch (error) {
+          console.error(`Failed to fetch collectors for survey ${survey.id}:`, error);
+        }
+      }
+      setCollectors(allCollectors);
     } catch (error) {
       showToast(error.response?.data?.message || 'Failed to fetch collectors', 'error');
     } finally {
       setLoading(false);
     }
-  };
+  }, [showToast]);
 
-  const fetchSurveys = async () => {
-    try {
-      const data = await SurveyService.getAll();
-      // Only active surveys
-      setSurveys(data.filter(s => s.status === 'active'));
-    } catch (error) {
-      showToast('Failed to fetch surveys', 'error');
-    }
-  };
+  useEffect(() => {
+    const init = async () => {
+      // Fetch surveys first
+      try {
+        const surveyData = await SurveyService.getAll();
+        const activeSurveys = surveyData.filter(s => s.status === 'active');
+        setSurveys(activeSurveys);
+        
+        // Then fetch collectors for all surveys
+        await fetchCollectors(activeSurveys);
+      } catch (error) {
+        showToast('Failed to initialize page', 'error');
+        setLoading(false);
+      }
+    };
+
+    init();
+    
+    // Auto-refresh every 30 seconds - fetch latest surveys each time
+    const interval = setInterval(async () => {
+      try {
+        const surveyData = await SurveyService.getAll();
+        const activeSurveys = surveyData.filter(s => s.status === 'active');
+        setSurveys(activeSurveys);
+        await fetchCollectors(activeSurveys);
+      } catch (error) {
+        console.error('Auto-refresh failed:', error);
+      }
+    }, 30000);
+    return () => clearInterval(interval);
+  }, [fetchCollectors, showToast]);
 
   const handleGenerate = async (e) => {
     e.preventDefault();
@@ -73,7 +96,7 @@ const CollectorList = () => {
       showToast('Collector generated successfully', 'success');
       setShowGenerateModal(false);
       setFormData({ survey_id: '', expires_at: '' });
-      fetchCollectors();
+      fetchCollectors(surveys);
     } catch (error) {
       showToast(error.response?.data?.message || 'Failed to generate collector', 'error');
     }
@@ -83,11 +106,11 @@ const CollectorList = () => {
     if (!selectedCollector) return;
 
     try {
-      await CollectorService.delete(selectedCollector.id);
+      await CollectorService.deleteCollector(selectedCollector.id);
       showToast('Collector deleted successfully', 'success');
       setShowDeleteModal(false);
       setSelectedCollector(null);
-      fetchCollectors();
+      fetchCollectors(surveys);
     } catch (error) {
       showToast(error.response?.data?.message || 'Failed to delete collector', 'error');
     }

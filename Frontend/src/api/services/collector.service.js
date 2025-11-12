@@ -5,17 +5,26 @@ const CollectorService = {
   /**
    * Get all collectors for a survey
    */
-  async getCollectorsBySurvey(surveyId) {
+  async getBySurvey(surveyId) {
     const response = await http.get(`/collectors/survey/${surveyId}`);
-    return response.data;
+    return response.data.collectors || response.data.data?.collectors || [];
   },
 
   /**
    * Create new collector
    */
-  async createCollector(collectorData) {
+  async create(collectorData) {
     const response = await http.post('/collectors', collectorData);
-    return response.data;
+    return response.data.collector || response.data.data?.collector;
+  },
+
+  // Legacy aliases for backward compatibility
+  getCollectorsBySurvey(surveyId) {
+    return this.getBySurvey(surveyId);
+  },
+
+  createCollector(collectorData) {
+    return this.create(collectorData);
   },
 
   /**

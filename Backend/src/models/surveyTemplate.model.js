@@ -24,6 +24,11 @@ module.exports = (sequelize, DataTypes) => {
         type: DataTypes.ENUM('draft', 'active', 'archived'),
         defaultValue: 'draft',
       },
+      is_archived: {
+        type: DataTypes.TINYINT,
+        defaultValue: 0,
+        comment: 'Soft delete flag: 0=active, 1=archived'
+      },
       created_at: {
         type: DataTypes.DATE,
         defaultValue: DataTypes.NOW,

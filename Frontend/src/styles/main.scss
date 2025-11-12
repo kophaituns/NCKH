@@ -1,3 +1,7 @@
+// Import global typography and base styles
+@use './global.scss';
+@use './variables' as *;
+
 // Import responsive utilities
 @use './responsive.scss' as *;
 

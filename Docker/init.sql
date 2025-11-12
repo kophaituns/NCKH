@@ -203,26 +203,26 @@ INSERT INTO questions (template_id, question_text, question_type_id, required, d
 
 -- Add options for Likert scale questions
 INSERT INTO question_options (question_id, option_text, display_order) VALUES
-(1, '1 - Rất không hài lòng', 1),
-(1, '2 - Không hài lòng', 2),
-(1, '3 - Bình thường', 3),
-(1, '4 - Hài lòng', 4),
-(1, '5 - Rất hài lòng', 5),
-(2, '1 - Rất không hài lòng', 1),
-(2, '2 - Không hài lòng', 2),
-(2, '3 - Bình thường', 3),
-(2, '4 - Hài lòng', 4),
-(2, '5 - Rất hài lòng', 5),
-(3, '1 - Rất không hài lòng', 1),
-(3, '2 - Không hài lòng', 2),
-(3, '3 - Bình thường', 3),
-(3, '4 - Hài lòng', 4),
-(3, '5 - Rất hài lòng', 5),
-(4, '1 - Rất không hài lòng', 1),
-(4, '2 - Không hài lòng', 2),
-(4, '3 - Bình thường', 3),
-(4, '4 - Hài lòng', 4),
-(4, '5 - Rất hài lòng', 5);
+(1, '1 - Strongly disagree', 1),
+(1, '2 - Disagree', 2),
+(1, '3 - Neutral', 3),
+(1, '4 - Agree', 4),
+(1, '5 - Strongly agree', 5),
+(2, '1 - Strongly disagree', 1),
+(2, '2 - Disagree', 2),
+(2, '3 - Neutral', 3),
+(2, '4 - Agree', 4),
+(2, '5 - Strongly agree', 5),
+(3, '1 - Strongly disagree', 1),
+(3, '2 - Disagree', 2),
+(3, '3 - Neutral', 3),
+(3, '4 - Agree', 4),
+(3, '5 - Strongly agree', 5),
+(4, '1 - Strongly disagree', 1),
+(4, '2 - Disagree', 2),
+(4, '3 - Neutral', 3),
+(4, '4 - Agree', 4),
+(4, '5 - Strongly agree', 5);
 
 -- Create a sample active survey
 INSERT INTO surveys (template_id, title, description, start_date, end_date, target_audience, target_value, created_by, status) VALUES

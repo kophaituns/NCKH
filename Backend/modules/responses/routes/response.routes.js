@@ -49,11 +49,11 @@ router.get('/my-responses', authenticate, responseController.getUserResponses);
 router.get('/:id', authenticate, responseController.getResponseById);
 
 /**
- * @route   GET /api/responses/survey/:survey_id
+ * @route   GET /api/responses/survey/:surveyId
  * @desc    Get all responses for a survey
  * @access  Private (Creator/Admin only)
  */
-router.get('/survey/:survey_id', authenticate, responseController.getResponsesBySurvey);
+router.get('/survey/:surveyId', authenticate, isCreatorOrAdmin, responseController.getResponsesBySurvey);
 
 /**
  * @route   DELETE /api/responses/:id

@@ -79,7 +79,7 @@
     th {
       padding: 1rem;
       text-align: left;
-      font-size: 0.75rem;
+      font-size: var(--font-size-sm);
       font-weight: 600;
       text-transform: uppercase;
       letter-spacing: 0.05em;
@@ -120,7 +120,7 @@
   padding: 0.25rem 0.5rem;
   background: #f3f4f6;
   border-radius: 4px;
-  font-size: 0.75rem;
+  font-size: var(--font-size-sm);
   color: #6b7280;
 }
 
@@ -128,7 +128,7 @@
   display: inline-block;
   padding: 0.25rem 0.75rem;
   border-radius: 12px;
-  font-size: 0.75rem;
+  font-size: var(--font-size-sm);
   font-weight: 600;
   text-transform: capitalize;
 
@@ -267,7 +267,7 @@
 }
 
 .hint {
-  font-size: 0.75rem;
+  font-size: var(--font-size-sm);
   color: #6b7280;
   margin-top: 0.5rem;
 }

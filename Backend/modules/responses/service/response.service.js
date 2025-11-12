@@ -35,7 +35,8 @@ class ResponseService {
     const surveyResponse = await SurveyResponse.create({
       survey_id,
       respondent_id: user.id,
-      submitted_at: new Date()
+      status: 'completed',
+      completion_time: new Date()
     });
 
     // Create answers
@@ -142,7 +143,7 @@ class ResponseService {
           ]
         }
       ],
-      order: [['submitted_at', 'DESC']]
+      order: [['created_at', 'DESC']]
     });
 
     return {
@@ -180,7 +181,7 @@ class ResponseService {
           ]
         }
       ],
-      order: [['submitted_at', 'DESC']]
+      order: [['created_at', 'DESC']]
     });
 
     return {

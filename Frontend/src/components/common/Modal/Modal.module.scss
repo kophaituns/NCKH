@@ -55,20 +55,22 @@
 
   h3 {
     margin: 0;
-    font-size: 1.25rem;
-    font-weight: 600;
+    font-size: var(--font-size-xl);
+    font-weight: var(--font-weight-semibold);
     color: #111827;
+    line-height: var(--line-height-tight);
   }
 }
 
 .closeButton {
   background: none;
   border: none;
-  font-size: 1.5rem;
+  font-size: var(--font-size-2xl);
   color: #6b7280;
   cursor: pointer;
   padding: 0.25rem;
   transition: color 0.2s;
+  line-height: 1;
 
   &:hover {
     color: #111827;
@@ -79,6 +81,8 @@
   padding: 1.5rem;
   overflow-y: auto;
   flex: 1;
+  font-size: var(--font-size-base);
+  line-height: var(--line-height-base);
 }
 
 .modalFooter {

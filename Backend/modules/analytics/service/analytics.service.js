@@ -28,11 +28,11 @@ class AnalyticsService {
     const responsesByDate = await SurveyResponse.findAll({
       where: { survey_id: surveyId },
       attributes: [
-        [sequelize.fn('DATE', sequelize.col('submitted_at')), 'date'],
+        [sequelize.fn('DATE', sequelize.col('created_at')), 'date'],
         [sequelize.fn('COUNT', sequelize.col('id')), 'count']
       ],
-      group: [sequelize.fn('DATE', sequelize.col('submitted_at'))],
-      order: [[sequelize.fn('DATE', sequelize.col('submitted_at')), 'ASC']],
+      group: [sequelize.fn('DATE', sequelize.col('created_at'))],
+      order: [[sequelize.fn('DATE', sequelize.col('created_at')), 'ASC']],
       raw: true
     });
 
@@ -158,7 +158,7 @@ class AnalyticsService {
         answer_distribution: answerDistribution,
         text_answers: textAnswers.map(a => ({
           text: a.answer_text,
-          submitted_at: a.created_at
+          created_at: a.created_at
         }))
       });
     }
@@ -210,7 +210,7 @@ class AnalyticsService {
           ]
         }
       ],
-      order: [['submitted_at', 'DESC']]
+      order: [['created_at', 'DESC']]
     });
 
     return {

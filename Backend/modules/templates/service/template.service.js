@@ -1,5 +1,5 @@
 // modules/templates/service/template.service.js
-const { SurveyTemplate, Question, QuestionOption, QuestionType, User } = require('../../../src/models');
+const { SurveyTemplate, Question, QuestionOption, QuestionType, User, Survey, Answer } = require('../../../src/models');
 const { Op } = require('sequelize');
 
 class TemplateService {
@@ -148,23 +148,179 @@ class TemplateService {
   }
 
   /**
-   * Delete template
+   * Delete template (with comprehensive safety checks)
    */
   async deleteTemplate(templateId, user) {
     const template = await SurveyTemplate.findByPk(templateId);
 
     if (!template) {
-      throw new Error('Template not found');
+      return { ok: false, status: 404, code: 'NOT_FOUND', message: 'Template not found' };
     }
 
-    // Check ownership
+    // Permission check: creator can only delete their own templates
+    if (user.role === 'creator' && template.created_by !== user.id) {
+      return { 
+        ok: false, 
+        status: 403, 
+        code: 'FORBIDDEN',
+        message: 'You can only delete your own templates.' 
+      };
+    }
+
+    // Admin can delete any template, but creator can only delete their own
     if (user.role !== 'admin' && template.created_by !== user.id) {
-      throw new Error('Access denied. You do not own this template.');
+      return { 
+        ok: false, 
+        status: 403, 
+        code: 'FORBIDDEN',
+        message: 'Access denied. You do not own this template.' 
+      };
     }
 
+    // SAFETY CHECK 1: Check if any surveys use this template
+    const surveyCount = await Survey.count({ 
+      where: { template_id: templateId } 
+    });
+
+    // SAFETY CHECK 2: Get all question IDs under this template
+    const questions = await Question.findAll({
+      where: { template_id: templateId },
+      attributes: ['id'],
+      raw: true
+    });
+    const questionIds = questions.map(q => q.id);
+
+    // SAFETY CHECK 3: Get all option IDs under these questions
+    let optionIds = [];
+    if (questionIds.length > 0) {
+      const options = await QuestionOption.findAll({
+        where: { question_id: questionIds },
+        attributes: ['id'],
+        raw: true
+      });
+      optionIds = options.map(o => o.id);
+    }
+
+    // SAFETY CHECK 4: Check answers referencing these questions
+    let answersByQuestion = 0;
+    if (questionIds.length > 0) {
+      answersByQuestion = await Answer.count({
+        where: { question_id: questionIds }
+      });
+    }
+
+    // SAFETY CHECK 5: Check answers referencing these options (CRITICAL!)
+    let answersByOption = 0;
+    if (optionIds.length > 0) {
+      answersByOption = await Answer.count({
+        where: { option_id: optionIds }
+      });
+    }
+
+    // Calculate total answers
+    const totalAnswers = answersByQuestion + answersByOption;
+
+    // PREVENT DELETION if template is in use
+    if (surveyCount > 0 || totalAnswers > 0) {
+      return {
+        ok: false,
+        status: 400,
+        code: 'TEMPLATE_IN_USE',
+        message: 'This template is used by existing surveys or responses and cannot be deleted.',
+        details: {
+          surveys: surveyCount,
+          answersByQuestion: answersByQuestion,
+          answersByOption: answersByOption,
+          totalAnswers: totalAnswers
+        }
+      };
+    }
+
+    // Safe to delete - no dependencies found
     await template.destroy();
 
-    return { message: 'Template deleted successfully' };
+    return { 
+      ok: true, 
+      status: 200, 
+      message: 'Template deleted successfully' 
+    };
+  }
+
+  /**
+   * Archive template (soft delete alternative)
+   */
+  async archiveTemplate(templateId, user) {
+    const template = await SurveyTemplate.findByPk(templateId);
+
+    if (!template) {
+      return { ok: false, status: 404, message: 'Template not found' };
+    }
+
+    // Permission check: creator can only archive their own templates
+    if (user.role === 'creator' && template.created_by !== user.id) {
+      return { 
+        ok: false, 
+        status: 403, 
+        message: 'Access denied. You can only archive your own templates.' 
+      };
+    }
+
+    // Admin can archive any template, but creator can only archive their own
+    if (user.role !== 'admin' && template.created_by !== user.id) {
+      return { 
+        ok: false, 
+        status: 403, 
+        message: 'Access denied. You do not own this template.' 
+      };
+    }
+
+    // Update template to set is_archived flag
+    await template.update({ is_archived: 1 });
+
+    return { 
+      ok: true, 
+      status: 200, 
+      message: 'Template archived successfully',
+      template 
+    };
+  }
+
+  /**
+   * Unarchive template
+   */
+  async unarchiveTemplate(templateId, user) {
+    const template = await SurveyTemplate.findByPk(templateId);
+
+    if (!template) {
+      return { ok: false, status: 404, message: 'Template not found' };
+    }
+
+    // Permission check
+    if (user.role === 'creator' && template.created_by !== user.id) {
+      return { 
+        ok: false, 
+        status: 403, 
+        message: 'Access denied. You can only unarchive your own templates.' 
+      };
+    }
+
+    if (user.role !== 'admin' && template.created_by !== user.id) {
+      return { 
+        ok: false, 
+        status: 403, 
+        message: 'Access denied. You do not own this template.' 
+      };
+    }
+
+    // Update template to clear is_archived flag
+    await template.update({ is_archived: 0 });
+
+    return { 
+      ok: true, 
+      status: 200, 
+      message: 'Template unarchived successfully',
+      template 
+    };
   }
 
   /**
@@ -193,10 +349,14 @@ class TemplateService {
     // Create options if provided
     if (questionData.options && Array.isArray(questionData.options)) {
       const optionPromises = questionData.options.map((opt, index) => {
+        // Support both string format and object format
+        const optionText = typeof opt === 'string' ? opt : opt.option_text;
+        const displayOrder = typeof opt === 'string' ? index + 1 : (opt.display_order !== undefined ? opt.display_order : index + 1);
+        
         return QuestionOption.create({
           question_id: question.id,
-          option_text: opt.option_text,
-          display_order: opt.display_order !== undefined ? opt.display_order : index + 1
+          option_text: optionText,
+          display_order: displayOrder
         });
       });
 

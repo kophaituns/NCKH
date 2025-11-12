@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import SurveyService from '../../../api/services/survey.service';
 import Loader from '../../../components/common/Loader/Loader';
@@ -21,11 +21,7 @@ const SurveyList = () => {
   const [surveyToDelete, setSurveyToDelete] = useState(null);
   const itemsPerPage = 10;
 
-  useEffect(() => {
-    fetchSurveys();
-  }, []);
-
-  const fetchSurveys = async () => {
+  const fetchSurveys = useCallback(async () => {
     try {
       setLoading(true);
       const data = await SurveyService.getAll();
@@ -38,7 +34,11 @@ const SurveyList = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [showToast]);
+
+  useEffect(() => {
+    fetchSurveys();
+  }, [fetchSurveys]);
 
   const handleDelete = async () => {
     if (!surveyToDelete) return;
@@ -162,6 +162,7 @@ const SurveyList = () => {
                 <tr>
                   <th>Title</th>
                   <th>Status</th>
+                  <th>Questions</th>
                   <th>Responses</th>
                   <th>Start Date</th>
                   <th>End Date</th>
@@ -170,7 +171,9 @@ const SurveyList = () => {
                 </tr>
               </thead>
               <tbody>
-                {currentSurveys.map((survey) => (
+                {currentSurveys.map((survey) => {
+                  const questionCount = survey.questionCount ?? survey.template?.Questions?.length ?? 0;
+                  return (
                   <tr key={survey.id}>
                     <td>
                       <div className={styles.surveyTitle}>
@@ -182,6 +185,11 @@ const SurveyList = () => {
                     </td>
                     <td>
                       <StatusBadge status={survey.status} />
+                    </td>
+                    <td>
+                      <span className={styles.questionCount}>
+                        {questionCount} {questionCount === 1 ? 'question' : 'questions'}
+                      </span>
                     </td>
                     <td>
                       <span className={styles.responseCount}>
@@ -229,13 +237,23 @@ const SurveyList = () => {
                           </svg>
                         </button>
                         <button
-                          onClick={() => navigate(`/collectors?survey=${survey.id}`)}
-                          className={styles.linkButton}
-                          title="View collectors"
+                          onClick={() => navigate(`/surveys/${survey.id}/distribute`)}
+                          className={styles.distributeButton}
+                          title="Distribute survey"
                         >
                           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
-                            <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+                            <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z" />
+                          </svg>
+                        </button>
+                        <button
+                          onClick={() => navigate(`/surveys/${survey.id}/results`)}
+                          className={styles.resultsButton}
+                          title="View results"
+                        >
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <line x1="12" y1="20" x2="12" y2="10" />
+                            <line x1="18" y1="20" x2="18" y2="4" />
+                            <line x1="6" y1="20" x2="6" y2="16" />
                           </svg>
                         </button>
                         <button
@@ -250,7 +268,8 @@ const SurveyList = () => {
                       </div>
                     </td>
                   </tr>
-                ))}
+                  );
+                })}
               </tbody>
             </table>
           </div>

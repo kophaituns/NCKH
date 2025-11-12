@@ -2,11 +2,12 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import OptionList from './OptionList';
 import styles from './QuestionCard.module.scss';
+import { getQuestionTypeLabel, getQuestionType } from '../../utils/questionTypes';
 
 /**
  * QuestionCard Component
  * Renders a question with its options/input field based on question type
- * @param {Object} question - Question object {id, question_text, question_type, is_required}
+ * @param {Object} question - Question object {id, label, question_text, question_type, is_required}
  * @param {Array} options - Array of options for MCQ/Checkbox/Dropdown
  * @param {boolean} editable - Show edit/delete actions
  * @param {Function} onEdit - Callback for editing question
@@ -27,23 +28,16 @@ const QuestionCard = ({
   onAddOption,
   index,
 }) => {
-  const questionTypeLabels = {
-    multiple_choice: 'Multiple Choice',
-    checkbox: 'Checkbox',
-    likert_scale: 'Likert Scale',
-    open_ended: 'Open Ended',
-    dropdown: 'Dropdown',
-  };
-
   const renderQuestionInput = () => {
-    switch (question.question_type) {
+    const questionType = getQuestionType(question);
+    switch (questionType) {
       case 'multiple_choice':
       case 'checkbox':
       case 'dropdown':
         return (
           <OptionList
             options={options}
-            questionType={question.question_type}
+            questionType={questionType}
             editable={editable}
             onEdit={onEditOption}
             onDelete={onDeleteOption}
@@ -87,13 +81,13 @@ const QuestionCard = ({
           )}
           <div>
             <h3 className={styles.questionText}>
-              {question.question_text}
+              {question.label || question.question_text || 'Untitled question'}
               {question.is_required && (
                 <span className={styles.required}>*</span>
               )}
             </h3>
             <span className={styles.questionType}>
-              {questionTypeLabels[question.question_type] || question.question_type}
+              {getQuestionTypeLabel(question)}
             </span>
           </div>
         </div>
@@ -135,7 +129,8 @@ const QuestionCard = ({
 QuestionCard.propTypes = {
   question: PropTypes.shape({
     id: PropTypes.number,
-    question_text: PropTypes.string.isRequired,
+    label: PropTypes.string, // Primary field
+    question_text: PropTypes.string, // Fallback field
     question_type: PropTypes.string.isRequired,
     is_required: PropTypes.bool,
   }).isRequired,
