@@ -53,7 +53,7 @@ class ExportService {
           ]
         }
       ],
-      order: [['submitted_at', 'ASC']]
+      order: [['created_at', 'ASC']]
     });
 
     // Build CSV headers
@@ -74,7 +74,7 @@ class ExportService {
         response.User.id,
         response.User.full_name || response.User.username,
         response.User.email,
-        response.submitted_at
+        response.created_at
       ];
 
       // Add answers for each question

@@ -18,16 +18,18 @@
 }
 
 .title {
-  font-size: 2rem;
-  font-weight: 700;
+  font-size: var(--font-size-xl);  /* 28px - Page title */
+  font-weight: var(--font-weight-bold);
   color: #111827;
   margin: 0 0 0.5rem 0;
+  line-height: var(--line-height-tight);
 }
 
 .subtitle {
-  font-size: 0.9375rem;
+  font-size: var(--font-size-base);  /* 18px - Up from 15px */
   color: #6b7280;
   margin: 0;
+  line-height: var(--line-height-base);
 }
 
 .actions {
@@ -49,10 +51,10 @@
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  padding: 0.75rem 1.25rem;
+  padding: var(--button-padding-y) var(--button-padding-x);
   border-radius: 8px;
-  font-size: 0.875rem;
-  font-weight: 500;
+  font-size: var(--font-size-base);  /* 18px - Up from 14px */
+  font-weight: var(--font-weight-medium);
   cursor: pointer;
   transition: all 0.2s;
   border: none;

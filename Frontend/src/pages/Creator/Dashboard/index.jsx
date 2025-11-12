@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js';
 import { Doughnut } from 'react-chartjs-2';
@@ -29,11 +29,7 @@ const CreatorDashboard = () => {
     closed: 0
   });
 
-  useEffect(() => {
-    fetchCreatorData();
-  }, []);
-
-  const fetchCreatorData = async () => {
+  const fetchCreatorData = useCallback(async () => {
     setLoading(true);
     try {
       // Fetch creator's surveys
@@ -67,7 +63,11 @@ const CreatorDashboard = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [showError]);
+
+  useEffect(() => {
+    fetchCreatorData();
+  }, [fetchCreatorData]);
 
   // Chart configuration
   const statusChartData = {

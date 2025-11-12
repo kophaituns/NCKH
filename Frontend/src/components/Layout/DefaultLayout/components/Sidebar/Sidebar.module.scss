@@ -59,7 +59,7 @@
 .badge {
   background-color: #3b82f6;
   color: white;
-  font-size: 0.75rem;
+  font-size: var(--font-size-sm);
   padding: 0.25rem 0.5rem;
   border-radius: 9999px;
   font-weight: 600;

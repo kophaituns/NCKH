@@ -204,6 +204,7 @@ const SurveyManagement = () => {
                   <tr>
                     <th>Title</th>
                     <th>Status</th>
+                    <th>Questions</th>
                     <th>Progress</th>
                     <th>Created</th>
                     <th>End Date</th>
@@ -211,7 +212,9 @@ const SurveyManagement = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {surveys.map((survey) => (
+                  {surveys.map((survey) => {
+                    const questionCount = survey.questionCount ?? survey.template?.Questions?.length ?? 0;
+                    return (
                     <tr key={survey.id}>
                       <td>
                         <div className="survey-title">
@@ -223,6 +226,11 @@ const SurveyManagement = () => {
                         <span className={`badge badge-${getStatusVariant(survey.status)}`}>
                           {survey.status}
                         </span>
+                      </td>
+                      <td>
+                        <div className="small">
+                          {questionCount} {questionCount === 1 ? 'question' : 'questions'}
+                        </div>
                       </td>
                       <td>
                         <div className="progress-info">
@@ -275,7 +283,8 @@ const SurveyManagement = () => {
                         </div>
                       </td>
                     </tr>
-                  ))}
+                    );
+                  })}
                 </tbody>
               </table>
             </div>

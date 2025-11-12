@@ -8,33 +8,33 @@ class CollectorController {
    */
   async getCollectorsBySurvey(req, res) {
     try {
-      const { survey_id } = req.params;
+      const { surveyId } = req.params;
 
-      const collectors = await collectorService.getCollectorsBySurvey(survey_id, req.user);
+      const collectors = await collectorService.getCollectorsBySurvey(surveyId, req.user);
 
       res.status(200).json({
-        success: true,
-        data: collectors
+        ok: true,
+        collectors
       });
     } catch (error) {
       logger.error('Get collectors error:', error);
 
       if (error.message.includes('not found')) {
         return res.status(404).json({
-          success: false,
+          ok: false,
           message: error.message
         });
       }
 
       if (error.message.includes('Access denied')) {
         return res.status(403).json({
-          success: false,
+          ok: false,
           message: error.message
         });
       }
 
       res.status(500).json({
-        success: false,
+        ok: false,
         message: error.message || 'Error fetching collectors'
       });
     }
@@ -45,17 +45,30 @@ class CollectorController {
    */
   async createCollector(req, res) {
     try {
-      const { survey_id } = req.params;
+      const { surveyId } = req.body;
 
-      const collector = await collectorService.createCollector(survey_id, req.body, req.user);
+      if (!surveyId) {
+        return res.status(400).json({
+          ok: false,
+          message: 'Survey ID is required'
+        });
+      }
+
+      const collector = await collectorService.createCollector(surveyId, req.body, req.user);
 
       res.status(201).json({
-        success: true,
+        ok: true,
         message: 'Collector created successfully',
-        data: {
-          collector_id: collector.id,
+        collector: {
+          id: collector.id,
+          surveyId: collector.survey_id,
           token: collector.token,
-          collector
+          publicUrl: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/public/${collector.token}`,
+          type: collector.collector_type,
+          name: collector.name,
+          isActive: collector.is_active,
+          createdAt: collector.created_at,
+          responsesCount: collector.response_count || 0
         }
       });
     } catch (error) {
@@ -63,20 +76,27 @@ class CollectorController {
 
       if (error.message.includes('not found')) {
         return res.status(404).json({
-          success: false,
+          ok: false,
           message: error.message
         });
       }
 
       if (error.message.includes('Access denied')) {
         return res.status(403).json({
-          success: false,
+          ok: false,
+          message: error.message
+        });
+      }
+
+      if (error.message.includes('not active') || error.message.includes('not published')) {
+        return res.status(400).json({
+          ok: false,
           message: error.message
         });
       }
 
       res.status(500).json({
-        success: false,
+        ok: false,
         message: error.message || 'Error creating collector'
       });
     }

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import TemplateService from '../../../api/services/template.service';
 import QuestionService from '../../../api/services/question.service';
@@ -27,6 +27,7 @@ const TemplateEditor = () => {
     question_type: 'multiple_choice',
     is_required: false,
     display_order: 0,
+    options: [], // Add options array
   });
 
   // Option modal state
@@ -35,13 +36,9 @@ const TemplateEditor = () => {
   const [optionForm, setOptionForm] = useState({ option_text: '', display_order: 0 });
   const [editingOption, setEditingOption] = useState(null);
 
-  useEffect(() => {
-    if (isEditMode) {
-      fetchTemplateData();
-    }
-  }, [id]);
-
-  const fetchTemplateData = async () => {
+  const fetchTemplateData = useCallback(async () => {
+    if (!id || id === 'new') return;
+    
     try {
       setLoading(true);
       const response = await TemplateService.getById(id);
@@ -63,7 +60,13 @@ const TemplateEditor = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [id, navigate, showToast]);
+
+  useEffect(() => {
+    if (isEditMode) {
+      fetchTemplateData();
+    }
+  }, [isEditMode, fetchTemplateData]);
 
   const handleSaveTemplate = async () => {
     if (!template.title.trim()) {
@@ -102,6 +105,7 @@ const TemplateEditor = () => {
       question_type: 'multiple_choice',
       is_required: false,
       display_order: questions.length,
+      options: ['', ''], // Start with 2 empty options
     });
     setShowQuestionModal(true);
   };
@@ -109,10 +113,13 @@ const TemplateEditor = () => {
   const openEditQuestionModal = (question) => {
     setEditingQuestion(question);
     setQuestionForm({
-      question_text: question.question_text,
-      question_type: question.question_type,
-      is_required: question.is_required,
-      display_order: question.display_order,
+      question_text: question.label || question.question_text || '',
+      question_type: question.type || question.question_type || 'multiple_choice',
+      is_required: question.required !== undefined ? question.required : question.is_required,
+      display_order: question.display_order || 0,
+      options: question.options && question.options.length > 0 
+        ? question.options.map(opt => opt.text || opt.option_text || '')
+        : ['', ''],
     });
     setShowQuestionModal(true);
   };
@@ -128,13 +135,29 @@ const TemplateEditor = () => {
       return;
     }
 
+    // Check if type requires options
+    const typesNeedingOptions = ['multiple_choice', 'checkbox', 'dropdown'];
+    if (typesNeedingOptions.includes(questionForm.question_type)) {
+      const validOptions = questionForm.options.filter(opt => opt.trim() !== '');
+      if (validOptions.length < 2) {
+        showToast('Please provide at least 2 options for this question type', 'error');
+        return;
+      }
+    }
+
     try {
       const payload = {
-        question_text: questionForm.question_text,
+        label: questionForm.question_text, // Send as 'label' for backend
+        question_text: questionForm.question_text, // Also send as 'question_text' for backward compatibility
         question_type_id: getQuestionTypeId(questionForm.question_type),
         required: questionForm.is_required,
         order: questionForm.display_order
       };
+
+      // Add options if the question type needs them
+      if (typesNeedingOptions.includes(questionForm.question_type)) {
+        payload.options = questionForm.options.filter(opt => opt.trim() !== '');
+      }
       
       if (editingQuestion) {
         await QuestionService.update(editingQuestion.id, payload);
@@ -162,12 +185,39 @@ const TemplateEditor = () => {
     const typeMap = {
       'multiple_choice': 1,
       'checkbox': 2,
-      'text': 3,
-      'rating': 4,
+      'likert_scale': 3,
+      'open_ended': 4,
       'dropdown': 5
     };
     return typeMap[typeName] || 1;
   };
+
+  // Helper functions for managing options
+  const handleAddOption = () => {
+    setQuestionForm({
+      ...questionForm,
+      options: [...questionForm.options, '']
+    });
+  };
+
+  const handleRemoveOption = (index) => {
+    const newOptions = questionForm.options.filter((_, i) => i !== index);
+    setQuestionForm({
+      ...questionForm,
+      options: newOptions
+    });
+  };
+
+  const handleOptionChange = (index, value) => {
+    const newOptions = [...questionForm.options];
+    newOptions[index] = value;
+    setQuestionForm({
+      ...questionForm,
+      options: newOptions
+    });
+  };
+
+  const questionTypesWithOptions = ['multiple_choice', 'checkbox', 'dropdown'];
 
   const handleDeleteQuestion = async (questionId) => {
     if (!window.confirm('Are you sure you want to delete this question?')) return;
@@ -360,6 +410,43 @@ const TemplateEditor = () => {
               <option value="open_ended">Open Ended</option>
             </select>
           </div>
+
+          {/* Options Section - only show for types that need options */}
+          {questionTypesWithOptions.includes(questionForm.question_type) && (
+            <div className={styles.formGroup}>
+              <label>Options * (at least 2 required)</label>
+              <div className={styles.optionsList}>
+                {questionForm.options.map((option, index) => (
+                  <div key={index} className={styles.optionRow}>
+                    <input
+                      type="text"
+                      value={option}
+                      onChange={(e) => handleOptionChange(index, e.target.value)}
+                      placeholder={`Option ${index + 1}`}
+                      className={styles.optionInput}
+                    />
+                    {questionForm.options.length > 2 && (
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveOption(index)}
+                        className={styles.removeOptionButton}
+                        title="Remove option"
+                      >
+                        ✕
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+              <button
+                type="button"
+                onClick={handleAddOption}
+                className={styles.addOptionButton}
+              >
+                + Add Option
+              </button>
+            </div>
+          )}
 
           <div className={styles.checkboxGroup}>
             <label>

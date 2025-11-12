@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useToast } from '../../../contexts/ToastContext';
 import UserService from '../../../api/services/user.service';
 import Loader from '../../../components/common/Loader/Loader';
@@ -38,15 +38,7 @@ const UserManagement = () => {
     role: 'user'
   });
 
-  useEffect(() => {
-    fetchUsers();
-  }, []);
-
-  useEffect(() => {
-    filterUsers();
-  }, [users, searchTerm, roleFilter]);
-
-  const fetchUsers = async () => {
+  const fetchUsers = useCallback(async () => {
     setLoading(true);
     try {
       const response = await UserService.getAll();
@@ -57,9 +49,9 @@ const UserManagement = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [showError]);
 
-  const filterUsers = () => {
+  const filterUsers = useCallback(() => {
     let filtered = [...users];
 
     // Apply search filter
@@ -78,7 +70,15 @@ const UserManagement = () => {
 
     setFilteredUsers(filtered);
     setCurrentPage(1); // Reset to first page on filter change
-  };
+  }, [users, searchTerm, roleFilter]);
+
+  useEffect(() => {
+    fetchUsers();
+  }, [fetchUsers]);
+
+  useEffect(() => {
+    filterUsers();
+  }, [filterUsers]);
 
   const handleAddUser = () => {
     setFormData({

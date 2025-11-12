@@ -1,5 +1,5 @@
 // src/modules/surveys/service/survey.service.js
-const { Survey, User, SurveyTemplate, SurveyResponse } = require('../../../models');
+const { Survey, User, SurveyTemplate, SurveyResponse, Question } = require('../../../models');
 const { Op } = require('sequelize');
 
 class SurveyService {
@@ -54,14 +54,29 @@ class SurveyService {
         {
           model: SurveyTemplate,
           as: 'template',
-          attributes: ['id', 'title', 'description']
+          attributes: ['id', 'title', 'description'],
+          include: [
+            {
+              model: Question,
+              as: 'Questions',
+              attributes: ['id']
+            }
+          ]
         }
       ],
       order: [['created_at', 'DESC']]
     });
 
+    // Map surveys to include questionCount
+    const surveysWithCount = rows.map(survey => {
+      const surveyData = survey.toJSON();
+      const templateQuestions = surveyData.template?.Questions || [];
+      surveyData.questionCount = templateQuestions.length;
+      return surveyData;
+    });
+
     return {
-      surveys: rows,
+      surveys: surveysWithCount,
       pagination: {
         total: count,
         page: parseInt(page),
@@ -93,12 +108,28 @@ class SurveyService {
         {
           model: SurveyTemplate,
           as: 'template',
-          attributes: ['id', 'title', 'description']
+          attributes: ['id', 'title', 'description'],
+          include: [
+            {
+              model: Question,
+              as: 'Questions',
+              attributes: ['id']
+            }
+          ]
         }
       ]
     });
 
-    return survey;
+    if (!survey) {
+      return null;
+    }
+
+    // Add questionCount to the survey
+    const surveyData = survey.toJSON();
+    const templateQuestions = surveyData.template?.Questions || [];
+    surveyData.questionCount = templateQuestions.length;
+
+    return surveyData;
   }
 
   /**

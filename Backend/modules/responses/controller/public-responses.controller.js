@@ -144,19 +144,67 @@ class PublicResponsesController {
       });
 
       // Save individual answers
+      // Frontend sends: { questionId, value }
+      // Backend needs: { question_id, option_id, text_answer, numeric_answer }
       const answerPromises = answers.map(async (answer) => {
-        const { question_id, answer_value, option_id } = answer;
+        const questionId = answer.questionId || answer.question_id;
+        const value = answer.value || answer.answer_value;
+
+        // Determine how to store the answer based on value type
+        let optionId = null;
+        let textAnswer = null;
+        let numericAnswer = null;
+
+        if (Array.isArray(value)) {
+          // Multiple selections (checkbox) - create multiple answer records
+          if (value.length > 0) {
+            return Promise.all(
+              value.map(val => 
+                Answer.create({
+                  survey_response_id: surveyResponse.id,
+                  question_id: questionId,
+                  option_id: parseInt(val),
+                  text_answer: null,
+                  numeric_answer: null
+                })
+              )
+            );
+          }
+          return null; // Skip empty arrays
+        } else if (typeof value === 'number' || !isNaN(Number(value))) {
+          const numVal = Number(value);
+          // Check if it's likely an option ID (positive integer) or a numeric answer
+          if (Number.isInteger(numVal) && numVal > 0 && numVal < 10000) {
+            // Likely an option ID for single choice questions
+            optionId = numVal;
+          } else {
+            // Likely a numeric answer (e.g., rating, age, etc.)
+            numericAnswer = numVal;
+          }
+        } else if (typeof value === 'string') {
+          if (value.trim() === '') {
+            return null; // Skip empty strings
+          }
+          // Check if it's a stringified number that could be an option ID
+          if (!isNaN(value) && value.trim() !== '') {
+            optionId = parseInt(value);
+          } else {
+            textAnswer = value;
+          }
+        }
 
         return Answer.create({
           survey_response_id: surveyResponse.id,
-          question_id: question_id,
-          option_id: option_id || null,
-          text_answer: typeof answer_value === 'string' ? answer_value : null,
-          numeric_answer: typeof answer_value === 'number' ? answer_value : null
+          question_id: questionId,
+          option_id: optionId,
+          text_answer: textAnswer,
+          numeric_answer: numericAnswer
         });
       });
 
-      await Promise.all(answerPromises);
+      // Filter out null values (skipped answers) and flatten arrays
+      const answerResults = await Promise.all(answerPromises);
+      const flattenedAnswers = answerResults.flat().filter(Boolean);
 
       // Update collector response count
       await collector.increment('response_count');
@@ -164,9 +212,8 @@ class PublicResponsesController {
       res.status(201).json({
         ok: true,
         message: 'Response submitted successfully',
-        data: {
-          response_id: surveyResponse.id
-        }
+        responseId: surveyResponse.id,
+        submittedAt: surveyResponse.completion_time
       });
     } catch (error) {
       logger.error('Submit response error:', error);

@@ -17,7 +17,10 @@ import TemplateList from '../pages/Templates/TemplateList/index.jsx';
 import TemplateEditor from '../pages/Templates/TemplateEditor/index.jsx';
 import SurveyList from '../pages/Surveys/SurveyList/index.jsx';
 import SurveyEditor from '../pages/Surveys/SurveyEditor/index.jsx';
+import SurveyDistribute from '../pages/Surveys/Distribute/index.jsx';
+import SurveyResults from '../pages/Surveys/Results/index.jsx';
 import CollectorList from '../pages/Collectors/CollectorList/index.jsx';
+import PublicResponseForm from '../pages/Public/ResponseForm/index.jsx';
 
 // Placeholder components for routes not yet implemented
 const ComingSoon = ({ title }) => (
@@ -176,6 +179,26 @@ const AppRoutes = () => {
           </ProtectedRoute>
         } 
       />
+      <Route 
+        path="/surveys/:id/distribute" 
+        element={
+          <ProtectedRoute allowedRoles={['admin', 'creator']}>
+            <DefaultLayout>
+              <SurveyDistribute />
+            </DefaultLayout>
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/surveys/:id/results" 
+        element={
+          <ProtectedRoute allowedRoles={['admin', 'creator']}>
+            <DefaultLayout>
+              <SurveyResults />
+            </DefaultLayout>
+          </ProtectedRoute>
+        } 
+      />
 
       {/* Collectors Routes - Creator/Admin */}
       <Route 
@@ -227,8 +250,14 @@ const AppRoutes = () => {
 
       {/* Public Response Collection Route (no auth required) */}
       <Route 
+        path="/public/:token" 
+        element={<PublicResponseForm />} 
+      />
+
+      {/* Legacy route for backward compatibility */}
+      <Route 
         path="/collect/:token" 
-        element={<ComingSoon title="Public Survey Response" />} 
+        element={<PublicResponseForm />} 
       />
 
       {/* Profile & Settings (All authenticated users) */}

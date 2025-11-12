@@ -20,6 +20,14 @@ const ResponseService = {
   },
 
   /**
+   * Get survey by public token (anonymous - no auth)
+   */
+  async getSurveyByToken(token) {
+    const response = await http.get(`/responses/public/${token}`);
+    return response.data;
+  },
+
+  /**
    * Get user's own responses
    */
   async getUserResponses(params = {}) {

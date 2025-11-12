@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import TemplateService from '../../../api/services/template.service';
 import Loader from '../../../components/common/Loader/Loader';
@@ -19,11 +19,7 @@ const TemplateList = () => {
   const [templateToDelete, setTemplateToDelete] = useState(null);
   const itemsPerPage = 10;
 
-  useEffect(() => {
-    fetchTemplates();
-  }, []);
-
-  const fetchTemplates = async () => {
+  const fetchTemplates = useCallback(async () => {
     try {
       setLoading(true);
       const data = await TemplateService.getAll();
@@ -36,7 +32,11 @@ const TemplateList = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [showToast]);
+
+  useEffect(() => {
+    fetchTemplates();
+  }, [fetchTemplates]);
 
   const handleDelete = async () => {
     if (!templateToDelete) return;

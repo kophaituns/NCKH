@@ -154,7 +154,7 @@
     th {
       padding: 1rem;
       text-align: left;
-      font-size: 0.75rem;
+      font-size: var(--font-size-sm);
       font-weight: 600;
       text-transform: uppercase;
       letter-spacing: 0.05em;
@@ -196,7 +196,7 @@
   }
 
   .description {
-    font-size: 0.75rem;
+    font-size: var(--font-size-sm);
     color: #6b7280;
     display: -webkit-box;
     -webkit-line-clamp: 2;
@@ -218,7 +218,8 @@
 .publishButton,
 .closeButton,
 .editButton,
-.linkButton,
+.distributeButton,
+.resultsButton,
 .deleteButton {
   padding: 0.5rem;
   border: 1px solid #d1d5db;
@@ -259,11 +260,19 @@
   }
 }
 
-.linkButton {
+.distributeButton {
   color: #8b5cf6;
 
   &:hover {
     border-color: #8b5cf6;
+  }
+}
+
+.resultsButton {
+  color: #06b6d4;
+
+  &:hover {
+    border-color: #06b6d4;
   }
 }
 

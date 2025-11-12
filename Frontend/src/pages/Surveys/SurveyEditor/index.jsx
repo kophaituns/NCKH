@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import SurveyService from '../../../api/services/survey.service';
 import TemplateService from '../../../api/services/template.service';
@@ -26,14 +26,7 @@ const SurveyEditor = () => {
     status: 'draft',
   });
 
-  useEffect(() => {
-    fetchTemplates();
-    if (isEditMode) {
-      fetchSurvey();
-    }
-  }, [id]);
-
-  const fetchTemplates = async () => {
+  const fetchTemplates = useCallback(async () => {
     try {
       const data = await TemplateService.getAll();
       // Ensure data is always an array
@@ -43,9 +36,11 @@ const SurveyEditor = () => {
       setTemplates([]); // Set empty array on error
       showToast('Failed to fetch templates', 'error');
     }
-  };
+  }, [showToast]);
 
-  const fetchSurvey = async () => {
+  const fetchSurvey = useCallback(async () => {
+    if (!id || id === 'new') return;
+    
     try {
       setLoading(true);
       const data = await SurveyService.getById(id);
@@ -63,7 +58,17 @@ const SurveyEditor = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [id, navigate, showToast]);
+
+  useEffect(() => {
+    fetchTemplates();
+  }, [fetchTemplates]);
+
+  useEffect(() => {
+    if (isEditMode) {
+      fetchSurvey();
+    }
+  }, [isEditMode, fetchSurvey]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
