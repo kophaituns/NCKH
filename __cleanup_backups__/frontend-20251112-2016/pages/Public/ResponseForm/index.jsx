@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import ResponseService from '../../../api/services/response.service';
 import Loader from '../../../components/common/Loader/Loader';
@@ -16,7 +16,11 @@ const PublicResponseForm = () => {
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState(null);
 
-  const fetchSurvey = useCallback(async () => {
+  useEffect(() => {
+    fetchSurvey();
+  }, [token]);
+
+  const fetchSurvey = async () => {
     try {
       setLoading(true);
       const response = await ResponseService.getSurveyByToken(token);
@@ -46,11 +50,7 @@ const PublicResponseForm = () => {
     } finally {
       setLoading(false);
     }
-  }, [token]);
-
-  useEffect(() => {
-    fetchSurvey();
-  }, [fetchSurvey]);
+  };
 
   const validateAnswers = () => {
     const newErrors = {};

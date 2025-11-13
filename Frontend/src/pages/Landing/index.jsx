@@ -1,13 +1,8 @@
 import React from 'react';
-import { default as LandingPageComponent } from '../../components/pages/LandingPage.jsx';
-import styles from './Landing.module.scss';
+import LandingPageContent from './LandingPageContent';
 
 function Landing() {
-  return (
-    <div className={styles.landing}>
-      <LandingPageComponent />
-    </div>
-  );
+  return <LandingPageContent />;
 }
 
 export default Landing;
