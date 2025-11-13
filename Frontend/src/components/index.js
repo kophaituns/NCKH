@@ -22,7 +22,6 @@ export { default as Table } from './UI/Table';
 
 // Layout Components
 export { default as DefaultLayout } from './Layout/DefaultLayout/DefaultLayout';
-export { default as HeaderOnly } from './Layout/HeaderOnly';
 export { default as Navbar } from './Layout/DefaultLayout/Navbar';
 export { default as Sidebar } from './Layout/DefaultLayout/Sidebar';
 export { default as ProtectedRoute, PublicRoute } from './Layout/DefaultLayout/ProtectedRoute';
