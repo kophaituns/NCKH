@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useToast } from '../../../contexts/ToastContext';
 import SurveyService from '../../../api/services/survey.service';
@@ -17,7 +17,11 @@ const SurveyDistribute = () => {
   const [survey, setSurvey] = useState(null);
   const [collectors, setCollectors] = useState([]);
 
-  const fetchData = useCallback(async () => {
+  useEffect(() => {
+    fetchData();
+  }, [id]);
+
+  const fetchData = async () => {
     try {
       setLoading(true);
       const [surveyData, collectorsData] = await Promise.all([
@@ -31,11 +35,7 @@ const SurveyDistribute = () => {
     } finally {
       setLoading(false);
     }
-  }, [id, showToast]);
-
-  useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+  };
 
   const handleCreateCollector = async () => {
     try {

@@ -27,5 +27,13 @@ export { default as Navbar } from './Layout/DefaultLayout/Navbar';
 export { default as Sidebar } from './Layout/DefaultLayout/Sidebar';
 export { default as ProtectedRoute, PublicRoute } from './Layout/DefaultLayout/ProtectedRoute';
 
+// Page Components (wrapper components)
+export { default as AnalyticsPage } from './pages/AnalyticsPage';
+export { default as CreateSurveyPage } from './pages/CreateSurveyPage';
+export { default as LandingPage } from './pages/LandingPage';
+export { default as ManageUsersPage } from './pages/ManageUsersPage';
+export { default as SurveyManagement } from './pages/SurveyManagement';
+export { default as SurveyResponsePage } from './pages/SurveyResponsePage';
+
 // Global Styles
 export { default as GlobalStyles } from './GlobalStyles';
