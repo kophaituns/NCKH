@@ -1,4 +1,4 @@
-// Simple token service
+// Token management service
 const TOKEN_KEY = 'authToken';
 const REFRESH_TOKEN_KEY = 'refreshToken';
 const USER_KEY = 'user';
@@ -40,4 +40,5 @@ export const TokenService = {
     this.removeUser();
   }
 };
+
 export default TokenService;

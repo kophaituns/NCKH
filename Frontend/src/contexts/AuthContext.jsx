@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useReducer, useEffect } from 'react';
-import { TokenService } from '../services/tokenService.js';
+import { TokenService } from '../api/services/token.service.js';
 import AuthService from '../api/services/auth.service.js';
 
 // Initial state
