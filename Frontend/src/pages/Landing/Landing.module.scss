@@ -31,6 +31,14 @@
   align-items: center;
   gap: 0.6rem;
   text-decoration: none;
+  cursor: pointer;
+  text-decoration: none; 
+  transition: transform 0.15s ease, opacity 0.15s ease;
+}
+.nav-brand:hover {
+  transform: translateY(-1px);
+  opacity: 0.95;
+  text-decoration: none; 
 }
 
 .brand-logo {
@@ -45,14 +53,29 @@
 }
 
 .brand-text {
-  font-weight: 700;
+   font-weight: 700;
   font-size: 1.1rem;
   color: #020617;
+  letter-spacing: 0.01em;
+  text-decoration: none; 
 }
 
 .brand-highlight {
+  position: relative;
   color: #10b981;
 }
+.brand-highlight::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  bottom: -2px;
+  width: 0;
+  height: 2px;
+  background: currentColor;
+  border-radius: 999px;
+  transition: width 0.18s ease-out;
+}
+
 
 .nav-links {
   display: flex;
@@ -388,13 +411,14 @@
 
 
 .testimonial-card {
-  background: #ffffff;
+background: #ffffff;
   border-radius: 1.25rem;
   padding: 1.7rem 1.8rem;
   box-shadow: 0 22px 60px rgba(15, 23, 42, 0.12);
   border: 1px solid #e5e7eb;
   display: flex;
   flex-direction: column;
+
 }
 
 .testimonial-stars {
@@ -408,15 +432,16 @@
 }
 
 .testimonial-quote {
-  font-size: 0.95rem;
+ font-size: 0.95rem;
   line-height: 1.7;
   color: #4b5563;
-  margin-bottom: 1.4rem;
+  margin-bottom: 1rem
 }
 
 .testimonial-footer {
   display: flex;
   align-items: center;
+  margin-top: auto;
 }
 
 .testimonial-avatar {
