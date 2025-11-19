@@ -226,7 +226,7 @@ class AnalyticsService {
   }
 
   /**
-   * Get basic statistics (placeholder for dashboard)
+   * Get basic statistics (creator/general dashboard)
    */
   async getDashboardStats(user) {
     let where = {};
@@ -256,6 +256,99 @@ class AnalyticsService {
       active_surveys: activeSurveys,
       draft_surveys: draftSurveys,
       total_responses: totalResponses
+    };
+  }
+
+  /**
+   * Get **admin** dashboard statistics
+   * (Total Users, Total Surveys, Total Responses, Active Surveys, role stats, charts)
+   */
+  async getAdminDashboardStats(user) {
+    // Chỉ cho admin xem dashboard này
+    if (!user || user.role !== 'admin') {
+      throw new Error('Access denied. Admin only.');
+    }
+
+    // Đếm tổng
+    const [totalUsers, totalSurveys, totalResponses, activeSurveys] = await Promise.all([
+      User.count(),
+      Survey.count(),
+      SurveyResponse.count(),
+      Survey.count({ where: { status: 'active' } })
+    ]);
+
+    // Thống kê user theo role
+    const roleRows = await User.findAll({
+      attributes: [
+        'role',
+        [sequelize.fn('COUNT', sequelize.col('id')), 'count']
+      ],
+      group: ['role'],
+      raw: true
+    });
+
+    const roleStats = { admin: 0, creator: 0, user: 0 };
+    roleRows.forEach(r => {
+      const role = r.role;
+      const count = Number(r.count) || 0;
+      if (roleStats[role] !== undefined) {
+        roleStats[role] = count;
+      }
+    });
+
+    // Responses per survey (top 10)
+    const responsesRows = await SurveyResponse.findAll({
+      attributes: [
+        'survey_id',
+        [sequelize.fn('COUNT', sequelize.col('id')), 'response_count']
+      ],
+      group: ['survey_id'],
+      order: [[sequelize.fn('COUNT', sequelize.col('id')), 'DESC']],
+      limit: 10,
+      raw: true
+    });
+
+    const surveyIds = responsesRows.map(r => r.survey_id);
+    const surveyTitles = await Survey.findAll({
+      where: { id: { [Op.in]: surveyIds } },
+      attributes: ['id', 'title'],
+      raw: true
+    });
+    const surveyMap = {};
+    surveyTitles.forEach(s => { surveyMap[s.id] = s.title; });
+
+    const responsesPerSurvey = {
+      labels: responsesRows.map(r => surveyMap[r.survey_id] || `Survey ${r.survey_id}`),
+      data: responsesRows.map(r => Number(r.response_count) || 0)
+    };
+
+    // Activity: số responses theo ngày (tối đa 30 ngày)
+    const activityRows = await SurveyResponse.findAll({
+      attributes: [
+        [sequelize.fn('DATE', sequelize.col('created_at')), 'date'],
+        [sequelize.fn('COUNT', sequelize.col('id')), 'count']
+      ],
+      group: [sequelize.fn('DATE', sequelize.col('created_at'))],
+      order: [[sequelize.fn('DATE', sequelize.col('created_at')), 'ASC']],
+      limit: 30,
+      raw: true
+    });
+
+    const surveyActivity = {
+      labels: activityRows.map(r => r.date),
+      data: activityRows.map(r => Number(r.count) || 0)
+    };
+
+    return {
+      totals: {
+        totalUsers,
+        totalSurveys,
+        totalResponses,
+        activeSurveys
+      },
+      roleStats,
+      responsesPerSurvey,
+      surveyActivity
     };
   }
 }
