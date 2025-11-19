@@ -83,7 +83,14 @@ const LandingPageContent = () => {
       {/* NAVBAR */}
       <nav className={styles['landing-nav']}>
         <div className={styles['nav-content']}>
-          <Link to="/" className={styles['nav-brand']} aria-label="Smart Survey AI">
+        <Link
+            to="/"
+            className={styles['nav-brand']}
+            aria-label="Smart Survey AI"
+            onClick={() => {
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
+          >
             <div className={styles['brand-logo']}>
               <FontAwesomeIcon icon={faRobot} />
             </div>
@@ -91,7 +98,6 @@ const LandingPageContent = () => {
               Smart <span className={styles['brand-highlight']}>Survey</span> AI
             </span>
           </Link>
-
           <div className={styles['nav-links']}>
             <button type="button" onClick={() => handleScrollTo('features')}>
               Features
