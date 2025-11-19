@@ -6,7 +6,7 @@ const LLMService = {
    * Generate survey using AI
    */
   async generateSurvey(generationData) {
-    const response = await http.post('/llm/generate', generationData);
+    const response = await http.post('/llm/generate-survey', generationData);
     return response.data;
   },
 
@@ -14,15 +14,15 @@ const LLMService = {
    * Analyze survey responses using AI
    */
   async analyzeSurveyResponses(surveyId, analysisData = {}) {
-    const response = await http.post(`/llm/analyze/${surveyId}`, analysisData);
+    const response = await http.post(`/llm/analyze-responses`, { survey_id: surveyId, ...analysisData });
     return response.data;
   },
 
   /**
    * Get all prompts
    */
-  async getPrompts(params = {}) {
-    const response = await http.get('/llm/prompts', { params });
+  async getLlmPrompts(type = null) {
+    const response = await http.get('/llm/prompts', { params: { type } });
     return response.data;
   },
 
@@ -63,6 +63,38 @@ const LLMService = {
    */
   async getAnalysisResults(surveyId) {
     const response = await http.get(`/llm/analysis/${surveyId}`);
+    return response.data;
+  },
+
+  /**
+   * Generate questions using AI
+   */
+  async generateQuestions(data) {
+    const response = await http.post('/llm/generate-questions', data);
+    return response.data;
+  },
+
+  /**
+   * Predict category for keyword
+   */
+  async predictCategory(data) {
+    const response = await http.post('/llm/predict-category', data);
+    return response.data;
+  },
+
+  /**
+   * Get available categories
+   */
+  async getCategories() {
+    const response = await http.get('/llm/categories');
+    return response.data;
+  },
+
+  /**
+   * Check Hugging Face API health
+   */
+  async checkHuggingFaceHealth() {
+    const response = await http.get('/llm/health');
     return response.data;
   },
 

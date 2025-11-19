@@ -1,0 +1,285 @@
+// LLM.module.scss
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+.header {
+  text-align: center;
+  margin-bottom: 30px;
+  
+  h1 {
+    color: var(--primary-color);
+    margin-bottom: 10px;
+    font-size: 2.5rem;
+    font-weight: bold;
+  }
+  
+  p {
+    color: var(--text-secondary);
+    font-size: 1.1rem;
+  }
+}
+
+.loadingContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 400px;
+  
+  p {
+    margin-top: 15px;
+    color: var(--text-secondary);
+    font-size: 1.1rem;
+  }
+}
+
+.tabs {
+  display: flex;
+  border-bottom: 2px solid var(--border-color);
+  margin-bottom: 30px;
+  gap: 0;
+}
+
+.tab {
+  background: none;
+  border: none;
+  padding: 15px 30px;
+  font-size: 1.1rem;
+  font-weight: 500;
+  cursor: pointer;
+  border-bottom: 3px solid transparent;
+  transition: all 0.3s ease;
+  color: var(--text-secondary);
+  
+  &:hover {
+    color: var(--primary-color);
+    background-color: var(--bg-secondary);
+  }
+  
+  &.active {
+    color: var(--primary-color);
+    border-bottom-color: var(--primary-color);
+    background-color: var(--bg-secondary);
+  }
+}
+
+.tabContent {
+  display: flex;
+  flex-direction: column;
+  gap: 30px;
+}
+
+.formCard {
+  padding: 30px;
+  
+  h3 {
+    color: var(--text-primary);
+    margin-bottom: 25px;
+    font-size: 1.5rem;
+    border-bottom: 2px solid var(--border-color);
+    padding-bottom: 10px;
+  }
+}
+
+.formGroup {
+  margin-bottom: 20px;
+  
+  label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 500;
+    color: var(--text-primary);
+  }
+}
+
+.inputWithButton {
+  display: flex;
+  gap: 10px;
+  
+  input {
+    flex: 1;
+  }
+  
+  button {
+    white-space: nowrap;
+    min-width: 120px;
+  }
+}
+
+.textarea {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 1rem;
+  resize: vertical;
+  min-height: 100px;
+  
+  &:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px var(--primary-color-alpha);
+  }
+  
+  &:disabled {
+    background-color: var(--bg-secondary);
+    color: var(--text-secondary);
+  }
+}
+
+.helpText {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  margin-top: 5px;
+  display: block;
+}
+
+.generateBtn {
+  width: 100%;
+  padding: 15px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin-top: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+.resultsCard {
+  padding: 30px;
+  
+  h3 {
+    color: var(--text-primary);
+    margin-bottom: 25px;
+    font-size: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    
+    &::before {
+      content: '🤖';
+      font-size: 1.8rem;
+    }
+  }
+}
+
+.questionsList {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.questionItem {
+  display: flex;
+  gap: 15px;
+  padding: 20px;
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  background: var(--bg-secondary);
+  transition: all 0.3s ease;
+  
+  &:hover {
+    border-color: var(--primary-color);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px var(--shadow-color);
+  }
+}
+
+.questionNumber {
+  flex-shrink: 0;
+  width: 35px;
+  height: 35px;
+  border-radius: 50%;
+  background: var(--primary-color);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  font-size: 1rem;
+}
+
+.questionContent {
+  flex: 1;
+}
+
+.questionText {
+  color: var(--text-primary);
+  font-size: 1.1rem;
+  line-height: 1.6;
+  margin: 0 0 8px 0;
+  font-weight: 500;
+}
+
+.questionSource {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  
+  &::before {
+    content: '📊';
+  }
+}
+
+// Responsive design
+@media (max-width: 768px) {
+  .container {
+    padding: 15px;
+  }
+  
+  .header {
+    h1 {
+      font-size: 2rem;
+    }
+  }
+  
+  .tabs {
+    flex-direction: column;
+  }
+  
+  .tab {
+    text-align: left;
+    border-bottom: 1px solid var(--border-color);
+    border-right: none;
+    
+    &.active {
+      border-bottom-color: var(--primary-color);
+    }
+  }
+  
+  .formCard, .resultsCard {
+    padding: 20px;
+  }
+  
+  .inputWithButton {
+    flex-direction: column;
+    
+    button {
+      min-width: auto;
+    }
+  }
+  
+  .questionItem {
+    flex-direction: column;
+    gap: 10px;
+    
+    .questionNumber {
+      align-self: flex-start;
+    }
+  }
+}
+
+// Dark theme support
+@media (prefers-color-scheme: dark) {
+  .textarea {
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+  }
+}

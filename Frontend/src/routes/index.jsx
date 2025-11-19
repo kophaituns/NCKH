@@ -21,6 +21,7 @@ import SurveyDistribute from '../pages/Surveys/Distribute/index.jsx';
 import SurveyResults from '../pages/Surveys/Results/index.jsx';
 import CollectorList from '../pages/Collectors/CollectorList/index.jsx';
 import PublicResponseForm from '../pages/Public/ResponseForm/index.jsx';
+import LLM from '../pages/LLM/index.jsx';
 
 // Placeholder components for routes not yet implemented
 const ComingSoon = ({ title }) => (
@@ -242,7 +243,7 @@ const AppRoutes = () => {
         element={
           <ProtectedRoute allowedRoles={['admin', 'creator']}>
             <DefaultLayout>
-              <ComingSoon title="AI Generation" />
+              <LLM />
             </DefaultLayout>
           </ProtectedRoute>
         } 

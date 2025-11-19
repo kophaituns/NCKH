@@ -14,6 +14,9 @@ const exportModule = require(path.join(modulesPath, 'export'));
 const collectors = require(path.join(modulesPath, 'collectors'));
 const health = require(path.join(modulesPath, 'health'));
 
+// LLM module from local src/modules
+const llm = require('./llm');
+
 module.exports = {
   authRbac,
   users,
@@ -23,5 +26,6 @@ module.exports = {
   analytics,
   export: exportModule,
   collectors,
-  health
+  health,
+  llm
 };

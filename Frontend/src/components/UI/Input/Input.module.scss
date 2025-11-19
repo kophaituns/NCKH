@@ -1,0 +1,37 @@
+// Input.module.scss
+.input {
+  width: 100%;
+  padding: 12px 16px;
+  border: 1px solid var(--border-color, #d1d5db);
+  border-radius: 8px;
+  font-size: 1rem;
+  font-family: inherit;
+  transition: all 0.2s ease;
+  background: var(--bg-primary, #ffffff);
+  color: var(--text-primary, #1f2937);
+
+  &::placeholder {
+    color: var(--text-secondary, #6b7280);
+  }
+
+  &:focus {
+    outline: none;
+    border-color: var(--primary-color, #10b981);
+    box-shadow: 0 0 0 3px var(--primary-color-alpha, rgba(16, 185, 129, 0.1));
+  }
+
+  &.error {
+    border-color: #ef4444;
+    
+    &:focus {
+      border-color: #ef4444;
+      box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+    }
+  }
+
+  &.disabled {
+    background-color: var(--bg-secondary, #f3f4f6);
+    color: var(--text-secondary, #6b7280);
+    cursor: not-allowed;
+  }
+}

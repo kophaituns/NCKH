@@ -33,7 +33,7 @@ module.exports = (sequelize, DataTypes) => {
         allowNull: false,
       },
       interaction_type: {
-        type: DataTypes.ENUM('survey_generation', 'analysis', 'summary', 'recommendation'),
+        type: DataTypes.ENUM('survey_generation', 'analysis', 'summary', 'recommendation', 'question_generation', 'category_prediction'),
         allowNull: false,
       },
       created_at: {

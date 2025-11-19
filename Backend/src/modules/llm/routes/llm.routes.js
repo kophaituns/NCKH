@@ -28,4 +28,17 @@ router.delete('/prompts/:id', authenticate, isTeacherOrAdmin, llmController.dele
 // Get analysis results for a survey
 router.get('/analysis/:survey_id', authenticate, isTeacherOrAdmin, llmController.getAnalysisResults);
 
+// AI Question Generation Routes
+// Generate questions using AI
+router.post('/generate-questions', authenticate, isTeacherOrAdmin, llmController.generateQuestions);
+
+// Predict category for keyword
+router.post('/predict-category', authenticate, isTeacherOrAdmin, llmController.predictCategory);
+
+// Get available categories
+router.get('/categories', authenticate, isTeacherOrAdmin, llmController.getCategories);
+
+// Check Hugging Face API health
+router.get('/health', authenticate, isTeacherOrAdmin, llmController.checkHuggingFaceHealth);
+
 module.exports = router;

@@ -5,7 +5,10 @@
 export { default as Loader } from './common/Loader/Loader';
 export { default as Modal } from './common/Modal/Modal';
 export { default as Pagination } from './common/Pagination/Pagination';
-export { ToastContainer, useToast } from './common/Toast/Toast';
+export { ToastContainer } from './common/Toast/Toast';
+
+// Toast Hook (from context)
+export { useToast } from '../contexts/ToastContext';
 
 // UI Components
 export { default as Button } from './UI/Button';

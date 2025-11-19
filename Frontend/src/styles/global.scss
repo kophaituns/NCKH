@@ -5,6 +5,16 @@
    ========================================== */
 
 :root {
+  /* Colors */
+  --primary-color: #10b981;
+  --primary-color-alpha: rgba(16, 185, 129, 0.1);
+  --text-primary: #1a1a1a;
+  --text-secondary: #6b7280;
+  --bg-primary: #ffffff;
+  --bg-secondary: #f9fafb;
+  --border-color: #e5e7eb;
+  --shadow-color: rgba(0, 0, 0, 0.1);
+
   /* Font Size Scale - Standard Readable Typography */
   --font-size-sm: 0.875rem;       /* 14px - Small text, minimum size */
   --font-size-base: 1rem;         /* 16px - Body text, forms, buttons */

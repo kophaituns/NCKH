@@ -7,6 +7,9 @@ try {
   console.warn('OpenAI package not installed. LLM features will be disabled.');
 }
 
+const axios = require('axios');
+const HUGGINGFACE_API_URL = process.env.HUGGINGFACE_API_URL || 'https://linhthuyhht-form-agent-ai-api.hf.space';
+
 const { 
   LlmPrompt, 
   LlmInteraction, 
@@ -544,6 +547,113 @@ class LlmService {
     await prompt.destroy();
 
     return { message: 'Prompt deleted successfully' };
+  }
+
+  /**
+   * Generate questions using Hugging Face API
+   */
+  async generateQuestions(userId, { keyword, category, count = 5 }) {
+    try {
+      const response = await axios.post(`${HUGGINGFACE_API_URL}/generate/questions`, {
+        keyword,
+        category,
+        count
+      }, {
+        timeout: 30000,
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+
+      // Log the interaction
+      await LlmInteraction.create({
+        custom_prompt: `Generate ${count} questions for keyword: ${keyword}${category ? ` in category: ${category}` : ''}`,
+        response: JSON.stringify(response.data),
+        tokens_used: 0, // HuggingFace doesn't provide token count
+        model_used: 'huggingface-form-agent-ai',
+        user_id: userId,
+        interaction_type: 'question_generation'
+      });
+
+      return response.data;
+    } catch (error) {
+      logger.error('Error generating questions from Hugging Face:', error);
+      throw new Error(`Failed to generate questions: ${error.response?.data?.message || error.message}`);
+    }
+  }
+
+  /**
+   * Predict category using Hugging Face API
+   */
+  async predictCategory(userId, { keyword }) {
+    try {
+      const response = await axios.post(`${HUGGINGFACE_API_URL}/predict/category`, {
+        keyword
+      }, {
+        timeout: 15000,
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+
+      // Log the interaction
+      await LlmInteraction.create({
+        custom_prompt: `Predict category for keyword: ${keyword}`,
+        response: JSON.stringify(response.data),
+        tokens_used: 0,
+        model_used: 'huggingface-form-agent-ai',
+        user_id: userId,
+        interaction_type: 'category_prediction'
+      });
+
+      return response.data;
+    } catch (error) {
+      logger.error('Error predicting category from Hugging Face:', error);
+      throw new Error(`Failed to predict category: ${error.response?.data?.message || error.message}`);
+    }
+  }
+
+  /**
+   * Get available categories from Hugging Face API
+   */
+  async getCategories() {
+    try {
+      const response = await axios.get(`${HUGGINGFACE_API_URL}/model-info`, {
+        timeout: 10000
+      });
+
+      return {
+        categories: response.data.categories || ['it', 'marketing', 'economics', 'general']
+      };
+    } catch (error) {
+      logger.error('Error getting categories from Hugging Face:', error);
+      // Return default categories if API fails
+      return {
+        categories: ['it', 'marketing', 'economics', 'general']
+      };
+    }
+  }
+
+  /**
+   * Check Hugging Face API health
+   */
+  async checkHuggingFaceHealth() {
+    try {
+      const response = await axios.get(`${HUGGINGFACE_API_URL}/health`, {
+        timeout: 5000
+      });
+      
+      return {
+        status: 'healthy',
+        data: response.data
+      };
+    } catch (error) {
+      logger.error('Hugging Face API health check failed:', error);
+      return {
+        status: 'unhealthy',
+        error: error.message
+      };
+    }
   }
 }
 

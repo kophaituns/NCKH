@@ -269,6 +269,110 @@ class LlmController {
       });
     }
   }
+
+  /**
+   * Generate questions using AI
+   */
+  async generateQuestions(req, res) {
+    try {
+      const { keyword, category, count } = req.body;
+      
+      if (!keyword) {
+        return res.status(400).json({
+          error: true,
+          message: 'Keyword is required'
+        });
+      }
+
+      const result = await llmService.generateQuestions(req.user.id, {
+        keyword,
+        category,
+        count: count || 5
+      });
+
+      return res.status(200).json({
+        error: false,
+        message: 'Questions generated successfully',
+        data: result
+      });
+    } catch (error) {
+      logger.error('Error generating questions:', error);
+      return res.status(500).json({
+        error: true,
+        message: error.message || 'Error generating questions'
+      });
+    }
+  }
+
+  /**
+   * Predict category for keyword
+   */
+  async predictCategory(req, res) {
+    try {
+      const { keyword } = req.body;
+      
+      if (!keyword) {
+        return res.status(400).json({
+          error: true,
+          message: 'Keyword is required'
+        });
+      }
+
+      const result = await llmService.predictCategory(req.user.id, { keyword });
+
+      return res.status(200).json({
+        error: false,
+        message: 'Category predicted successfully',
+        data: result
+      });
+    } catch (error) {
+      logger.error('Error predicting category:', error);
+      return res.status(500).json({
+        error: true,
+        message: error.message || 'Error predicting category'
+      });
+    }
+  }
+
+  /**
+   * Get available categories
+   */
+  async getCategories(req, res) {
+    try {
+      const result = await llmService.getCategories();
+
+      return res.status(200).json({
+        error: false,
+        data: result
+      });
+    } catch (error) {
+      logger.error('Error getting categories:', error);
+      return res.status(500).json({
+        error: true,
+        message: 'Error getting categories'
+      });
+    }
+  }
+
+  /**
+   * Check Hugging Face API health
+   */
+  async checkHuggingFaceHealth(req, res) {
+    try {
+      const result = await llmService.checkHuggingFaceHealth();
+
+      return res.status(200).json({
+        error: false,
+        data: result
+      });
+    } catch (error) {
+      logger.error('Error checking Hugging Face health:', error);
+      return res.status(500).json({
+        error: true,
+        message: 'Error checking API health'
+      });
+    }
+  }
 }
 
 module.exports = new LlmController();

@@ -15,7 +15,9 @@ router.use('/analytics', modules.analytics.routes);
 router.use('/export', modules.export.routes);
 router.use('/collectors', modules.collectors.routes);
 
+// LLM/AI routes
+router.use('/llm', modules.llm.routes);
+
 // TODO: Add these routes when modules are implemented
-// router.use('/llm', modules.llm.routes);
 
 module.exports = router;
