@@ -92,8 +92,21 @@ function Register() {
     }
   };
 
+  const handleBackHome = () => {
+    navigate('/');
+  };
+
   return (
     <div className={styles.registerPage}>
+     
+      <button
+        type="button"
+        className={styles.backButton}
+        onClick={handleBackHome}
+      >
+        ← Back to Home
+      </button>
+
       <div className={styles.registerContainer}>
         <div className={styles.registerCard}>
           {/* Logo and Header */}

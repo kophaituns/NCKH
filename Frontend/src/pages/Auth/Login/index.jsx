@@ -62,8 +62,20 @@ function Login() {
     }
   };
 
+  const handleBackHome = () => {
+    navigate('/');
+  };
+
   return (
     <div className={styles.loginPage}>
+      <button
+        type="button"
+        className={styles.backButton}
+        onClick={handleBackHome}
+      >
+        ← Back to Home
+      </button>
+
       <div className={styles.loginContainer}>
         <div className={styles.loginCard}>
           {/* Logo and Header */}
