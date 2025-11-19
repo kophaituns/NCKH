@@ -14,7 +14,7 @@ class AnalyticsController {
 
       res.status(200).json({
         success: true,
-        data: summary
+        data: summary,
       });
     } catch (error) {
       logger.error('Get survey summary error:', error);
@@ -22,20 +22,20 @@ class AnalyticsController {
       if (error.message.includes('not found')) {
         return res.status(404).json({
           success: false,
-          message: error.message
+          message: error.message,
         });
       }
 
       if (error.message.includes('Access denied')) {
         return res.status(403).json({
           success: false,
-          message: error.message
+          message: error.message,
         });
       }
 
       res.status(500).json({
         success: false,
-        message: error.message || 'Error fetching survey summary'
+        message: error.message || 'Error fetching survey summary',
       });
     }
   }
@@ -51,7 +51,7 @@ class AnalyticsController {
 
       res.status(200).json({
         success: true,
-        data: analytics
+        data: analytics,
       });
     } catch (error) {
       logger.error('Get question analytics error:', error);
@@ -59,20 +59,20 @@ class AnalyticsController {
       if (error.message.includes('not found')) {
         return res.status(404).json({
           success: false,
-          message: error.message
+          message: error.message,
         });
       }
 
       if (error.message.includes('Access denied')) {
         return res.status(403).json({
           success: false,
-          message: error.message
+          message: error.message,
         });
       }
 
       res.status(500).json({
         success: false,
-        message: error.message || 'Error fetching question analytics'
+        message: error.message || 'Error fetching question analytics',
       });
     }
   }
@@ -93,7 +93,7 @@ class AnalyticsController {
 
       res.status(200).json({
         success: true,
-        data: details
+        data: details,
       });
     } catch (error) {
       logger.error('Get response details error:', error);
@@ -101,26 +101,26 @@ class AnalyticsController {
       if (error.message.includes('not found')) {
         return res.status(404).json({
           success: false,
-          message: error.message
+          message: error.message,
         });
       }
 
       if (error.message.includes('Access denied')) {
         return res.status(403).json({
           success: false,
-          message: error.message
+          message: error.message,
         });
       }
 
       res.status(500).json({
         success: false,
-        message: error.message || 'Error fetching response details'
+        message: error.message || 'Error fetching response details',
       });
     }
   }
 
   /**
-   * Get dashboard statistics
+   * Get dashboard statistics (creator/general dashboard)
    */
   async getDashboardStats(req, res) {
     try {
@@ -128,13 +128,42 @@ class AnalyticsController {
 
       res.status(200).json({
         success: true,
-        data: stats
+        data: stats,
       });
     } catch (error) {
       logger.error('Get dashboard stats error:', error);
       res.status(500).json({
         success: false,
-        message: error.message || 'Error fetching dashboard statistics'
+        message: error.message || 'Error fetching dashboard statistics',
+      });
+    }
+  }
+
+  /**
+   * Get **admin** dashboard statistics
+   * (Total Users, Total Surveys, Total Responses, Active Surveys, role stats, charts)
+   */
+  async getAdminDashboardStats(req, res) {
+    try {
+      const stats = await analyticsService.getAdminDashboardStats(req.user);
+
+      res.status(200).json({
+        success: true,
+        data: stats,
+      });
+    } catch (error) {
+      logger.error('Get admin dashboard stats error:', error);
+
+      if (error.message?.includes('Access denied')) {
+        return res.status(403).json({
+          success: false,
+          message: error.message,
+        });
+      }
+
+      res.status(500).json({
+        success: false,
+        message: error.message || 'Error fetching admin dashboard statistics',
       });
     }
   }

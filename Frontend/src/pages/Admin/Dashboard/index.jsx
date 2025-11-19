@@ -1,18 +1,40 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, PointElement, LineElement, ArcElement, Title, Tooltip, Legend } from 'chart.js';
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  PointElement,
+  LineElement,
+  ArcElement,
+  Title,
+  Tooltip,
+  Legend
+} from 'chart.js';
 import { Bar, Line, Pie } from 'react-chartjs-2';
 import { useToast } from '../../../contexts/ToastContext';
 import AnalyticsService from '../../../api/services/analytics.service';
-import UserService from '../../../api/services/user.service';
-import SurveyService from '../../../api/services/survey.service';
+// ❌ KHÔNG CẦN NỮA: UserService, SurveyService
+// import UserService from '../../../api/services/user.service';
+// import SurveyService from '../../../api/services/survey.service';
 import StatCard from '../../../components/UI/StatCard';
 import ChartCard from '../../../components/UI/ChartCard';
 import Loader from '../../../components/common/Loader/Loader';
 import styles from './AdminDashboard.module.scss';
 
 // Register Chart.js components
-ChartJS.register(CategoryScale, LinearScale, BarElement, PointElement, LineElement, ArcElement, Title, Tooltip, Legend);
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  PointElement,
+  LineElement,
+  ArcElement,
+  Title,
+  Tooltip,
+  Legend
+);
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
@@ -42,49 +64,42 @@ const AdminDashboard = () => {
   const fetchDashboardData = useCallback(async () => {
     setLoading(true);
     try {
-      // Fetch all dashboard data in parallel
-      const [dashboardSummary, roleStatsData, activityTrend] = await Promise.all([
-        AnalyticsService.getDashboardStats().catch(() => ({ data: null })),
-        UserService.getRoleStats().catch(() => ({ data: null })),
-        AnalyticsService.getSurveyActivityTrend().catch(() => ({ data: null }))
-      ]);
+      // ✅ GỌI API ADMIN DASHBOARD MỚI
+      // AnalyticsService.getAdminDashboard() đã được định nghĩa ở src/api/services/analytics.service.js
+      const payload = await AnalyticsService.getAdminDashboard();
 
-      // Process dashboard summary
-      if (dashboardSummary.data) {
-        setStats({
-          totalUsers: dashboardSummary.data.totalUsers || 0,
-          totalSurveys: dashboardSummary.data.totalSurveys || 0,
-          totalResponses: dashboardSummary.data.totalResponses || 0,
-          activeSurveys: dashboardSummary.data.activeSurveys || 0
-        });
-      }
+      // payload = { totals, roleStats, responsesPerSurvey, surveyActivity }
+      const totals = payload.totals || {};
+      const roles = payload.roleStats || {};
+      const responses = payload.responsesPerSurvey || {};
+      const activity = payload.surveyActivity || {};
 
-      // Process role stats
-      if (roleStatsData.data) {
-        setRoleStats({
-          admin: roleStatsData.data.admin || 0,
-          creator: roleStatsData.data.creator || 0,
-          user: roleStatsData.data.user || 0
-        });
-      }
+      // Set 4 ô stat
+      setStats({
+        totalUsers: totals.totalUsers ?? 0,
+        totalSurveys: totals.totalSurveys ?? 0,
+        totalResponses: totals.totalResponses ?? 0,
+        activeSurveys: totals.activeSurveys ?? 0
+      });
 
-      // Process activity trend
-      if (activityTrend.data && activityTrend.data.length > 0) {
-        setSurveyActivity({
-          labels: activityTrend.data.map(item => item.date),
-          data: activityTrend.data.map(item => item.count)
-        });
-      }
+      // Set dữ liệu role cho biểu đồ hình tròn
+      setRoleStats({
+        admin: roles.admin ?? 0,
+        creator: roles.creator ?? 0,
+        user: roles.user ?? 0
+      });
 
-      // Fetch responses per survey
-      const surveysResponse = await SurveyService.getAll().catch(() => ({ data: [] }));
-      if (surveysResponse.data && surveysResponse.data.length > 0) {
-        const surveyData = surveysResponse.data.slice(0, 10); // Top 10 surveys
-        setResponsesPerSurvey({
-          labels: surveyData.map(s => s.title || `Survey ${s.id}`),
-          data: surveyData.map(s => s.response_count || 0)
-        });
-      }
+      // Set dữ liệu cho Responses per Survey (Bar chart)
+      setResponsesPerSurvey({
+        labels: responses.labels || [],
+        data: responses.data || []
+      });
+
+      // Set dữ liệu cho Survey Activity Trend (Line chart)
+      setSurveyActivity({
+        labels: activity.labels || [],
+        data: activity.data || []
+      });
 
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
@@ -98,7 +113,7 @@ const AdminDashboard = () => {
     fetchDashboardData();
   }, [fetchDashboardData]);
 
-  // Chart configurations
+  // Chart configurations (GIỮ NGUYÊN)
   const responsesChartData = {
     labels: responsesPerSurvey.labels,
     datasets: [
