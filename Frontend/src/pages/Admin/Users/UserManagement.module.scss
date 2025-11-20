@@ -353,12 +353,64 @@
   }
 }
 
-@media (max-width: 768px) {
+/* Responsive cho bảng Users */
+@media (max-width: 1024px) {
   .tableContainer {
-    overflow-x: auto;
+    overflow-x: auto; 
   }
 
   .table {
-    min-width: 800px;
+    width: 100%;
+    table-layout: fixed; 
+  }
+
+  .table th,
+  .table td {
+    padding: 0.75rem 0.5rem;
+    font-size: 0.8125rem;
+    white-space: nowrap;
+  }
+
+  .table thead th:nth-child(6),
+  .table tbody td:nth-child(6) {
+    display: none;
+  }
+
+  .table thead th:nth-child(7),
+  .table tbody td:nth-child(7) {
+    text-align: center;
+  }
+
+  .actions {
+    justify-content: center;
   }
 }
+
+
+@media (max-width: 768px) {
+  .table {
+    table-layout: auto;
+  }
+
+  .table th,
+  .table td {
+    padding: 0.5rem 0.35rem;
+    font-size: 0.75rem;
+  }
+
+  /* Ẩn cột EMAIL */
+  .table thead th:nth-child(3),
+  .table tbody td:nth-child(3) {
+    display: none;
+  }
+
+  
+  .nameCell {
+    max-width: 160px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+

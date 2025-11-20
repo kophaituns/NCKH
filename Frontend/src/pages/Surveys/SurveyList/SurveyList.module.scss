@@ -332,3 +332,35 @@
   justify-content: center;
   margin-top: 2rem;
 }
+/* Responsive table for small screens */
+@media (max-width: 1024px) {
+  .tableContainer {
+    overflow-x: visible;
+  }
+
+  .table {
+    min-width: auto; 
+  }
+
+  /* Ẩn bớt các cột khi màn hình 
+  */
+  .table thead th:nth-child(3),
+  .table thead th:nth-child(4),
+  .table thead th:nth-child(5),
+  .table thead th:nth-child(6),
+  .table thead th:nth-child(7),
+  .table tbody td:nth-child(3),
+  .table tbody td:nth-child(4),
+  .table tbody td:nth-child(5),
+  .table tbody td:nth-child(6),
+  .table tbody td:nth-child(7) {
+    display: none;
+  }
+}
+
+@media (max-width: 768px) {
+  .surveyTitle .title {
+    font-size: 0.95rem;
+    line-height: 1.3;
+  }
+}
