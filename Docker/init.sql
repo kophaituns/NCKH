@@ -1,5 +1,7 @@
 -- init.sql
 
+SET NAMES utf8mb4;
+SET CHARACTER SET utf8mb4;
 -- Drop database if exists and create a new one
 DROP DATABASE IF EXISTS llm_survey_db;
 CREATE DATABASE llm_survey_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
