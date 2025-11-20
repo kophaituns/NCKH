@@ -105,18 +105,19 @@ http.interceptors.response.use(
 export const setAuthToken = (token) => {
   if (token) {
     http.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-    localStorage.setItem('token', token);
+    sessionStorage.setItem('token', token);
   } else {
     delete http.defaults.headers.common['Authorization'];
-    localStorage.removeItem('token');
+    sessionStorage.removeItem('token');
   }
 };
 
 export const clearAuth = () => {
   delete http.defaults.headers.common['Authorization'];
-  localStorage.removeItem('token');
-  localStorage.removeItem('refreshToken');
-  localStorage.removeItem('user');
+  sessionStorage.removeItem('token');
+  sessionStorage.removeItem('refreshToken');
+  sessionStorage.removeItem('user');
 };
+
 
 export default http;
