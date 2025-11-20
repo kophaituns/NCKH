@@ -8,6 +8,9 @@ const templates = require('./templates');
 const analytics = require('./analytics');
 const exportModule = require('./export');
 const collectors = require('./collectors');
+const chat = require('./chat');
+const users = require('./users');
+const llm = require('./llm');
 
 module.exports = {
   authRbac,
@@ -16,5 +19,8 @@ module.exports = {
   templates,
   analytics,
   export: exportModule,
-  collectors
+  collectors,
+  chat,
+  users,
+  llm
 };

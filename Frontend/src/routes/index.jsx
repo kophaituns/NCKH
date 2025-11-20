@@ -22,6 +22,7 @@ import SurveyResults from '../pages/Surveys/Results/index.jsx';
 import CollectorList from '../pages/Collectors/CollectorList/index.jsx';
 import PublicResponseForm from '../pages/Public/ResponseForm/index.jsx';
 import LLM from '../pages/LLM/index.jsx';
+import Chat from '../pages/Chat/index.jsx';
 
 // Placeholder components for routes not yet implemented
 const ComingSoon = ({ title }) => (
@@ -244,6 +245,18 @@ const AppRoutes = () => {
           <ProtectedRoute allowedRoles={['admin', 'creator']}>
             <DefaultLayout>
               <LLM />
+            </DefaultLayout>
+          </ProtectedRoute>
+        } 
+      />
+
+      {/* Chat Routes - All authenticated users */}
+      <Route 
+        path="/chat" 
+        element={
+          <ProtectedRoute>
+            <DefaultLayout>
+              <Chat />
             </DefaultLayout>
           </ProtectedRoute>
         } 

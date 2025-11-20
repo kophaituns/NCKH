@@ -12,6 +12,13 @@ const { authenticate } = require('../../auth-rbac/middleware/auth.middleware');
 router.get('/dashboard', authenticate, analyticsController.getDashboardStats);
 
 /**
+ * @route   GET /api/analytics/survey-activity-trend
+ * @desc    Get survey activity trend data
+ * @access  Private
+ */
+router.get('/survey-activity-trend', authenticate, analyticsController.getSurveyActivityTrend);
+
+/**
  * @route   GET /api/analytics/survey/:survey_id/summary
  * @desc    Get survey summary statistics
  * @access  Private (Creator/Admin only)

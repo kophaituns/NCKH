@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, PointElement, LineElement, ArcElement, Title, Tooltip, Legend } from 'chart.js';
+import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, PointElement, LineElement, ArcElement, Title, Tooltip, Legend, Filler } from 'chart.js';
 import { Bar, Line, Pie } from 'react-chartjs-2';
 import { useToast } from '../../../contexts/ToastContext';
 import AnalyticsService from '../../../api/services/analytics.service';
@@ -12,7 +12,7 @@ import Loader from '../../../components/common/Loader/Loader';
 import styles from './AdminDashboard.module.scss';
 
 // Register Chart.js components
-ChartJS.register(CategoryScale, LinearScale, BarElement, PointElement, LineElement, ArcElement, Title, Tooltip, Legend);
+ChartJS.register(CategoryScale, LinearScale, BarElement, PointElement, LineElement, ArcElement, Title, Tooltip, Legend, Filler);
 
 const AdminDashboard = () => {
   const navigate = useNavigate();

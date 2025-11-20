@@ -138,6 +138,28 @@ class AnalyticsController {
       });
     }
   }
+
+  /**
+   * Get survey activity trend
+   */
+  async getSurveyActivityTrend(req, res) {
+    try {
+      const { days = 30 } = req.query;
+
+      const trend = await analyticsService.getSurveyActivityTrend(parseInt(days), req.user);
+
+      res.status(200).json({
+        success: true,
+        data: trend
+      });
+    } catch (error) {
+      logger.error('Get survey activity trend error:', error);
+      res.status(500).json({
+        success: false,
+        message: error.message || 'Error fetching survey activity trend'
+      });
+    }
+  }
 }
 
 module.exports = new AnalyticsController();

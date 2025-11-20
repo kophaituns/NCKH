@@ -69,6 +69,8 @@ const server = app.listen(PORT, async () => {
   logger.info(`   Collectors: http://localhost:${PORT}/api/modules/collectors/*`);
   logger.info(`   Responses: http://localhost:${PORT}/api/modules/responses/*`);
   logger.info(`   Analytics: http://localhost:${PORT}/api/modules/analytics/*`);
+  logger.info(`   Chat: http://localhost:${PORT}/api/modules/chat/*`);
+  logger.info(`   LLM: http://localhost:${PORT}/api/modules/llm/*`);
 });
 
 // Graceful shutdown

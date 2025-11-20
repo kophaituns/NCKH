@@ -19,6 +19,7 @@ const Sidebar = ({ isOpen, onClose }) => {
         { path: '/surveys', label: 'Surveys', icon: 'surveys' },
         { path: '/analytics', label: 'Analytics', icon: 'analytics' },
         { path: '/llm', label: 'AI Generation', icon: 'llm' },
+        { path: '/chat', label: 'AI Chat', icon: 'chat' },
       ];
     }
 
@@ -29,6 +30,7 @@ const Sidebar = ({ isOpen, onClose }) => {
         { path: '/surveys', label: 'Surveys', icon: 'surveys' },
         { path: '/collectors', label: 'Collectors', icon: 'collectors' },
         { path: '/analytics', label: 'Analytics', icon: 'analytics' },
+        { path: '/chat', label: 'AI Chat', icon: 'chat' },
       ];
     }
 
@@ -36,6 +38,7 @@ const Sidebar = ({ isOpen, onClose }) => {
       return [
         { path: '/surveys', label: 'My Surveys', icon: 'surveys' },
         { path: '/responses', label: 'My Responses', icon: 'responses' },
+        { path: '/chat', label: 'AI Chat', icon: 'chat' },
       ];
     }
 
@@ -93,6 +96,12 @@ const Sidebar = ({ isOpen, onClose }) => {
         <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
           <path d="M10 3v14M3 10h14" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
           <circle cx="10" cy="10" r="7" stroke="currentColor" strokeWidth="1.5"/>
+        </svg>
+      ),
+      chat: (
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+          <path d="M3 5.5c0-1.4 1.1-2.5 2.5-2.5h9c1.4 0 2.5 1.1 2.5 2.5v6c0 1.4-1.1 2.5-2.5 2.5H8L3 17v-11.5z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round"/>
+          <path d="M6 8h8M6 11h5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
         </svg>
       ),
     };

@@ -258,6 +258,69 @@ class AnalyticsService {
       total_responses: totalResponses
     };
   }
+
+  /**
+   * Get survey activity trend
+   */
+  async getSurveyActivityTrend(days = 30, user) {
+    const { Survey, SurveyResponse } = require('../../../src/models');
+    const { Op, fn, col, literal } = require('sequelize');
+
+    // Get date range
+    const endDate = new Date();
+    const startDate = new Date();
+    startDate.setDate(endDate.getDate() - days);
+
+    // Filter surveys based on user role
+    let surveyWhere = {
+      created_at: {
+        [Op.between]: [startDate, endDate]
+      }
+    };
+
+    if (user.role === 'creator') {
+      surveyWhere.created_by = user.id;
+    }
+
+    // Get survey creation trend
+    const surveyCreationTrend = await Survey.findAll({
+      attributes: [
+        [fn('DATE', col('created_at')), 'date'],
+        [fn('COUNT', col('id')), 'count']
+      ],
+      where: surveyWhere,
+      group: [fn('DATE', col('created_at'))],
+      order: [[fn('DATE', col('created_at')), 'ASC']],
+      raw: true
+    });
+
+    // Get response activity trend
+    const responseActivityTrend = await SurveyResponse.findAll({
+      attributes: [
+        [fn('DATE', col('SurveyResponse.created_at')), 'date'],
+        [fn('COUNT', col('SurveyResponse.id')), 'count']
+      ],
+      where: {
+        created_at: {
+          [Op.between]: [startDate, endDate]
+        }
+      },
+      include: [{
+        model: Survey,
+        where: user.role === 'creator' ? { created_by: user.id } : {},
+        attributes: []
+      }],
+      group: [fn('DATE', col('SurveyResponse.created_at'))],
+      order: [[fn('DATE', col('SurveyResponse.created_at')), 'ASC']],
+      raw: true
+    });
+
+    return {
+      survey_creation: surveyCreationTrend,
+      response_activity: responseActivityTrend,
+      period: { start: startDate, end: endDate, days }
+    };
+  }
 }
 
 module.exports = new AnalyticsService();

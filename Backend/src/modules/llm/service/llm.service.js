@@ -554,31 +554,70 @@ class LlmService {
    */
   async generateQuestions(userId, { keyword, category, count = 5 }) {
     try {
-      const response = await axios.post(`${HUGGINGFACE_API_URL}/generate/questions`, {
+      logger.info(`Generating ${count} questions for keyword: ${keyword}${category ? ` in category: ${category}` : ''}`);
+      
+      const requestData = {
         keyword,
-        category,
-        count
-      }, {
+        num_questions: parseInt(count), // Use num_questions parameter như Hugging Face API expect
+        category_hint: category || null
+      };
+
+      logger.debug('Request data to Hugging Face API:', requestData);
+
+      // Call local Node.js API
+      const response = await axios.post(`${HUGGINGFACE_API_URL}/api/questions/generate`, requestData, {
         timeout: 30000,
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
         }
       });
+
+      logger.debug('Response from Hugging Face API:', response.data);
+
+      // Process response from Hugging Face API
+      const apiResponse = response.data;
+      const questions = apiResponse.questions || [];
+      
+      if (questions.length < count) {
+        logger.warn(`Requested ${count} questions but only received ${questions.length} from Hugging Face API`);
+      }
+
+      // Format response to match frontend expectations
+      const formattedResponse = {
+        questions: questions.map(q => ({
+          question: q.question,
+          category: q.category || apiResponse.category,
+          confidence: q.confidence || apiResponse.confidence || 0.8
+        })),
+        category: apiResponse.category,
+        confidence: apiResponse.confidence,
+        total_generated: questions.length,
+        keyword: keyword
+      };
 
       // Log the interaction
       await LlmInteraction.create({
         custom_prompt: `Generate ${count} questions for keyword: ${keyword}${category ? ` in category: ${category}` : ''}`,
-        response: JSON.stringify(response.data),
+        response: JSON.stringify(formattedResponse),
         tokens_used: 0, // HuggingFace doesn't provide token count
         model_used: 'huggingface-form-agent-ai',
         user_id: userId,
         interaction_type: 'question_generation'
       });
 
-      return response.data;
+      return formattedResponse;
     } catch (error) {
-      logger.error('Error generating questions from Hugging Face:', error);
-      throw new Error(`Failed to generate questions: ${error.response?.data?.message || error.message}`);
+      logger.error('Error generating questions from Hugging Face:', error.message);
+      
+      if (error.response) {
+        logger.error('Hugging Face API Error Response:', error.response.data);
+        throw new Error(`Hugging Face API Error: ${error.response.data?.detail || error.response.statusText}`);
+      } else if (error.request) {
+        throw new Error('Cannot connect to Hugging Face API. Please check your internet connection.');
+      } else {
+        throw new Error(`Failed to generate questions: ${error.message}`);
+      }
     }
   }
 
@@ -587,29 +626,49 @@ class LlmService {
    */
   async predictCategory(userId, { keyword }) {
     try {
-      const response = await axios.post(`${HUGGINGFACE_API_URL}/predict/category`, {
-        keyword
+      logger.info(`Predicting category for keyword: ${keyword}`);
+
+      const response = await axios.post(`${HUGGINGFACE_API_URL}/api/predict/category`, {
+        keyword: keyword.trim()
       }, {
-        timeout: 15000,
+        timeout: 30000,
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
         }
       });
+
+      logger.debug('Category prediction response:', response.data);
+
+      const result = {
+        keyword: keyword,
+        predicted_category: response.data.predicted_category,
+        confidence: response.data.confidence,
+        all_probabilities: response.data.all_probabilities || {}
+      };
 
       // Log the interaction
       await LlmInteraction.create({
         custom_prompt: `Predict category for keyword: ${keyword}`,
-        response: JSON.stringify(response.data),
+        response: JSON.stringify(result),
         tokens_used: 0,
         model_used: 'huggingface-form-agent-ai',
         user_id: userId,
         interaction_type: 'category_prediction'
       });
 
-      return response.data;
+      return result;
     } catch (error) {
-      logger.error('Error predicting category from Hugging Face:', error);
-      throw new Error(`Failed to predict category: ${error.response?.data?.message || error.message}`);
+      logger.error('Error predicting category from Hugging Face:', error.message);
+      
+      if (error.response) {
+        logger.error('Hugging Face API Error Response:', error.response.data);
+        throw new Error(`Hugging Face API Error: ${error.response.data?.detail || error.response.statusText}`);
+      } else if (error.request) {
+        throw new Error('Cannot connect to Hugging Face API. Please check your internet connection.');
+      } else {
+        throw new Error(`Failed to predict category: ${error.message}`);
+      }
     }
   }
 
@@ -618,18 +677,21 @@ class LlmService {
    */
   async getCategories() {
     try {
-      const response = await axios.get(`${HUGGINGFACE_API_URL}/model-info`, {
-        timeout: 10000
+      const response = await axios.get(`${HUGGINGFACE_API_URL}/api/model/categories`, {
+        timeout: 10000,
+        headers: {
+          'Accept': 'application/json'
+        }
       });
 
       return {
-        categories: response.data.categories || ['it', 'marketing', 'economics', 'general']
+        categories: response.data.categories || ['it', 'marketing', 'economics']
       };
     } catch (error) {
-      logger.error('Error getting categories from Hugging Face:', error);
+      logger.error('Error getting categories from Hugging Face:', error.message);
       // Return default categories if API fails
       return {
-        categories: ['it', 'marketing', 'economics', 'general']
+        categories: ['it', 'marketing', 'economics']
       };
     }
   }
@@ -640,18 +702,25 @@ class LlmService {
   async checkHuggingFaceHealth() {
     try {
       const response = await axios.get(`${HUGGINGFACE_API_URL}/health`, {
-        timeout: 5000
+        timeout: 15000,
+        headers: {
+          'Accept': 'application/json'
+        }
       });
       
       return {
         status: 'healthy',
-        data: response.data
+        api_status: response.data.status,
+        model_loaded: response.data.model_loaded,
+        timestamp: response.data.timestamp,
+        response_time: response.headers['x-response-time'] || 'unknown'
       };
     } catch (error) {
-      logger.error('Hugging Face API health check failed:', error);
+      logger.error('Hugging Face API health check failed:', error.message);
       return {
         status: 'unhealthy',
-        error: error.message
+        error: error.message,
+        timestamp: new Date().toISOString()
       };
     }
   }

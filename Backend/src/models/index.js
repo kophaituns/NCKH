@@ -16,6 +16,8 @@ const AnalysisResult = require('./analysisResult.model')(sequelize, DataTypes);
 const Visualization = require('./visualization.model')(sequelize, DataTypes);
 const LlmPrompt = require('./llmPrompt.model')(sequelize, DataTypes);
 const LlmInteraction = require('./llmInteraction.model')(sequelize, DataTypes);
+const ChatConversation = require('./chatConversation.model')(sequelize, DataTypes);
+const ChatMessage = require('./chatMessage.model')(sequelize, DataTypes);
 
 // Define associations
 User.hasMany(SurveyTemplate, { foreignKey: 'created_by' });
@@ -76,6 +78,13 @@ SurveyCollector.belongsTo(User, { foreignKey: 'created_by' });
 SurveyCollector.hasMany(SurveyResponse, { foreignKey: 'collector_id' });
 SurveyResponse.belongsTo(SurveyCollector, { foreignKey: 'collector_id' });
 
+// Chat associations
+User.hasMany(ChatConversation, { foreignKey: 'user_id' });
+ChatConversation.belongsTo(User, { foreignKey: 'user_id', as: 'user' });
+
+ChatConversation.hasMany(ChatMessage, { foreignKey: 'conversation_id', as: 'messages' });
+ChatMessage.belongsTo(ChatConversation, { foreignKey: 'conversation_id', as: 'conversation' });
+
 module.exports = {
   sequelize,
   User,
@@ -90,5 +99,7 @@ module.exports = {
   AnalysisResult,
   Visualization,
   LlmPrompt,
-  LlmInteraction
+  LlmInteraction,
+  ChatConversation,
+  ChatMessage
 };
