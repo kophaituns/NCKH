@@ -2,6 +2,7 @@
 
 .dashboard {
   width: 100%;
+  max-width: 100%;;
 }
 
 .header {
@@ -187,4 +188,50 @@
   color: #9ca3af;
   flex-shrink: 0;
   transition: color 0.2s;
+}
+/* Extra responsive cho màn rất nhỏ (mobile / cửa sổ thu hẹp) */
+@media (max-width: 480px) {
+  .header {
+    gap: 1rem;
+  }
+
+  .title {
+    font-size: 1.5rem; /* nhỏ hơn 1 chút cho đỡ to */
+  }
+
+  .subtitle {
+    font-size: 0.9rem;
+  }
+
+  .actions {
+    flex-direction: column;
+    width: 100%;
+
+    button {
+      width: 100%;
+      justify-content: center;
+    }
+  }
+
+  .statsGrid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  .chartSection {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  .quickActions {
+    padding: 1.25rem;
+  }
+
+  .actionsList {
+    gap: 0.5rem;
+  }
+
+  .quickActionItem {
+    padding: 0.75rem 0.9rem;
+  }
 }
