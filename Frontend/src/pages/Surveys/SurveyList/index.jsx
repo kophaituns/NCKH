@@ -117,6 +117,7 @@ const SurveyList = () => {
               setCurrentPage(1);
             }}
             className={styles.searchInput}
+            style={{ paddingLeft: '4rem' }}
           />
         </div>
 
