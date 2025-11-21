@@ -105,6 +105,32 @@ const LLMService = {
     const response = await http.post(`/llm/prompts/${promptId}/test`, testData);
     return response.data;
   },
+
+  /**
+   * Create survey from generated questions
+   */
+  async createSurveyFromQuestions(surveyData) {
+    const response = await http.post('/llm/create-survey', surveyData);
+    return response.data;
+  },
+
+  /**
+   * Export survey as PDF
+   */
+  async exportSurveyPDF(surveyId) {
+    const response = await http.get(`/llm/export-pdf/${surveyId}`, {
+      responseType: 'blob'
+    });
+    return response.data;
+  },
+
+  /**
+   * Generate public link for survey
+   */
+  async generatePublicLink(surveyId, expiryDays = 30) {
+    const response = await http.post(`/llm/generate-link/${surveyId}`, { expiryDays });
+    return response.data;
+  },
 };
 
 export default LLMService;

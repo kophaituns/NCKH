@@ -84,6 +84,27 @@ router.post('/generate-survey', llmController.generateSurvey);
  */
 router.post('/prompts/:promptId/test', llmController.testPrompt);
 
+/**
+ * @route   POST /api/modules/llm/create-survey
+ * @desc    Create survey from generated questions
+ * @access  Private
+ */
+router.post('/create-survey', llmController.createSurveyFromQuestions);
+
+/**
+ * @route   GET /api/modules/llm/export-pdf/:surveyId
+ * @desc    Export survey as PDF
+ * @access  Private
+ */
+router.get('/export-pdf/:surveyId', llmController.exportSurveyPDF);
+
+/**
+ * @route   POST /api/modules/llm/generate-link/:surveyId
+ * @desc    Generate public link for survey
+ * @access  Private
+ */
+router.post('/generate-link/:surveyId', llmController.generatePublicLink);
+
 // Health check
 router.get('/health', (req, res) => {
     res.json({ 

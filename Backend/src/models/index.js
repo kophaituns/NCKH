@@ -18,6 +18,7 @@ const LlmPrompt = require('./llmPrompt.model')(sequelize, DataTypes);
 const LlmInteraction = require('./llmInteraction.model')(sequelize, DataTypes);
 const ChatConversation = require('./chatConversation.model')(sequelize, DataTypes);
 const ChatMessage = require('./chatMessage.model')(sequelize, DataTypes);
+const SurveyLink = require('./surveyLink.model')(sequelize, DataTypes);
 
 // Define associations
 User.hasMany(SurveyTemplate, { foreignKey: 'created_by' });
@@ -29,7 +30,7 @@ Question.belongsTo(SurveyTemplate, { foreignKey: 'template_id' });
 QuestionType.hasMany(Question, { foreignKey: 'question_type_id' });
 Question.belongsTo(QuestionType, { foreignKey: 'question_type_id', as: 'QuestionType' });
 
-Question.hasMany(QuestionOption, { foreignKey: 'question_id', as: 'QuestionOptions' });
+Question.hasMany(QuestionOption, { foreignKey: 'question_id', as: 'options' });
 QuestionOption.belongsTo(Question, { foreignKey: 'question_id' });
 
 SurveyTemplate.hasMany(Survey, { foreignKey: 'template_id', as: 'surveys' });
@@ -37,6 +38,10 @@ Survey.belongsTo(SurveyTemplate, { foreignKey: 'template_id', as: 'template' });
 
 User.hasMany(Survey, { foreignKey: 'created_by', as: 'surveys' });
 Survey.belongsTo(User, { foreignKey: 'created_by', as: 'creator' });
+
+// Survey-Question associations
+Survey.hasMany(Question, { foreignKey: 'survey_id', as: 'questions' });
+Question.belongsTo(Survey, { foreignKey: 'survey_id', as: 'survey' });
 
 Survey.hasMany(SurveyResponse, { foreignKey: 'survey_id' });
 SurveyResponse.belongsTo(Survey, { foreignKey: 'survey_id' });
@@ -85,6 +90,13 @@ ChatConversation.belongsTo(User, { foreignKey: 'user_id', as: 'user' });
 ChatConversation.hasMany(ChatMessage, { foreignKey: 'conversation_id', as: 'messages' });
 ChatMessage.belongsTo(ChatConversation, { foreignKey: 'conversation_id', as: 'conversation' });
 
+// SurveyLink associations
+Survey.hasMany(SurveyLink, { foreignKey: 'survey_id', as: 'links' });
+SurveyLink.belongsTo(Survey, { foreignKey: 'survey_id', as: 'survey' });
+
+User.hasMany(SurveyLink, { foreignKey: 'created_by' });
+SurveyLink.belongsTo(User, { foreignKey: 'created_by', as: 'creator' });
+
 module.exports = {
   sequelize,
   User,
@@ -101,5 +113,6 @@ module.exports = {
   LlmPrompt,
   LlmInteraction,
   ChatConversation,
-  ChatMessage
+  ChatMessage,
+  SurveyLink
 };

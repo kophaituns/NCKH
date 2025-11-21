@@ -4,9 +4,12 @@ import Card from '../../components/UI/Card';
 import Button from '../../components/UI/Button';
 import Input from '../../components/UI/Input';
 import Select from '../../components/UI/Select';
+import TextArea from '../../components/UI/TextArea';
 import Loader from '../../components/common/Loader/Loader';
 import { useToast } from '../../contexts/ToastContext';
 import LLMService from '../../api/services/llm.service';
+import SurveyCreator from '../../components/LLM/SurveyCreator';
+import SurveyActions from '../../components/LLM/SurveyActions';
 import styles from './LLM.module.scss';
 
 const LLM = () => {
@@ -23,6 +26,7 @@ const LLM = () => {
   const [categories, setCategories] = useState([]);
   const [prompts, setPrompts] = useState([]);
   const [selectedPrompt, setSelectedPrompt] = useState('');
+  const [createdSurvey, setCreatedSurvey] = useState(null);
 
   const loadInitialData = useCallback(async () => {
     try {
@@ -236,8 +240,7 @@ const LLM = () => {
 
         <div className={styles.formGroup}>
           <label>Prompt tùy chỉnh</label>
-          <textarea
-            className={styles.textarea}
+          <TextArea
             placeholder="Nhập yêu cầu tạo khảo sát (ví dụ: Tạo khảo sát về satisfaction của sinh viên với môn học machine learning...)"
             value={formData.prompt}
             onChange={(e) => handleInputChange('prompt', e.target.value)}
@@ -290,13 +293,43 @@ const LLM = () => {
         <button 
           className={`${styles.tab} ${activeTab === 'survey' ? styles.active : ''}`}
           onClick={() => setActiveTab('survey')}
+          disabled={generatedQuestions.length === 0}
         >
-          Tạo Khảo Sát
+          Tạo Survey ({generatedQuestions.length})
         </button>
+        <button 
+          className={`${styles.tab} ${activeTab === 'prompt' ? styles.active : ''}`}
+          onClick={() => setActiveTab('prompt')}
+        >
+          Tạo Khảo Sát Từ Prompt
+        </button>
+        {createdSurvey && (
+          <button 
+            className={`${styles.tab} ${activeTab === 'result' ? styles.active : ''}`}
+            onClick={() => setActiveTab('result')}
+          >
+            Kết Quả Survey
+          </button>
+        )}
       </div>
 
       {activeTab === 'generate' && renderQuestionGeneration()}
-      {activeTab === 'survey' && renderSurveyGeneration()}
+      {activeTab === 'survey' && generatedQuestions.length > 0 && (
+        <SurveyCreator 
+          generatedQuestions={generatedQuestions}
+          onSurveyCreated={(survey) => {
+            setCreatedSurvey(survey);
+            setActiveTab('result');
+          }}
+        />
+      )}
+      {activeTab === 'prompt' && renderSurveyGeneration()}
+      {activeTab === 'result' && createdSurvey && (
+        <SurveyActions 
+          survey={createdSurvey}
+          onClose={() => setActiveTab('generate')}
+        />
+      )}
     </div>
   );
 };

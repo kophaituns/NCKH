@@ -63,6 +63,18 @@
     color: var(--primary-color);
     border-bottom-color: var(--primary-color);
     background-color: var(--bg-secondary);
+    font-weight: 600;
+  }
+  
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    color: var(--text-disabled);
+    
+    &:hover {
+      color: var(--text-disabled);
+      background-color: transparent;
+    }
   }
 }
 

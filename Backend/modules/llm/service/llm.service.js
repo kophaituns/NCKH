@@ -143,12 +143,31 @@ class LLMService {
       
       this.logger.info(`🤖 User ${data.userId || 'unknown'} generating ${count} questions for topic: ${topic}`);
       
-      // Call the trained model directly
-      return await this.generateQuestionsFromTrainedModel(topic, count, category);
+      // Use TrainedModelService
+      const TrainedModelService = require('./trained-model.service');
+      const trainedModel = new TrainedModelService();
+      
+      const result = await trainedModel.generateQuestions(topic, count, category);
+      
+      if (result.success && result.questions) {
+        this.logger.info(`✅ Generated ${result.questions.length} questions successfully`);
+        return {
+          success: true,
+          questions: result.questions.map(q => ({
+            question: q.question || q.text || q,
+            type: q.type || this._getQuestionType(q.question || q.text || q),
+            source: q.source || 'AI Model',
+            confidence: q.confidence || 85
+          }))
+        };
+      } else {
+        this.logger.warn('⚠️ Trained model failed, using fallback');
+        return this._generateSimpleFallbackQuestions(topic, count, category, result.error || 'Model unavailable');
+      }
       
     } catch (error) {
       this.logger.error('❌ Error in generateQuestions:', error.message);
-      return this.generateSimpleFallbackQuestions(data.topic, data.count, data.category, error.message);
+      return this._generateSimpleFallbackQuestions(data.topic, data.count, data.category, error.message);
     }
   }
 
@@ -157,14 +176,22 @@ class LLMService {
    */
   async predictCategory(data) {
     try {
-      const { text } = data;
+      if (!data || !data.keyword) {
+        throw new Error('Keyword is required for category prediction');
+      }
       
-      const isAvailable = await this.trainedModel.isAvailable();
+      const { keyword } = data;
+      
+      // Check if trained model service is available
+      const TrainedModelService = require('./trained-model.service');
+      const trainedModel = new TrainedModelService();
+      
+      const isAvailable = await trainedModel.isAvailable();
       if (!isAvailable) {
-        return this.fallbackPredictCategory(text);
+        return this._fallbackPredictCategory(keyword);
       }
 
-      const result = await this.trainedModel.predictCategory(text);
+      const result = await trainedModel.predictCategory(keyword);
       
       if (result.success) {
         return {
@@ -172,12 +199,12 @@ class LLMService {
           confidence: result.confidence || 0.8
         };
       } else {
-        logger.error('Category prediction failed:', result.error);
-        return this._fallbackPredictCategory(text);
+        this.logger.error('Category prediction failed:', result.error);
+        return this._fallbackPredictCategory(keyword);
       }
     } catch (error) {
-      logger.error('Error predicting category:', error);
-      const fallbackCategory = this._fallbackPredictCategory(data.text);
+      this.logger.error('Error predicting category:', error);
+      return this._fallbackPredictCategory(data?.keyword || '');
     }
   }
 
@@ -485,6 +512,281 @@ class LLMService {
       return 'yes_no';
     } else {
       return 'text';
+    }
+  }
+
+  /**
+   * Helper method to get question type ID from type name
+   */
+  _getQuestionTypeId(typeName) {
+    const typeMapping = {
+      'multiple_choice': 1,
+      'checkbox': 2,
+      'likert_scale': 3,
+      'open_ended': 4,
+      'dropdown': 5,
+      'text': 4, // map text to open_ended
+      'yes_no': 1, // map yes_no to multiple_choice
+      'rating': 3, // map rating to likert_scale
+      'email': 4, // map email to open_ended
+      'date': 4 // map date to open_ended
+    };
+    
+    return typeMapping[typeName] || 4; // default to open_ended
+  }
+
+  /**
+   * Create survey from generated questions
+   */
+  async createSurveyFromQuestions(userId, surveyData) {
+    const { Survey, Question, QuestionOption } = require('../../../src/models');
+    
+    try {
+      // Create the survey
+      const survey = await Survey.create({
+        title: surveyData.title,
+        description: surveyData.description || '',
+        target_audience: surveyData.targetAudience || 'all_users',
+        target_value: surveyData.targetValue || null,
+        start_date: surveyData.startDate || new Date(),
+        end_date: surveyData.endDate,
+        created_by: userId,
+        status: 'draft',
+        share_settings: JSON.stringify(surveyData.shareSettings || {
+          isPublic: false,
+          allowAnonymous: true,
+          requireLogin: false
+        })
+      });
+
+      // Process selected questions
+      let questionOrder = 1;
+      const createdQuestions = [];
+
+      // Add selected questions from generation
+      for (const selectedQ of surveyData.selectedQuestions) {
+        const questionType = this._getQuestionType(selectedQ);
+        const questionTypeId = this._getQuestionTypeId(questionType);
+        
+        const question = await Question.create({
+          survey_id: survey.id,
+          question_text: selectedQ.question || selectedQ.text,
+          question_type: questionType,
+          question_type_id: questionTypeId,
+          question_order: questionOrder++,
+          is_required: selectedQ.required || false,
+          description: selectedQ.description || ''
+        });
+
+        // Add options for multiple choice questions
+        if (questionType === 'multiple_choice' && selectedQ.options) {
+          for (let i = 0; i < selectedQ.options.length; i++) {
+            await QuestionOption.create({
+              question_id: question.id,
+              option_text: selectedQ.options[i],
+              option_order: i + 1
+            });
+          }
+        }
+
+        createdQuestions.push(question);
+      }
+
+      // Add custom questions
+      if (surveyData.customQuestions && surveyData.customQuestions.length > 0) {
+        for (const customQ of surveyData.customQuestions) {
+          const questionType = customQ.question_type || 'text';
+          const questionTypeId = this._getQuestionTypeId(questionType);
+          
+          const question = await Question.create({
+            survey_id: survey.id,
+            question_text: customQ.question_text,
+            question_type: questionType,
+            question_type_id: questionTypeId,
+            question_order: questionOrder++,
+            is_required: customQ.is_required || false,
+            description: customQ.description || ''
+          });
+
+          // Add options for multiple choice questions
+          if (customQ.question_type === 'multiple_choice' && customQ.options) {
+            for (let i = 0; i < customQ.options.length; i++) {
+              await QuestionOption.create({
+                question_id: question.id,
+                option_text: customQ.options[i],
+                option_order: i + 1
+              });
+            }
+          }
+
+          createdQuestions.push(question);
+        }
+      }
+
+      return {
+        survey,
+        questions: createdQuestions,
+        totalQuestions: createdQuestions.length
+      };
+
+    } catch (error) {
+      this.logger.error('Error creating survey from questions:', error);
+      throw new Error(`Failed to create survey: ${error.message}`);
+    }
+  }
+
+  /**
+   * Export survey to PDF
+   */
+  async exportSurveyToPDF(surveyId, userId) {
+    const { Survey, Question, QuestionOption } = require('../../../src/models');
+    
+    try {
+      // Get survey with questions
+      const survey = await Survey.findOne({
+        where: { id: surveyId, created_by: userId },
+        include: [{
+          model: Question,
+          as: 'questions',
+          include: [{
+            model: QuestionOption,
+            as: 'options'
+          }]
+        }]
+      });
+
+      if (!survey) {
+        throw new Error('Survey not found or access denied');
+      }
+
+      // Create HTML content for PDF
+      let htmlContent = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="UTF-8">
+          <title>${survey.title}</title>
+          <style>
+            body { font-family: Arial, sans-serif; margin: 40px; line-height: 1.6; }
+            .header { text-align: center; margin-bottom: 40px; border-bottom: 2px solid #333; padding-bottom: 20px; }
+            .title { font-size: 24px; font-weight: bold; color: #333; margin-bottom: 10px; }
+            .description { font-size: 14px; color: #666; margin-bottom: 10px; }
+            .meta { font-size: 12px; color: #999; }
+            .question { margin: 30px 0; page-break-inside: avoid; }
+            .question-number { font-weight: bold; color: #333; }
+            .question-text { font-size: 16px; margin: 10px 0; }
+            .options { margin: 15px 0 15px 30px; }
+            .option { margin: 5px 0; }
+            .checkbox { display: inline-block; width: 15px; height: 15px; border: 1px solid #333; margin-right: 10px; }
+            .text-answer { margin: 10px 0; border-bottom: 1px solid #999; height: 30px; }
+            .rating { margin: 10px 0; }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <div class="title">${survey.title}</div>
+            <div class="description">${survey.description || 'Không có mô tả'}</div>
+            <div class="meta">Ngày tạo: ${new Date(survey.created_at).toLocaleDateString('vi-VN')}</div>
+          </div>
+      `;
+
+      // Add questions
+      survey.questions.forEach((question, index) => {
+        htmlContent += `
+          <div class="question">
+            <div class="question-number">${index + 1}. ${question.question_text}</div>
+        `;
+
+        if (question.question_type === 'multiple_choice' && question.options) {
+          htmlContent += '<div class="options">';
+          question.options.forEach((option) => {
+            htmlContent += `<div class="option"><span class="checkbox"></span> ${option.option_text}</div>`;
+          });
+          htmlContent += '</div>';
+        } else if (question.question_type === 'yes_no') {
+          htmlContent += `
+            <div class="options">
+              <div class="option"><span class="checkbox"></span> Có</div>
+              <div class="option"><span class="checkbox"></span> Không</div>
+            </div>
+          `;
+        } else if (question.question_type === 'rating') {
+          htmlContent += `
+            <div class="rating">
+              Đánh giá: 
+              <span class="checkbox"></span> 1
+              <span class="checkbox"></span> 2
+              <span class="checkbox"></span> 3
+              <span class="checkbox"></span> 4
+              <span class="checkbox"></span> 5
+            </div>
+          `;
+        } else {
+          htmlContent += '<div class="text-answer"></div>';
+        }
+
+        htmlContent += '</div>';
+      });
+
+      htmlContent += `
+          </body>
+        </html>
+      `;
+
+      // For now, return HTML content as buffer
+      // In production, you would use a proper PDF library
+      return Buffer.from(htmlContent, 'utf8');
+
+    } catch (error) {
+      this.logger.error('Error exporting survey to PDF:', error);
+      throw new Error(`Failed to export PDF: ${error.message}`);
+    }
+  }
+
+  /**
+   * Generate public link for survey
+   */
+  async generatePublicLink(surveyId, userId, expiryDays = 30) {
+    const { Survey, SurveyLink } = require('../../../src/models');
+    const crypto = require('crypto');
+    
+    try {
+      // Verify survey ownership
+      const survey = await Survey.findOne({
+        where: { id: surveyId, created_by: userId }
+      });
+
+      if (!survey) {
+        throw new Error('Survey not found or access denied');
+      }
+
+      // Generate unique token
+      const token = crypto.randomBytes(32).toString('hex');
+      const expiryDate = new Date();
+      expiryDate.setDate(expiryDate.getDate() + expiryDays);
+
+      // Create or update survey link (assuming you have a SurveyLink model)
+      const surveyLink = await SurveyLink.create({
+        survey_id: surveyId,
+        token,
+        expires_at: expiryDate,
+        is_active: true,
+        created_by: userId
+      });
+
+      const publicUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/survey/public/${token}`;
+
+      return {
+        link: publicUrl,
+        token,
+        expiresAt: expiryDate,
+        surveyId,
+        isActive: true
+      };
+
+    } catch (error) {
+      this.logger.error('Error generating public link:', error);
+      throw new Error(`Failed to generate public link: ${error.message}`);
     }
   }
 }

@@ -274,6 +274,101 @@ class LLMController {
       });
     }
   }
+
+  /**
+   * Create survey from generated questions
+   */
+  async createSurveyFromQuestions(req, res) {
+    try {
+      const { 
+        title, 
+        description, 
+        selectedQuestions, 
+        customQuestions, 
+        shareSettings,
+        targetAudience,
+        startDate,
+        endDate 
+      } = req.body;
+
+      if (!title || !selectedQuestions || selectedQuestions.length === 0) {
+        return res.status(400).json({
+          success: false,
+          message: 'Title and at least one question are required'
+        });
+      }
+
+      const result = await llmService.createSurveyFromQuestions(
+        req.user.id,
+        {
+          title,
+          description,
+          selectedQuestions,
+          customQuestions: customQuestions || [],
+          shareSettings,
+          targetAudience,
+          startDate,
+          endDate
+        }
+      );
+
+      res.status(201).json({
+        success: true,
+        message: 'Survey created successfully',
+        data: result
+      });
+    } catch (error) {
+      logger.error('Create survey from questions error:', error);
+      res.status(500).json({
+        success: false,
+        message: error.message || 'Error creating survey'
+      });
+    }
+  }
+
+  /**
+   * Export survey as PDF
+   */
+  async exportSurveyPDF(req, res) {
+    try {
+      const { surveyId } = req.params;
+      
+      const pdfBuffer = await llmService.exportSurveyToPDF(surveyId, req.user.id);
+      
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="survey-${surveyId}.pdf"`);
+      res.send(pdfBuffer);
+    } catch (error) {
+      logger.error('Export survey PDF error:', error);
+      res.status(500).json({
+        success: false,
+        message: error.message || 'Error exporting PDF'
+      });
+    }
+  }
+
+  /**
+   * Generate public link for survey
+   */
+  async generatePublicLink(req, res) {
+    try {
+      const { surveyId } = req.params;
+      const { expiryDays } = req.body;
+      
+      const linkData = await llmService.generatePublicLink(surveyId, req.user.id, expiryDays);
+      
+      res.status(200).json({
+        success: true,
+        data: linkData
+      });
+    } catch (error) {
+      logger.error('Generate public link error:', error);
+      res.status(500).json({
+        success: false,
+        message: error.message || 'Error generating public link'
+      });
+    }
+  }
 }
 
 module.exports = new LLMController();
