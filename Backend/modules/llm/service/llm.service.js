@@ -733,9 +733,15 @@ class LLMService {
         </html>
       `;
 
-      // For now, return HTML content as buffer
-      // In production, you would use a proper PDF library
-      return Buffer.from(htmlContent, 'utf8');
+      // Temporarily return HTML content as PDF (will implement proper PDF later)
+      const fileName = `survey-${survey.id}-${Date.now()}.html`;
+      
+      return {
+        success: true,
+        fileName: fileName,
+        htmlContent: htmlContent,
+        downloadUrl: null // Will implement proper PDF download later
+      };
 
     } catch (error) {
       this.logger.error('Error exporting survey to PDF:', error);
