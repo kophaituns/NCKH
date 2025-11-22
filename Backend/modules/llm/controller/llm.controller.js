@@ -490,6 +490,28 @@ class LLMController {
       });
     }
   }
+
+  /**
+   * Export survey as PDF (HTML preview)
+   */
+  async exportSurveyPDF(req, res) {
+    try {
+      const { surveyId } = req.params;
+      const userId = req.user.userId;
+
+      const pdfHtml = await llmService.generateSurveyPDF(surveyId, userId);
+
+      // Return HTML for PDF conversion
+      res.setHeader('Content-Type', 'text/html');
+      res.send(pdfHtml);
+    } catch (error) {
+      logger.error('Export survey PDF error:', error);
+      res.status(500).json({
+        success: false,
+        message: error.message || 'Error exporting survey PDF'
+      });
+    }
+  }
 }
 
 // Create instance

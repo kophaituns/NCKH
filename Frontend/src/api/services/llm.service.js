@@ -122,12 +122,21 @@ const LLMService = {
       responseType: 'text'
     });
     
-    // Create a new window with the HTML content
+    // Create a new window with the HTML content for PDF printing
     const newWindow = window.open('', '_blank');
-    newWindow.document.write(response.data);
-    newWindow.document.close();
+    if (newWindow) {
+      newWindow.document.write(response.data);
+      newWindow.document.close();
+      
+      // Auto-trigger print dialog after content loads
+      newWindow.onload = () => {
+        setTimeout(() => {
+          newWindow.print();
+        }, 500);
+      };
+    }
     
-    return { success: true, message: 'PDF preview opened in new window. Use Ctrl+P to print as PDF.' };
+    return { success: true, message: 'PDF đã mở để in. Chọn "Save as PDF" trong hộp thoại in để tải xuống.' };
   },
 
   /**

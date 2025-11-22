@@ -1,5 +1,5 @@
 const logger = require('../../../src/utils/logger');
-const { User } = require('../../../src/models');
+const { User, Survey, Question, QuestionOption, SurveyResponse, ResponseAnswer, SurveyLink } = require('../../../src/models');
 const axios = require('axios');
 
 // LLM Service using your trained model
@@ -889,11 +889,10 @@ class LLMService {
       // Create survey response
       const surveyResponse = await SurveyResponse.create({
         survey_id: surveyLink.survey_id,
-        respondent_name: responseData.respondent_name || null,
-        respondent_email: responseData.respondent_email || null,
-        session_token: responseData.session_token || null,
-        is_completed: true,
-        submitted_at: new Date()
+        respondent_id: null, // Anonymous response
+        start_time: new Date(),
+        completion_time: new Date(),
+        status: 'completed'
       });
 
       // Create response answers
@@ -1054,6 +1053,291 @@ class LLMService {
       console.error('Get survey responses error:', error);
       throw new Error(`Failed to get survey responses: ${error.message}`);
     }
+  }
+
+  // Generate PDF HTML for survey
+  async generateSurveyPDF(surveyId, userId) {
+    const { Survey, Question, QuestionOption } = require('../../../src/models');
+    try {
+      // Get survey with questions - remove user restriction for PDF export
+      const survey = await Survey.findOne({
+        where: { 
+          id: surveyId
+        }
+      });
+
+      if (!survey) {
+        throw new Error('Survey not found');
+      }
+
+      // Get questions for this survey
+      const questions = await Question.findAll({
+        where: { survey_id: surveyId },
+        include: [{
+          model: QuestionOption,
+          as: 'options'
+        }],
+        order: [['question_order', 'ASC']]
+      });
+
+      // Generate HTML with proper formatting for each question type
+      const html = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="UTF-8">
+          <title>Survey: ${survey.title}</title>
+          <style>
+            body { 
+              font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+              margin: 40px; 
+              line-height: 1.6;
+              color: #333;
+            }
+            .header { 
+              text-align: center; 
+              margin-bottom: 40px; 
+              border-bottom: 2px solid #4CAF50;
+              padding-bottom: 20px;
+            }
+            .title { 
+              font-size: 28px; 
+              font-weight: bold; 
+              color: #2c3e50;
+              margin-bottom: 10px;
+            }
+            .description { 
+              font-size: 16px; 
+              color: #7f8c8d;
+              margin-bottom: 10px;
+            }
+            .meta-info {
+              font-size: 14px;
+              color: #95a5a6;
+            }
+            .question-block { 
+              margin: 30px 0; 
+              padding: 20px; 
+              border: 1px solid #ecf0f1;
+              border-radius: 8px;
+              background-color: #fafafa;
+            }
+            .question-number {
+              font-weight: bold;
+              color: #3498db;
+              margin-bottom: 10px;
+              font-size: 14px;
+            }
+            .question-text { 
+              font-size: 18px; 
+              font-weight: 600; 
+              margin-bottom: 15px;
+              color: #2c3e50;
+            }
+            .question-type {
+              font-size: 12px;
+              color: #7f8c8d;
+              margin-bottom: 15px;
+              font-style: italic;
+            }
+            .answer-options { 
+              margin: 15px 0; 
+            }
+            .option { 
+              margin: 8px 0;
+              padding: 8px 0;
+              display: flex;
+              align-items: center;
+            }
+            .option-checkbox, .option-radio {
+              width: 16px;
+              height: 16px;
+              border: 2px solid #bdc3c7;
+              margin-right: 10px;
+              display: inline-block;
+              flex-shrink: 0;
+            }
+            .option-radio {
+              border-radius: 50%;
+            }
+            .option-text {
+              flex: 1;
+            }
+            .text-answer {
+              border: 1px solid #bdc3c7;
+              padding: 12px;
+              min-height: 80px;
+              background-color: white;
+              border-radius: 4px;
+            }
+            .rating-scale {
+              display: flex;
+              gap: 10px;
+              margin: 10px 0;
+            }
+            .rating-box {
+              width: 40px;
+              height: 40px;
+              border: 2px solid #bdc3c7;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              font-weight: bold;
+              border-radius: 4px;
+            }
+            .dropdown-select {
+              border: 1px solid #bdc3c7;
+              padding: 10px;
+              width: 100%;
+              background-color: white;
+              border-radius: 4px;
+            }
+            .footer {
+              margin-top: 50px;
+              text-align: center;
+              font-size: 12px;
+              color: #95a5a6;
+              border-top: 1px solid #ecf0f1;
+              padding-top: 20px;
+            }
+            @media print {
+              body { margin: 20px; }
+              .question-block { page-break-inside: avoid; }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <div class="title">${survey.title}</div>
+            ${survey.description ? `<div class="description">${survey.description}</div>` : ''}
+            <div class="meta-info">
+              Survey ID: ${survey.id} | 
+              Created: ${new Date(survey.created_at).toLocaleDateString()} |
+              Questions: ${questions.length}
+            </div>
+          </div>
+
+          <div class="content">
+            ${questions.map((question, index) => this.formatQuestionForPDF(question, index + 1)).join('')}
+          </div>
+
+          <div class="footer">
+            <p>Generated by LLM Survey System - ${new Date().toLocaleString()}</p>
+            <p>This is a preview format. Users can fill this survey and submit responses.</p>
+          </div>
+        </body>
+        </html>
+      `;
+
+      return html;
+    } catch (error) {
+      console.error('Generate survey PDF error:', error);
+      throw new Error(`Failed to generate survey PDF: ${error.message}`);
+    }
+  }
+
+  // Format question for PDF based on question type
+  formatQuestionForPDF(question, questionNumber) {
+    const requiredMark = question.required ? '<span style="color: red;">*</span>' : '';
+    
+    let answerSection = '';
+    
+    switch (question.question_type) {
+      case 'text':
+      case 'open_ended':
+        answerSection = `
+          <div class="text-answer">
+            <div style="height: 60px; border: none; background: white;"></div>
+          </div>
+        `;
+        break;
+        
+      case 'yes_no':
+        answerSection = `
+          <div class="answer-options">
+            <div class="option">
+              <span class="option-radio"></span>
+              <span class="option-text">Yes</span>
+            </div>
+            <div class="option">
+              <span class="option-radio"></span>
+              <span class="option-text">No</span>
+            </div>
+          </div>
+        `;
+        break;
+        
+      case 'multiple_choice':
+        answerSection = `
+          <div class="answer-options">
+            ${(question.options || []).map(option => `
+              <div class="option">
+                <span class="option-radio"></span>
+                <span class="option-text">${option.option_text}</span>
+              </div>
+            `).join('')}
+          </div>
+        `;
+        break;
+        
+      case 'checkbox':
+        answerSection = `
+          <div class="answer-options">
+            ${(question.options || []).map(option => `
+              <div class="option">
+                <span class="option-checkbox"></span>
+                <span class="option-text">${option.option_text}</span>
+              </div>
+            `).join('')}
+          </div>
+        `;
+        break;
+        
+      case 'dropdown':
+        answerSection = `
+          <select class="dropdown-select" disabled>
+            <option>-- Select an option --</option>
+            ${(question.options || []).map(option => `
+              <option>${option.option_text}</option>
+            `).join('')}
+          </select>
+        `;
+        break;
+        
+      case 'likert_scale':
+      case 'rating':
+        answerSection = `
+          <div class="rating-scale">
+            ${[1, 2, 3, 4, 5].map(rating => `
+              <div class="rating-box">${rating}</div>
+            `).join('')}
+          </div>
+          <div style="font-size: 12px; color: #7f8c8d; margin-top: 5px;">
+            1 = Strongly Disagree, 5 = Strongly Agree
+          </div>
+        `;
+        break;
+        
+      default:
+        answerSection = `
+          <div class="text-answer">
+            <em>Answer field for ${question.question_type} question type</em>
+          </div>
+        `;
+    }
+    
+    return `
+      <div class="question-block">
+        <div class="question-number">Question ${questionNumber}</div>
+        <div class="question-text">
+          ${question.question_text} ${requiredMark}
+        </div>
+        <div class="question-type">
+          Type: ${question.question_type} ${question.description ? `| ${question.description}` : ''}
+        </div>
+        ${answerSection}
+      </div>
+    `;
   }
 }
 

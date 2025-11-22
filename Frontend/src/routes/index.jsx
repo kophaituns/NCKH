@@ -267,6 +267,12 @@ const AppRoutes = () => {
         path="/public/:token" 
         element={<PublicResponseForm />} 
       />
+      
+      {/* Survey Public Access Route */}
+      <Route 
+        path="/survey/public/:token" 
+        element={<PublicResponseForm />} 
+      />
 
       {/* Legacy route for backward compatibility */}
       <Route 
