@@ -1,0 +1,501 @@
+// src/api/services/workspace.service.js - Workspace API service
+import http from '../http';
+
+const WorkspaceService = {
+  /**
+   * Get all workspaces for the current user
+   * @returns {Promise<{ok: boolean, items: Array, total: number}>}
+   */
+  async getMyWorkspaces() {
+    try {
+      const response = await http.get('/workspaces/my');
+      console.log('[WorkspaceService.getMyWorkspaces] Response:', response.data);
+
+      // Handle multiple possible response formats from backend
+      const responseData = response.data || {};
+      const { ok, success, data } = responseData;
+
+      // Extract workspaces from various possible locations in response
+      const workspaces = data?.workspaces || data?.items || responseData.workspaces || responseData.items || [];
+      const total = data?.total || responseData.total || workspaces.length;
+
+      // Ensure workspaces is always an array
+      const workspaceArray = Array.isArray(workspaces) ? workspaces : [];
+
+      console.log(`[WorkspaceService.getMyWorkspaces] Extracted ${workspaceArray.length} workspaces, total: ${total}`);
+
+      return {
+        ok: ok !== false && success !== false,
+        items: workspaceArray,
+        total: total,
+      };
+    } catch (error) {
+      console.error('[WorkspaceService.getMyWorkspaces] ERROR:', error.message || error);
+
+      // Always return an object with ok: false, never throw
+      return {
+        ok: false,
+        items: [],
+        total: 0,
+        error: error.message || 'Failed to fetch workspaces',
+      };
+    }
+  },
+
+  /**
+   * Get a single workspace by ID
+   * @param {string} id - Workspace ID
+   * @returns {Promise<{ok: boolean, data?: Object, error?: string}>}
+   */
+  async getWorkspaceById(id) {
+    try {
+      if (!id) {
+        throw new Error('Workspace ID is required');
+      }
+
+      const response = await http.get(`/workspaces/${id}`);
+      console.log(`[WorkspaceService.getWorkspaceById] Retrieved workspace ${id}:`, response.data);
+
+      const responseData = response.data || {};
+      const { ok, success, workspace } = responseData;
+      
+      // Backend returns workspace directly in response.data.workspace
+      const workspaceData = workspace || responseData.data?.workspace || responseData.data;
+
+      return {
+        ok: ok !== false && success !== false,
+        data: workspaceData || null,
+      };
+    } catch (error) {
+      console.error(`[WorkspaceService.getWorkspaceById] ERROR for ID ${id}:`, error.message || error);
+
+      return {
+        ok: false,
+        data: null,
+        error: error.message || 'Failed to fetch workspace',
+      };
+    }
+  },
+
+  /**
+   * Create a new workspace
+   * @param {Object} payload - Workspace creation payload { name, description? }
+   * @returns {Promise<{ok: boolean, data?: Object, error?: string}>}
+   */
+  async createWorkspace(payload) {
+    try {
+      if (!payload || !payload.name) {
+        throw new Error('Workspace name is required');
+      }
+
+      const response = await http.post('/workspaces', payload);
+      console.log('[WorkspaceService.createWorkspace] Created workspace:', response.data);
+
+      const responseData = response.data || {};
+      const { ok, success, data } = responseData;
+      const workspace = data?.workspace || data || responseData;
+
+      return {
+        ok: ok !== false && success !== false,
+        data: workspace || null,
+      };
+    } catch (error) {
+      console.error('[WorkspaceService.createWorkspace] ERROR:', error.message || error);
+
+      return {
+        ok: false,
+        data: null,
+        error: error.message || 'Failed to create workspace',
+      };
+    }
+  },
+
+
+
+  /**
+   * Get workspace members
+   * @param {string} workspaceId - Workspace ID
+   * @returns {Promise<{ok: boolean, items: Array, total: number}>}
+   */
+  async getWorkspaceMembers(workspaceId) {
+    try {
+      if (!workspaceId) {
+        throw new Error('Workspace ID is required');
+      }
+
+      const response = await http.get(`/workspaces/${workspaceId}/members`);
+      console.log(`[WorkspaceService.getWorkspaceMembers] Retrieved members for workspace ${workspaceId}:`, response.data);
+
+      const responseData = response.data || {};
+      const { ok, success, data } = responseData;
+
+      // Extract members from various possible locations in response
+      const members = data?.members || data?.items || responseData.members || responseData.items || [];
+      const total = data?.total || responseData.total || members.length;
+
+      // Ensure members is always an array
+      const memberArray = Array.isArray(members) ? members : [];
+
+      console.log(`[WorkspaceService.getWorkspaceMembers] Extracted ${memberArray.length} members for workspace ${workspaceId}`);
+
+      return {
+        ok: ok !== false && success !== false,
+        items: memberArray,
+        total: total,
+      };
+    } catch (error) {
+      console.error(`[WorkspaceService.getWorkspaceMembers] ERROR for workspace ${workspaceId}:`, error.message || error);
+
+      return {
+        ok: false,
+        items: [],
+        total: 0,
+        error: error.message || 'Failed to fetch workspace members',
+      };
+    }
+  },
+
+  /**
+   * Add a member to a workspace
+   * @param {string} workspaceId - Workspace ID
+   * @param {Object} payload - Member payload { userId, role }
+   * @returns {Promise<{ok: boolean, data?: Object, error?: string}>}
+   */
+  async addWorkspaceMember(workspaceId, payload) {
+    try {
+      if (!workspaceId) {
+        throw new Error('Workspace ID is required');
+      }
+
+      if (!payload || !payload.userId || !payload.role) {
+        throw new Error('User ID and role are required');
+      }
+
+      const response = await http.post(`/workspaces/${workspaceId}/members`, payload);
+      console.log(`[WorkspaceService.addWorkspaceMember] Added member to workspace ${workspaceId}:`, response.data);
+
+      const responseData = response.data || {};
+      const { ok, success, data } = responseData;
+      const member = data?.member || data || responseData;
+
+      return {
+        ok: ok !== false && success !== false,
+        data: member || null,
+      };
+    } catch (error) {
+      console.error(`[WorkspaceService.addWorkspaceMember] ERROR for workspace ${workspaceId}:`, error.message || error);
+
+      return {
+        ok: false,
+        data: null,
+        error: error.message || 'Failed to add workspace member',
+      };
+    }
+  },
+
+  /**
+   * Remove a member from a workspace
+   * @param {string} workspaceId - Workspace ID
+   * @param {string} memberId - Member ID
+   * @returns {Promise<{ok: boolean, error?: string}>}
+   */
+  async removeWorkspaceMember(workspaceId, memberId) {
+    try {
+      if (!workspaceId) {
+        throw new Error('Workspace ID is required');
+      }
+
+      if (!memberId) {
+        throw new Error('Member ID is required');
+      }
+
+      const response = await http.delete(`/workspaces/${workspaceId}/members/${memberId}`);
+      console.log(`[WorkspaceService.removeWorkspaceMember] Removed member ${memberId} from workspace ${workspaceId}:`, response.data);
+
+      const responseData = response.data || {};
+      const { ok, success } = responseData;
+
+      return {
+        ok: ok !== false && success !== false,
+      };
+    } catch (error) {
+      console.error(`[WorkspaceService.removeWorkspaceMember] ERROR:`, error.message || error);
+
+      return {
+        ok: false,
+        error: error.message || 'Failed to remove workspace member',
+      };
+    }
+  },
+
+  /**
+   * Invite user to workspace
+   * @param {string} workspaceId - Workspace ID
+   * @param {string} email - Invitee email
+   * @param {string} role - Role (member, collaborator, viewer)
+   * @returns {Promise<{ok: boolean, invitation?: Object, error?: string}>}
+   */
+  async inviteToWorkspace(workspaceId, email, role = 'member') {
+    try {
+      const response = await http.post(`/workspaces/${workspaceId}/invite`, {
+        email,
+        role
+      });
+      console.log('[WorkspaceService.inviteToWorkspace] Response:', response.data);
+
+      return {
+        ok: response.data.ok !== false,
+        invitation: response.data.invitation,
+        message: 'Invitation sent successfully'
+      };
+    } catch (error) {
+      console.error('[WorkspaceService.inviteToWorkspace] ERROR:', error.message || error);
+
+      return {
+        ok: false,
+        error: error.response?.data?.message || error.message || 'Failed to send invitation'
+      };
+    }
+  },
+
+  /**
+   * Accept workspace invitation
+   * @param {string} token - Invitation token
+   * @returns {Promise<{ok: boolean, workspace?: Object, error?: string}>}
+   */
+  async acceptInvitation(token) {
+    try {
+      const response = await http.post(`/workspaces/accept-invitation`, {
+        token
+      });
+      console.log('[WorkspaceService.acceptInvitation] Response:', response.data);
+
+      return {
+        ok: response.data.ok !== false,
+        workspace: response.data.workspace,
+        message: response.data.message || 'Invitation accepted successfully'
+      };
+    } catch (error) {
+      console.error('[WorkspaceService.acceptInvitation] ERROR:', error.message || error);
+
+      return {
+        ok: false,
+        error: error.response?.data?.message || error.message || 'Failed to accept invitation'
+      };
+    }
+  },
+
+
+
+  /**
+   * Get workspace activities
+   * @param {string} workspaceId - Workspace ID
+   * @param {number} limit - Number of activities to fetch
+   * @returns {Promise<{ok: boolean, activities?: Array, error?: string}>}
+   */
+  async getWorkspaceActivities(workspaceId, limit = 20) {
+    try {
+      const response = await http.get(`/workspaces/${workspaceId}/activities?limit=${limit}`);
+      console.log('[WorkspaceService.getWorkspaceActivities] Response:', response.data);
+
+      const activities = response.data.activities || [];
+
+      return {
+        ok: response.data.ok !== false,
+        activities: Array.isArray(activities) ? activities : []
+      };
+    } catch (error) {
+      console.error('[WorkspaceService.getWorkspaceActivities] ERROR:', error.message || error);
+
+      return {
+        ok: false,
+        activities: [],
+        error: error.response?.data?.message || error.message || 'Failed to fetch workspace activities'
+      };
+    }
+  },
+
+  /**
+   * Update workspace
+   * @param {string} workspaceId - Workspace ID
+   * @param {Object} data - Workspace data to update
+   * @param {string} data.name - Workspace name
+   * @param {string} data.description - Workspace description
+   * @param {string} data.visibility - Workspace visibility
+   * @returns {Promise<{ok: boolean, workspace?: Object, error?: string}>}
+   */
+  async updateWorkspace(workspaceId, data) {
+    try {
+      const response = await http.put(`/workspaces/${workspaceId}`, data);
+      console.log('[WorkspaceService.updateWorkspace] Response:', response.data);
+
+      return {
+        ok: response.data.ok !== false,
+        workspace: response.data.workspace || response.data.data
+      };
+    } catch (error) {
+      console.error('[WorkspaceService.updateWorkspace] ERROR:', error.message || error);
+
+      return {
+        ok: false,
+        error: error.response?.data?.message || error.message || 'Failed to update workspace'
+      };
+    }
+  },
+
+  /**
+   * Delete workspace
+   * @param {string} workspaceId - Workspace ID
+   * @returns {Promise<{ok: boolean, error?: string}>}
+   */
+  async deleteWorkspace(workspaceId) {
+    try {
+      const response = await http.delete(`/workspaces/${workspaceId}`);
+      console.log('[WorkspaceService.deleteWorkspace] Response:', response.data);
+
+      return {
+        ok: response.data.ok !== false,
+        message: response.data.message
+      };
+    } catch (error) {
+      console.error('[WorkspaceService.deleteWorkspace] ERROR:', error.message || error);
+
+      return {
+        ok: false,
+        error: error.response?.data?.message || error.message || 'Failed to delete workspace'
+      };
+    }
+  },
+
+  /**
+   * Accept workspace invitation via token
+   * @param {string} token - Invitation token
+   * @returns {Promise<{ok: boolean, workspace?: Object, message?: string}>}
+   */
+  async acceptInvitation(token) {
+    try {
+      const response = await http.post('/workspaces/accept-invitation', { token });
+      console.log('[WorkspaceService.acceptInvitation] Response:', response.data);
+
+      return {
+        ok: response.data.ok !== false,
+        workspace: response.data.workspace,
+        message: response.data.message
+      };
+    } catch (error) {
+      console.error('[WorkspaceService.acceptInvitation] ERROR:', error.message || error);
+
+      return {
+        ok: false,
+        error: error.response?.data?.message || error.message || 'Failed to accept invitation'
+      };
+    }
+  },
+
+  /**
+   * Get pending invitations sent for a workspace
+   * @param {string|number} workspaceId - Workspace ID
+   * @returns {Promise<{ok: boolean, invitations?: Array, error?: string}>}
+   */
+  async getPendingInvitations(workspaceId) {
+    try {
+      const response = await http.get(`/workspaces/${workspaceId}/invitations/pending`);
+      console.log('[WorkspaceService.getPendingInvitations] Response:', response.data);
+
+      return {
+        ok: response.data.ok !== false,
+        invitations: response.data.invitations || [],
+        message: response.data.message
+      };
+    } catch (error) {
+      console.error('[WorkspaceService.getPendingInvitations] ERROR:', error.message || error);
+
+      return {
+        ok: false,
+        invitations: [],
+        error: error.response?.data?.message || error.message || 'Failed to fetch pending invitations'
+      };
+    }
+  },
+
+  /**
+   * Get invitations received by current user
+   * @returns {Promise<{ok: boolean, invitations?: Array, error?: string}>}
+   */
+  async getReceivedInvitations() {
+    try {
+      const response = await http.get('/workspaces/invitations/received');
+      console.log('[WorkspaceService.getReceivedInvitations] Response:', response.data);
+
+      return {
+        ok: response.data.ok !== false,
+        invitations: response.data.invitations || [],
+        message: response.data.message
+      };
+    } catch (error) {
+      console.error('[WorkspaceService.getReceivedInvitations] ERROR:', error.message || error);
+
+      return {
+        ok: false,
+        invitations: [],
+        error: error.response?.data?.message || error.message || 'Failed to fetch received invitations'
+      };
+    }
+  },
+
+  /**
+   * Cancel/revoke an invitation
+   * @param {string|number} invitationId - Invitation ID
+   * @returns {Promise<{ok: boolean, message?: string, error?: string}>}
+   */
+  async cancelInvitation(invitationId) {
+    try {
+      const response = await http.delete(`/workspaces/invitations/${invitationId}`);
+      console.log('[WorkspaceService.cancelInvitation] Response:', response.data);
+
+      return {
+        ok: response.data.ok !== false,
+        message: response.data.message
+      };
+    } catch (error) {
+      console.error('[WorkspaceService.cancelInvitation] ERROR:', error.message || error);
+
+      return {
+        ok: false,
+        error: error.response?.data?.message || error.message || 'Failed to cancel invitation'
+      };
+    }
+  },
+
+  /**
+   * Resend an invitation
+   * @param {string|number} invitationId - Invitation ID
+   * @returns {Promise<{ok: boolean, invitation?: Object, message?: string, error?: string}>}
+   */
+  async resendInvitation(invitationId) {
+    try {
+      const response = await http.post(`/workspaces/invitations/${invitationId}/resend`);
+      console.log('[WorkspaceService.resendInvitation] Response:', response.data);
+
+      return {
+        ok: response.data.ok !== false,
+        invitation: response.data.invitation,
+        message: response.data.message
+      };
+    } catch (error) {
+      console.error('[WorkspaceService.resendInvitation] ERROR:', error.message || error);
+
+      return {
+        ok: false,
+        error: error.response?.data?.message || error.message || 'Failed to resend invitation'
+      };
+    }
+  },
+
+  // Alias for removeWorkspaceMember for backward compatibility
+  removeMember(workspaceId, memberId) {
+    return this.removeWorkspaceMember(workspaceId, memberId);
+  }
+};
+
+export default WorkspaceService;

@@ -1,0 +1,1365 @@
+/* WorkspaceDetail.module.scss */
+
+.workspaceDetail {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+
+  .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 30px;
+    padding-bottom: 20px;
+    border-bottom: 2px solid #e1e5e9;
+
+    .headerContent {
+      flex: 1;
+
+      h1 {
+        font-size: 2rem;
+        font-weight: 600;
+        color: #1a1a1a;
+        margin: 0 0 8px 0;
+      }
+
+      .description {
+        font-size: 1.1rem;
+        color: #666;
+        margin: 0 0 16px 0;
+        line-height: 1.5;
+      }
+
+      .metadata {
+        display: flex;
+        gap: 16px;
+        flex-wrap: wrap;
+
+        .roleBadge {
+          padding: 4px 12px;
+          border-radius: 20px;
+          font-size: 0.85rem;
+          font-weight: 500;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+
+          &.roleOwner {
+            background-color: #dc3545;
+            color: white;
+          }
+
+          &.roleCollaborator {
+            background-color: #007bff;
+            color: white;
+          }
+
+          &.roleMember {
+            background-color: #28a745;
+            color: white;
+          }
+
+          &.roleViewer {
+            background-color: #6c757d;
+            color: white;
+          }
+        }
+
+        .memberCount,
+        .surveyCount {
+          color: #666;
+          font-size: 0.9rem;
+          
+          &::before {
+            content: "👥 ";
+          }
+        }
+
+        .surveyCount::before {
+          content: "📊 ";
+        }
+      }
+    }
+
+    .headerActions {
+      display: flex;
+      gap: 12px;
+      
+      .inviteButton {
+        background-color: #4a90e2;
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 8px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        box-shadow: 0 2px 4px rgba(74, 144, 226, 0.2);
+
+        &:hover {
+          background-color: #357abd;
+          transform: translateY(-1px);
+          box-shadow: 0 4px 8px rgba(74, 144, 226, 0.3);
+        }
+      }
+
+      .manageInvitationsButton {
+        background-color: #6c757d;
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 8px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        box-shadow: 0 2px 4px rgba(108, 117, 125, 0.2);
+
+        &:hover {
+          background-color: #5a6268;
+          transform: translateY(-1px);
+          box-shadow: 0 4px 8px rgba(108, 117, 125, 0.3);
+        }
+      }
+
+      .editButton {
+        background-color: #5cb85c;
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 8px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        box-shadow: 0 2px 4px rgba(92, 184, 92, 0.2);
+
+        &:hover {
+          background-color: #4cae4c;
+          transform: translateY(-1px);
+          box-shadow: 0 4px 8px rgba(92, 184, 92, 0.3);
+        }
+      }
+
+      .deleteButton {
+        background-color: #e74c3c;
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 8px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        box-shadow: 0 2px 4px rgba(231, 76, 60, 0.2);
+
+        &:hover {
+          background-color: #c0392b;
+          transform: translateY(-1px);
+          box-shadow: 0 4px 8px rgba(231, 76, 60, 0.3);
+        }
+      }
+    }
+  }
+
+  .tabs {
+    display: flex;
+    gap: 2px;
+    margin-bottom: 24px;
+    border-bottom: 2px solid #e1e5e9;
+
+    .tab {
+      background: none;
+      border: none;
+      padding: 12px 24px;
+      font-size: 1rem;
+      font-weight: 500;
+      color: #666;
+      cursor: pointer;
+      border-bottom: 3px solid transparent;
+      transition: all 0.2s;
+
+      &:hover {
+        color: #007bff;
+        background-color: #f8f9fa;
+      }
+
+      &.active {
+        color: #007bff;
+        border-bottom-color: #007bff;
+        background-color: #f8f9fa;
+      }
+    }
+  }
+
+  .tabContent {
+    min-height: 400px;
+  }
+
+  .overview {
+    .statsCards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 20px;
+      margin-bottom: 32px;
+
+      .statCard {
+        background: white;
+        border: 1px solid #e1e5e9;
+        border-radius: 8px;
+        padding: 24px;
+        text-align: center;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+
+        h3 {
+          font-size: 0.9rem;
+          font-weight: 500;
+          color: #666;
+          margin: 0 0 8px 0;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+        }
+
+        .statValue {
+          font-size: 2.5rem;
+          font-weight: 700;
+          color: #007bff;
+          margin: 0;
+        }
+
+        .statLabel {
+          font-size: 0.85rem;
+          color: #666;
+          margin: 8px 0 0 0;
+          line-height: 1.3;
+        }
+      }
+    }
+
+    .recentActivities {
+      background: white;
+      border: 1px solid #e1e5e9;
+      border-radius: 8px;
+      padding: 24px;
+
+      h3 {
+        font-size: 1.2rem;
+        font-weight: 600;
+        color: #1a1a1a;
+        margin: 0 0 20px 0;
+      }
+
+      .activityItem {
+        display: grid;
+        grid-template-columns: 1fr 2fr 120px;
+        gap: 16px;
+        padding: 12px 0;
+        border-bottom: 1px solid #f0f0f0;
+        align-items: center;
+
+        &:last-child {
+          border-bottom: none;
+        }
+
+        .activityUser {
+          font-weight: 500;
+          color: #1a1a1a;
+        }
+
+        .activityAction {
+          color: #666;
+        }
+
+        .activityTime {
+          font-size: 0.85rem;
+          color: #999;
+          text-align: right;
+        }
+      }
+    }
+  }
+
+  .sectionHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    
+    h3 {
+      font-size: 1.4rem;
+      font-weight: 600;
+      color: #1a1a1a;
+      margin: 0;
+    }
+  }
+
+  .emptyState {
+    text-align: center;
+    padding: 40px 20px;
+    color: #666;
+    
+    p {
+      margin: 0 0 8px 0;
+      font-size: 1.1rem;
+      
+      &:first-child {
+        font-weight: 500;
+      }
+    }
+    
+    .emptyStateSubtext {
+      font-size: 0.9rem;
+      margin-bottom: 20px;
+    }
+    
+    .createSurveyButton {
+      background-color: #28a745;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 8px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      
+      &:hover {
+        background-color: #218838;
+        transform: translateY(-1px);
+      }
+    }
+  }
+
+  .members {
+    .membersList {
+      background: white;
+      border: 1px solid #e1e5e9;
+      border-radius: 8px;
+      overflow: hidden;
+
+      .memberCard {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        padding: 20px 24px;
+        border-bottom: 1px solid #f0f0f0;
+        transition: all 0.2s ease;
+
+        &:hover {
+          background-color: #f8f9fa;
+        }
+
+        &:last-child {
+          border-bottom: none;
+        }
+
+        .memberAvatar {
+          .avatarCircle {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+            font-size: 1.2rem;
+          }
+        }
+
+        .memberInfo {
+          flex: 1;
+          
+          .memberName {
+            font-weight: 600;
+            color: #1a1a1a;
+            margin-bottom: 4px;
+            font-size: 1.1rem;
+          }
+
+          .memberEmail {
+            font-size: 0.9rem;
+            color: #666;
+            margin-bottom: 4px;
+          }
+          
+          .memberMeta {
+            font-size: 0.8rem;
+            color: #999;
+          }
+        }
+
+        .memberRole {
+          .roleBadge {
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+          }
+        }
+
+        .memberActions {
+          .removeButton {
+            background-color: #dc3545;
+            color: white;
+            border: none;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-size: 1.2rem;
+            
+            &:hover {
+              background-color: #c82333;
+              transform: scale(1.1);
+            }
+            padding: 6px 12px;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: background-color 0.2s;
+
+            &:hover {
+              background-color: #c82333;
+            }
+          }
+        }
+      }
+    }
+  }
+
+  .surveys {
+    .surveysList {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 20px;
+      
+      .surveyCard {
+        background: white;
+        border: 1px solid #e1e5e9;
+        border-radius: 12px;
+        padding: 20px;
+        transition: all 0.2s ease;
+        
+        &:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+        
+        .surveyHeader {
+          display: flex;
+          justify-content: space-between;
+          align-items: flex-start;
+          margin-bottom: 12px;
+          
+          .surveyTitle {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #1a1a1a;
+            margin: 0;
+            flex: 1;
+            margin-right: 12px;
+          }
+          
+          .statusBadge {
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 500;
+            text-transform: uppercase;
+            
+            &.statusdraft {
+              background-color: #ffc107;
+              color: #212529;
+            }
+            
+            &.statuspublished {
+              background-color: #28a745;
+              color: white;
+            }
+            
+            &.statusclosed {
+              background-color: #6c757d;
+              color: white;
+            }
+          }
+        }
+        
+        .surveyMeta {
+          margin-bottom: 16px;
+          
+          .surveyVisibility,
+          .surveyCreated {
+            display: block;
+            font-size: 0.85rem;
+            color: #666;
+            margin-bottom: 4px;
+          }
+        }
+        
+        .surveyActions {
+          display: flex;
+          gap: 8px;
+          flex-wrap: wrap;
+          
+          .viewSurveyButton {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            
+            &:hover {
+              background-color: #0056b3;
+            }
+          }
+
+          .takeSurveyButton {
+            background-color: #28a745;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            
+            &:hover {
+              background-color: #218838;
+            }
+          }
+        }
+      }
+    }
+  }
+
+  .surveys {
+    .surveysList {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 20px;
+      padding: 20px 0;
+
+      .surveyCard {
+        background: white;
+        border: 1px solid #e1e5e9;
+        border-radius: 8px;
+        padding: 20px;
+        transition: all 0.2s ease;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+
+        &:hover {
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+          transform: translateY(-2px);
+          border-color: #4a90e2;
+        }
+
+        .surveyHeader {
+          display: flex;
+          justify-content: space-between;
+          align-items: flex-start;
+          margin-bottom: 12px;
+          gap: 12px;
+
+          .surveyTitle {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #1a1a1a;
+            margin: 0;
+            line-height: 1.3;
+            flex: 1;
+          }
+
+          .statusBadge {
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            white-space: nowrap;
+
+            &.statusdraft {
+              background-color: #ffc107;
+              color: #000;
+            }
+
+            &.statusactive {
+              background-color: #28a745;
+              color: white;
+            }
+
+            &.statusclosed {
+              background-color: #6c757d;
+              color: white;
+            }
+
+            &.statuspublished {
+              background-color: #007bff;
+              color: white;
+            }
+          }
+        }
+
+        .surveyMeta {
+          display: flex;
+          gap: 16px;
+          margin-bottom: 16px;
+          font-size: 0.85rem;
+
+          .surveyVisibility {
+            color: #666;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+          }
+
+          .surveyCreated {
+            color: #999;
+          }
+        }
+
+        .surveyActions {
+          display: flex;
+          gap: 8px;
+
+          .viewSurveyButton {
+            background-color: #4a90e2;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            flex: 1;
+            text-align: center;
+
+            &:hover {
+              background-color: #357abd;
+              transform: translateY(-1px);
+            }
+          }
+        }
+      }
+    }
+
+    .createSurveyButton {
+      background-color: #28a745;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 8px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      margin-top: 16px;
+
+      &:hover {
+        background-color: #218838;
+        transform: translateY(-1px);
+      }
+    }
+  }
+
+  .activities {
+    .activitiesList {
+      background: white;
+      border: 1px solid #e1e5e9;
+      border-radius: 8px;
+      padding: 24px;
+
+      .activityItem {
+        padding: 16px 0;
+        border-bottom: 1px solid #f0f0f0;
+
+        &:last-child {
+          border-bottom: none;
+        }
+
+        .activityHeader {
+          display: flex;
+          justify-content: space-between;
+          margin-bottom: 8px;
+
+          .activityUser {
+            font-weight: 500;
+            color: #1a1a1a;
+          }
+
+          .activityTime {
+            font-size: 0.85rem;
+            color: #999;
+          }
+        }
+
+        .activityAction {
+          color: #666;
+          margin-bottom: 8px;
+        }
+
+        .activityMetadata {
+          background-color: #f8f9fa;
+          border: 1px solid #e9ecef;
+          border-radius: 4px;
+          padding: 8px;
+          font-family: monospace;
+          font-size: 0.8rem;
+          color: #495057;
+          white-space: pre-wrap;
+        }
+      }
+    }
+  }
+
+  .noData {
+    text-align: center;
+    color: #666;
+    font-style: italic;
+    padding: 40px 20px;
+  }
+
+  .error {
+    text-align: center;
+    padding: 60px 20px;
+
+    h2 {
+      color: #dc3545;
+      margin-bottom: 16px;
+    }
+
+    p {
+      color: #666;
+      font-size: 1.1rem;
+    }
+  }
+
+  // Invite Modal Styles
+  .inviteForm {
+    .formGroup {
+      margin-bottom: 20px;
+
+      label {
+        display: block;
+        font-weight: 500;
+        color: #1a1a1a;
+        margin-bottom: 6px;
+      }
+
+      input,
+      select {
+        width: 100%;
+        padding: 10px 12px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        font-size: 1rem;
+        transition: border-color 0.2s;
+
+        &:focus {
+          outline: none;
+          border-color: #007bff;
+          box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+        }
+      }
+
+      select {
+        cursor: pointer;
+      }
+    }
+
+    .formActions {
+      display: flex;
+      gap: 12px;
+      justify-content: flex-end;
+      margin-top: 24px;
+
+      .cancelButton {
+        background: #6c757d;
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 4px;
+        cursor: pointer;
+        transition: background-color 0.2s;
+
+        &:hover {
+          background-color: #5a6268;
+        }
+      }
+
+      .inviteSubmitButton {
+        background-color: #007bff;
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 4px;
+        cursor: pointer;
+        transition: background-color 0.2s;
+
+        &:hover:not(:disabled) {
+          background-color: #0056b3;
+        }
+
+        &:disabled {
+          background-color: #6c757d;
+          cursor: not-allowed;
+        }
+      }
+    }
+  }
+}
+
+// Responsive Design
+@media (max-width: 768px) {
+  .workspaceDetail {
+    padding: 16px;
+
+    .header {
+      flex-direction: column;
+      gap: 16px;
+
+      .headerActions {
+        align-self: stretch;
+        
+        .inviteButton {
+          width: 100%;
+        }
+      }
+    }
+
+    .tabs {
+      flex-wrap: wrap;
+    }
+
+    .headerActions {
+      flex-direction: column;
+      gap: 8px;
+      
+      .inviteButton,
+      .editButton,
+      .deleteButton {
+        width: 100%;
+      }
+    }
+  }
+}
+
+// Edit Form Styles
+.editForm {
+  .formGroup {
+    margin-bottom: 20px;
+
+    label {
+      display: block;
+      margin-bottom: 6px;
+      font-weight: 500;
+      color: #333;
+    }
+
+    input,
+    textarea,
+    select {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 14px;
+      transition: border-color 0.2s, box-shadow 0.2s;
+
+      &:focus {
+        outline: none;
+        border-color: #007bff;
+        box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+      }
+    }
+
+    textarea {
+      resize: vertical;
+      min-height: 80px;
+    }
+
+    select {
+      cursor: pointer;
+    }
+  }
+
+  .formActions {
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+    margin-top: 24px;
+
+    .cancelButton {
+      background: #6c757d;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: background-color 0.2s;
+
+      &:hover {
+        background-color: #5a6268;
+      }
+    }
+
+    .updateButton {
+      background-color: #28a745;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: background-color 0.2s;
+
+      &:hover:not(:disabled) {
+        background-color: #218838;
+      }
+
+      &:disabled {
+        background-color: #6c757d;
+        cursor: not-allowed;
+      }
+    }
+  }
+}
+
+// Delete Confirmation Styles
+.deleteConfirmation {
+  p {
+    margin-bottom: 16px;
+    color: #333;
+    line-height: 1.5;
+  }
+
+  .deleteWarning {
+    background-color: #fff3cd;
+    border: 1px solid #ffeaa7;
+    border-radius: 4px;
+    padding: 12px;
+    color: #856404;
+    font-size: 0.9rem;
+  }
+
+  .formActions {
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+    margin-top: 24px;
+
+    .cancelButton {
+      background: #6c757d;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: background-color 0.2s;
+
+      &:hover {
+        background-color: #5a6268;
+      }
+    }
+
+    .deleteConfirmButton {
+      background-color: #dc3545;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: background-color 0.2s;
+
+      &:hover:not(:disabled) {
+        background-color: #c82333;
+      }
+
+      &:disabled {
+        background-color: #6c757d;
+        cursor: not-allowed;
+      }
+    }
+  }
+}
+
+// Responsive Design - Mobile specific overrides
+@media (max-width: 768px) {
+  .workspaceDetail {
+    .overview {
+      .statsCards {
+        grid-template-columns: 1fr;
+      }
+
+      .recentActivities {
+        .activityItem {
+          grid-template-columns: 1fr;
+          gap: 8px;
+
+          .activityTime {
+            text-align: left;
+          }
+        }
+      }
+    }
+
+    .members {
+      .membersList {
+        .memberItem {
+          grid-template-columns: 1fr;
+          gap: 12px;
+          text-align: left;
+
+          .memberActions {
+            justify-self: start;
+          }
+        }
+      }
+    }
+  }
+}
+
+// New UI Component Styles
+
+.sectionHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  
+  h3 {
+    font-size: 1.4rem;
+    font-weight: 600;
+    color: #1a1a1a;
+    margin: 0;
+  }
+}
+
+.emptyState {
+  text-align: center;
+  padding: 40px 20px;
+  color: #666;
+  
+  p {
+    margin: 0 0 8px 0;
+    font-size: 1.1rem;
+    
+    &:first-child {
+      font-weight: 500;
+    }
+  }
+  
+  .emptyStateSubtext {
+    font-size: 0.9rem;
+    margin-bottom: 20px;
+  }
+  
+  .createSurveyButton {
+    background-color: #28a745;
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 8px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    
+    &:hover {
+      background-color: #218838;
+      transform: translateY(-1px);
+    }
+  }
+}
+
+.statLabel {
+  font-size: 0.85rem;
+  color: #666;
+  margin: 8px 0 0 0;
+  line-height: 1.3;
+}
+
+// Member Cards
+.memberCard {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 20px 24px;
+  border-bottom: 1px solid #f0f0f0;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background-color: #f8f9fa;
+  }
+
+  &:last-child {
+    border-bottom: none;
+  }
+
+  .memberAvatar {
+    .avatarCircle {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: 600;
+      font-size: 1.2rem;
+    }
+  }
+
+  .memberInfo {
+    flex: 1;
+    
+    .memberName {
+      font-weight: 600;
+      color: #1a1a1a;
+      margin-bottom: 4px;
+      font-size: 1.1rem;
+    }
+
+    .memberEmail {
+      font-size: 0.9rem;
+      color: #666;
+      margin-bottom: 4px;
+    }
+    
+    .memberMeta {
+      font-size: 0.8rem;
+      color: #999;
+    }
+  }
+
+  .memberActions {
+    .removeButton {
+      background-color: #dc3545;
+      color: white;
+      border: none;
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      font-size: 1.2rem;
+      
+      &:hover {
+        background-color: #c82333;
+        transform: scale(1.1);
+      }
+    }
+  }
+}
+
+// Survey Cards
+.surveys {
+  .surveysList {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 20px;
+    
+    .surveyCard {
+      background: white;
+      border: 1px solid #e1e5e9;
+      border-radius: 12px;
+      padding: 20px;
+      transition: all 0.2s ease;
+      
+      &:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      }
+      
+      .surveyHeader {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 12px;
+        
+        .surveyTitle {
+          font-size: 1.1rem;
+          font-weight: 600;
+          color: #1a1a1a;
+          margin: 0;
+          flex: 1;
+          margin-right: 12px;
+        }
+        
+        .statusBadge {
+          padding: 4px 10px;
+          border-radius: 12px;
+          font-size: 0.75rem;
+          font-weight: 500;
+          text-transform: uppercase;
+          
+          &.statusdraft {
+            background-color: #ffc107;
+            color: #212529;
+          }
+          
+          &.statuspublished {
+            background-color: #28a745;
+            color: white;
+          }
+          
+          &.statusclosed {
+            background-color: #6c757d;
+            color: white;
+          }
+        }
+      }
+      
+      .surveyMeta {
+        margin-bottom: 16px;
+        
+        .surveyVisibility,
+        .surveyCreated {
+          display: block;
+          font-size: 0.85rem;
+          color: #666;
+          margin-bottom: 4px;
+        }
+      }
+      
+      .surveyActions {
+        .viewSurveyButton {
+          background-color: #007bff;
+          color: white;
+          border: none;
+          padding: 8px 16px;
+          border-radius: 6px;
+          font-size: 0.9rem;
+          font-weight: 500;
+          cursor: pointer;
+          transition: background-color 0.2s;
+          
+          &:hover {
+            background-color: #0056b3;
+          }
+        }
+      }
+    }
+  }
+}
+
+// Activity Cards
+.activityCard {
+  background: white;
+  border: 1px solid #e1e5e9;
+  border-radius: 12px;
+  padding: 20px;
+  display: flex;
+  gap: 16px;
+  transition: all 0.2s ease;
+  
+  &:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  }
+  
+  .activityAvatar {
+    .avatarCircle {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: 600;
+      font-size: 1rem;
+      flex-shrink: 0;
+    }
+  }
+  
+  .activityContent {
+    flex: 1;
+    
+    .activityHeader {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+      margin-bottom: 8px;
+      
+      .activityUser {
+        font-weight: 600;
+        color: #1a1a1a;
+      }
+      
+      .activityAction {
+        color: #666;
+        
+        &::before {
+          content: "•";
+          margin: 0 6px;
+          color: #ddd;
+        }
+      }
+      
+      .activityTime {
+        font-size: 0.85rem;
+        color: #999;
+        margin-left: auto;
+      }
+    }
+    
+    .activityDetails {
+      .changesSummary {
+        background: #f8f9fa;
+        border-radius: 8px;
+        padding: 12px;
+        margin-top: 8px;
+        
+        .changesLabel {
+          font-size: 0.9rem;
+          font-weight: 500;
+          color: #495057;
+          display: block;
+          margin-bottom: 8px;
+        }
+        
+        .changesList {
+          .changeItem {
+            font-size: 0.85rem;
+            color: #666;
+            margin-bottom: 4px;
+            padding-left: 16px;
+            position: relative;
+            
+            &::before {
+              content: "→";
+              position: absolute;
+              left: 0;
+              color: #007bff;
+            }
+            
+            strong {
+              color: #1a1a1a;
+            }
+          }
+        }
+      }
+    }
+    
+    .activityMeta {
+      .activityType {
+        font-size: 0.8rem;
+        color: #999;
+        font-style: italic;
+      }
+    }
+  }
+}
