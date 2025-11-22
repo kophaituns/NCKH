@@ -314,6 +314,225 @@
   }
 }
 
+// Results Modal Styles
+.resultsModal {
+  .resultsSummary {
+    margin-bottom: 2rem;
+
+    h4 {
+      margin-bottom: 1rem;
+      color: var(--text-primary);
+      font-weight: 600;
+    }
+  }
+
+  .summaryGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .summaryCard {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 1.5rem;
+    text-align: center;
+    transition: all 0.3s ease;
+
+    &:hover {
+      border-color: var(--primary-color);
+      transform: translateY(-2px);
+    }
+  }
+
+  .summaryNumber {
+    font-size: 2rem;
+    font-weight: bold;
+    color: var(--primary-color);
+    margin-bottom: 0.5rem;
+  }
+
+  .summaryLabel {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    font-weight: 500;
+  }
+
+  .questionsResults {
+    margin-bottom: 2rem;
+
+    h4 {
+      margin-bottom: 1rem;
+      color: var(--text-primary);
+      font-weight: 600;
+    }
+  }
+
+  .questionResult {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+
+    h5 {
+      margin-bottom: 0.5rem;
+      color: var(--text-primary);
+      font-size: 1.1rem;
+    }
+  }
+
+  .questionMeta {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1rem;
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+
+    span {
+      padding: 0.25rem 0.5rem;
+      background: var(--bg-tertiary);
+      border-radius: 4px;
+    }
+  }
+
+  .optionsResults {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .optionResult {
+    display: grid;
+    grid-template-columns: 1fr 150px 50px;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.75rem;
+    background: var(--bg-primary);
+    border-radius: 6px;
+  }
+
+  .optionText {
+    font-weight: 500;
+    color: var(--text-primary);
+  }
+
+  .optionBar {
+    height: 8px;
+    background: var(--bg-tertiary);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+
+  .optionFill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--primary-color), var(--primary-color-light));
+    transition: width 0.5s ease;
+  }
+
+  .optionCount {
+    font-weight: bold;
+    color: var(--primary-color);
+    text-align: center;
+  }
+
+  .textAnswers {
+    .answersList {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .textAnswer {
+      background: var(--bg-primary);
+      padding: 0.75rem;
+      border-radius: 6px;
+      border-left: 3px solid var(--primary-color);
+      font-style: italic;
+      color: var(--text-primary);
+    }
+
+    .moreAnswers {
+      text-align: center;
+      color: var(--text-secondary);
+      font-size: 0.9rem;
+      padding: 0.5rem;
+    }
+
+    .noAnswers {
+      text-align: center;
+      color: var(--text-secondary);
+      font-style: italic;
+      padding: 1rem;
+    }
+  }
+
+  .recentResponses {
+    h4 {
+      margin-bottom: 1rem;
+      color: var(--text-primary);
+      font-weight: 600;
+    }
+  }
+
+  .responsesList {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    max-height: 200px;
+    overflow-y: auto;
+  }
+
+  .responseItem {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: var(--bg-secondary);
+    padding: 1rem;
+    border-radius: 6px;
+    border: 1px solid var(--border-color);
+  }
+
+  .respondentInfo {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+
+    strong {
+      color: var(--text-primary);
+    }
+
+    .responseTime {
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+    }
+  }
+
+  .noResults {
+    text-align: center;
+    padding: 3rem;
+    color: var(--text-secondary);
+
+    p {
+      margin-bottom: 0.5rem;
+      font-size: 1.1rem;
+    }
+
+    p:first-child {
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+  }
+
+  .loadingResults {
+    text-align: center;
+    padding: 3rem;
+    color: var(--text-secondary);
+  }
+}
+
 // Dark theme support
 @media (prefers-color-scheme: dark) {
   .header {

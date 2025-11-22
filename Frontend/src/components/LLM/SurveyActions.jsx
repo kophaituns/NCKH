@@ -14,7 +14,10 @@ const SurveyActions = ({ survey, onClose }) => {
   const { showToast } = useToast();
   const [loading, setLoading] = useState(false);
   const [showLinkModal, setShowLinkModal] = useState(false);
+  const [showResultsModal, setShowResultsModal] = useState(false);
   const [generatedLink, setGeneratedLink] = useState(null);
+  const [surveyResults, setSurveyResults] = useState(null);
+  const [resultsLoading, setResultsLoading] = useState(false);
   const [linkSettings, setLinkSettings] = useState({
     expiryDays: 30
   });
@@ -22,21 +25,16 @@ const SurveyActions = ({ survey, onClose }) => {
   const handleExportPDF = async () => {
     setLoading(true);
     try {
-      const pdfBlob = await LLMService.exportSurveyPDF(survey.survey.id);
+      const result = await LLMService.exportSurveyPDF(survey.survey.id);
       
-      // Create download link
-      const url = window.URL.createObjectURL(pdfBlob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `survey-${survey.survey.id}-${survey.survey.title.replace(/[^a-zA-Z0-9]/g, '-')}.pdf`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
-      
-      showToast('Xuất PDF thành công!', 'success');
+      if (result.success) {
+        showToast(result.message, 'success');
+      } else {
+        throw new Error(result.message || 'Export failed');
+      }
     } catch (error) {
-      showToast(error.response?.data?.message || 'Có lỗi xảy ra khi xuất PDF', 'error');
+      console.error('PDF Export Error:', error);
+      showToast(error.response?.data?.message || error.message || 'Có lỗi xảy ra khi xuất PDF', 'error');
     } finally {
       setLoading(false);
     }
@@ -62,6 +60,25 @@ const SurveyActions = ({ survey, onClose }) => {
     navigator.clipboard.writeText(text).then(() => {
       showToast('Đã copy link vào clipboard!', 'success');
     });
+  };
+
+  const handleViewResults = async () => {
+    if (surveyResults) {
+      setShowResultsModal(true);
+      return;
+    }
+
+    setResultsLoading(true);
+    try {
+      const response = await LLMService.getSurveyResults(survey.survey.id);
+      setSurveyResults(response.data);
+      setShowResultsModal(true);
+      showToast('Tải kết quả thành công!', 'success');
+    } catch (error) {
+      showToast(error.response?.data?.message || 'Có lỗi xảy ra khi tải kết quả', 'error');
+    } finally {
+      setResultsLoading(false);
+    }
   };
 
   const formatExpiryDate = (dateString) => {
@@ -124,13 +141,14 @@ const SurveyActions = ({ survey, onClose }) => {
         <Card className={styles.actionCard}>
           <div className={styles.actionIcon}>📊</div>
           <h4>Xem Kết Quả</h4>
-          <p>Xem và phân tích kết quả khảo sát (sẽ có sau khi có phản hồi)</p>
+          <p>Xem và phân tích kết quả khảo sát từ những người đã trả lời</p>
           <Button 
+            onClick={handleViewResults}
+            loading={resultsLoading}
             variant="outline"
-            disabled
             className={styles.actionButton}
           >
-            Chưa có dữ liệu
+            Xem Kết Quả
           </Button>
         </Card>
 
@@ -260,6 +278,139 @@ const SurveyActions = ({ survey, onClose }) => {
                 </Button>
               </div>
             </>
+          )}
+        </div>
+      </Modal>
+
+      {/* Survey Results Modal */}
+      <Modal
+        isOpen={showResultsModal}
+        onClose={() => setShowResultsModal(false)}
+        title="Kết Quả Khảo Sát"
+        size="large"
+      >
+        <div className={styles.resultsModal}>
+          {surveyResults ? (
+            <>
+              <div className={styles.resultsSummary}>
+                <h4>Tổng Quan</h4>
+                <div className={styles.summaryGrid}>
+                  <div className={styles.summaryCard}>
+                    <div className={styles.summaryNumber}>{surveyResults.summary.totalResponses}</div>
+                    <div className={styles.summaryLabel}>Tổng Phản Hồi</div>
+                  </div>
+                  <div className={styles.summaryCard}>
+                    <div className={styles.summaryNumber}>{surveyResults.summary.completedResponses}</div>
+                    <div className={styles.summaryLabel}>Hoàn Thành</div>
+                  </div>
+                  <div className={styles.summaryCard}>
+                    <div className={styles.summaryNumber}>{surveyResults.summary.completionRate}%</div>
+                    <div className={styles.summaryLabel}>Tỷ Lệ Hoàn Thành</div>
+                  </div>
+                </div>
+              </div>
+
+              {surveyResults.summary.totalResponses > 0 ? (
+                <>
+                  <div className={styles.questionsResults}>
+                    <h4>Kết Quả Theo Câu Hỏi</h4>
+                    {surveyResults.questions.map((question, index) => (
+                      <div key={index} className={styles.questionResult}>
+                        <h5>{question.question}</h5>
+                        <div className={styles.questionMeta}>
+                          <span>Loại: {question.type}</span>
+                          <span>Trả lời: {question.totalAnswers}</span>
+                        </div>
+
+                        {question.type === 'multiple_choice' ? (
+                          <div className={styles.optionsResults}>
+                            {Object.entries(question.answers).map(([option, count]) => (
+                              <div key={option} className={styles.optionResult}>
+                                <div className={styles.optionText}>{option}</div>
+                                <div className={styles.optionBar}>
+                                  <div 
+                                    className={styles.optionFill}
+                                    style={{ 
+                                      width: question.totalAnswers > 0 
+                                        ? `${(count / question.totalAnswers) * 100}%` 
+                                        : '0%' 
+                                    }}
+                                  ></div>
+                                </div>
+                                <div className={styles.optionCount}>{count}</div>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className={styles.textAnswers}>
+                            {question.textAnswers && question.textAnswers.length > 0 ? (
+                              <div className={styles.answersList}>
+                                {question.textAnswers.slice(0, 5).map((answer, idx) => (
+                                  <div key={idx} className={styles.textAnswer}>
+                                    "{answer}"
+                                  </div>
+                                ))}
+                                {question.textAnswers.length > 5 && (
+                                  <div className={styles.moreAnswers}>
+                                    và {question.textAnswers.length - 5} câu trả lời khác...
+                                  </div>
+                                )}
+                              </div>
+                            ) : (
+                              <p className={styles.noAnswers}>Chưa có câu trả lời nào</p>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+
+                  {surveyResults.recentResponses && surveyResults.recentResponses.length > 0 && (
+                    <div className={styles.recentResponses}>
+                      <h4>Phản Hồi Gần Đây</h4>
+                      <div className={styles.responsesList}>
+                        {surveyResults.recentResponses.map((response) => (
+                          <div key={response.id} className={styles.responseItem}>
+                            <div className={styles.respondentInfo}>
+                              <strong>{response.respondent_name}</strong>
+                              <span className={styles.responseTime}>
+                                {new Date(response.submitted_at).toLocaleString('vi-VN')}
+                              </span>
+                            </div>
+                            <Badge variant={response.is_completed ? "success" : "warning"}>
+                              {response.is_completed ? "Hoàn thành" : "Chưa hoàn thành"}
+                            </Badge>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <div className={styles.noResults}>
+                  <p>Chưa có ai trả lời khảo sát này.</p>
+                  <p>Hãy chia sẻ link khảo sát để nhận được phản hồi!</p>
+                </div>
+              )}
+
+              <div className={styles.modalActions}>
+                <Button onClick={() => setShowResultsModal(false)}>
+                  Đóng
+                </Button>
+                {surveyResults.summary.totalResponses > 0 && (
+                  <Button 
+                    variant="outline"
+                    onClick={() => window.print()}
+                  >
+                    In Kết Quả
+                  </Button>
+                )}
+              </div>
+            </>
+          ) : (
+            <div className={styles.loadingResults}>
+              <p>Đang tải kết quả...</p>
+            </div>
           )}
         </div>
       </Modal>

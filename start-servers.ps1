@@ -65,10 +65,10 @@ Write-Host "══════════════════════�
 Write-Host "             🎉 ALL SERVERS ARE RUNNING! 🎉" -ForegroundColor Yellow
 Write-Host "═══════════════════════════════════════════════════════════" -ForegroundColor Green
 Write-Host ""
-Write-Host "📊 SERVICES:" -ForegroundColor Cyan
-Write-Host "  ✅ Backend:  http://localhost:5000" -ForegroundColor Green
-Write-Host "  ✅ Frontend: http://localhost:3000" -ForegroundColor Green
-Write-Host "  ✅ Database: MySQL Connected" -ForegroundColor Green
+Write-Host " SERVICES:" -ForegroundColor Cyan
+Write-Host "  Backend:  http://localhost:5000" -ForegroundColor Green
+Write-Host "  Frontend: http://localhost:3000" -ForegroundColor Green
+Write-Host "  Database: MySQL Connected" -ForegroundColor Green
 Write-Host ""
 Write-Host "👥 TEST ACCOUNTS (password: pass123):" -ForegroundColor Cyan
 Write-Host "  • admin1    - Admin role" -ForegroundColor White

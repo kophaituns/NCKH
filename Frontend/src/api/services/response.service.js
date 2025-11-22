@@ -15,7 +15,7 @@ const ResponseService = {
    * Uses collector token instead of authentication
    */
   async submitPublicResponse(token, responseData) {
-    const response = await http.post(`/responses/public/${token}`, responseData);
+    const response = await http.post(`/modules/llm/public/${token}/submit`, responseData);
     return response.data;
   },
 
@@ -23,7 +23,7 @@ const ResponseService = {
    * Get survey by public token (anonymous - no auth)
    */
   async getSurveyByToken(token) {
-    const response = await http.get(`/responses/public/${token}`);
+    const response = await http.get(`/modules/llm/public/${token}`);
     return response.data;
   },
 

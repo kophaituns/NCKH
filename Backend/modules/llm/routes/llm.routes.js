@@ -4,7 +4,11 @@ const router = express.Router();
 const llmController = require('../controller/llm.controller');
 const { authenticate } = require('../../auth-rbac/middleware/auth.middleware');
 
-// Apply authentication to all LLM routes
+// Public routes (no authentication needed)
+const publicRoutes = require('./public.routes');
+router.use('/public', publicRoutes);
+
+// Apply authentication to protected LLM routes
 router.use(authenticate);
 
 /**
@@ -104,6 +108,13 @@ router.get('/export-pdf/:surveyId', llmController.exportSurveyPDF);
  * @access  Private
  */
 router.post('/generate-link/:surveyId', llmController.generatePublicLink);
+
+/**
+ * @route   GET /api/modules/llm/surveys/:surveyId/results
+ * @desc    Get survey results and analytics
+ * @access  Private
+ */
+router.get('/surveys/:surveyId/results', llmController.getSurveyResults);
 
 // Health check
 router.get('/health', (req, res) => {

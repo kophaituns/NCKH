@@ -119,9 +119,15 @@ const LLMService = {
    */
   async exportSurveyPDF(surveyId) {
     const response = await http.get(`/llm/export-pdf/${surveyId}`, {
-      responseType: 'blob'
+      responseType: 'text'
     });
-    return response.data;
+    
+    // Create a new window with the HTML content
+    const newWindow = window.open('', '_blank');
+    newWindow.document.write(response.data);
+    newWindow.document.close();
+    
+    return { success: true, message: 'PDF preview opened in new window. Use Ctrl+P to print as PDF.' };
   },
 
   /**
@@ -129,6 +135,14 @@ const LLMService = {
    */
   async generatePublicLink(surveyId, expiryDays = 30) {
     const response = await http.post(`/llm/generate-link/${surveyId}`, { expiryDays });
+    return response.data;
+  },
+
+  /**
+   * Get survey results and analytics
+   */
+  async getSurveyResults(surveyId) {
+    const response = await http.get(`/llm/surveys/${surveyId}/results`);
     return response.data;
   },
 };

@@ -543,13 +543,16 @@ class LLMService {
     
     try {
       // Create the survey
+      const now = new Date();
+      const defaultEndDate = new Date(now.getTime() + (30 * 24 * 60 * 60 * 1000)); // 30 days from now
+      
       const survey = await Survey.create({
         title: surveyData.title,
         description: surveyData.description || '',
         target_audience: surveyData.targetAudience || 'all_users',
         target_value: surveyData.targetValue || null,
-        start_date: surveyData.startDate || new Date(),
-        end_date: surveyData.endDate,
+        start_date: surveyData.startDate ? new Date(surveyData.startDate) : now,
+        end_date: surveyData.endDate ? new Date(surveyData.endDate) : defaultEndDate,
         created_by: userId,
         status: 'draft',
         share_settings: JSON.stringify(surveyData.shareSettings || {
@@ -642,100 +645,110 @@ class LLMService {
     const { Survey, Question, QuestionOption } = require('../../../src/models');
     
     try {
-      // Get survey with questions
-      const survey = await Survey.findOne({
-        where: { id: surveyId, created_by: userId },
-        include: [{
-          model: Question,
-          as: 'questions',
-          include: [{
-            model: QuestionOption,
-            as: 'options'
-          }]
-        }]
+      // Get survey with questions - use alias 'questions' instead of direct model
+      const survey = await Survey.findByPk(surveyId, {
+        include: [
+          {
+            model: Question,
+            as: 'questions',  // Use alias explicitly
+            attributes: ['id', 'question_text', 'question_type', 'question_order', 'is_required'],
+            include: [
+              {
+                model: QuestionOption,
+                as: 'options',  // Use alias for options if needed
+                attributes: ['id', 'option_text', 'display_order']
+              }
+            ]
+          }
+        ],
+        order: [
+          [{ model: Question, as: 'questions' }, 'question_order', 'ASC'],
+          [{ model: Question, as: 'questions' }, { model: QuestionOption, as: 'options' }, 'display_order', 'ASC']
+        ]
       });
 
       if (!survey) {
-        throw new Error('Survey not found or access denied');
+        throw new Error('Survey not found');
+      }
+
+      // Check if user has access
+      if (survey.created_by !== userId) {
+        throw new Error('Access denied');
       }
 
       // Create HTML content for PDF
       let htmlContent = `
-        <!DOCTYPE html>
-        <html>
-        <head>
-          <meta charset="UTF-8">
-          <title>${survey.title}</title>
-          <style>
-            body { font-family: Arial, sans-serif; margin: 40px; line-height: 1.6; }
-            .header { text-align: center; margin-bottom: 40px; border-bottom: 2px solid #333; padding-bottom: 20px; }
-            .title { font-size: 24px; font-weight: bold; color: #333; margin-bottom: 10px; }
-            .description { font-size: 14px; color: #666; margin-bottom: 10px; }
-            .meta { font-size: 12px; color: #999; }
-            .question { margin: 30px 0; page-break-inside: avoid; }
-            .question-number { font-weight: bold; color: #333; }
-            .question-text { font-size: 16px; margin: 10px 0; }
-            .options { margin: 15px 0 15px 30px; }
-            .option { margin: 5px 0; }
-            .checkbox { display: inline-block; width: 15px; height: 15px; border: 1px solid #333; margin-right: 10px; }
-            .text-answer { margin: 10px 0; border-bottom: 1px solid #999; height: 30px; }
-            .rating { margin: 10px 0; }
-          </style>
-        </head>
-        <body>
-          <div class="header">
-            <div class="title">${survey.title}</div>
-            <div class="description">${survey.description || 'Không có mô tả'}</div>
-            <div class="meta">Ngày tạo: ${new Date(survey.created_at).toLocaleDateString('vi-VN')}</div>
-          </div>
+        <div class="header">
+          <div class="title">${survey.title}</div>
+          <div class="description">${survey.description || 'Không có mô tả'}</div>
+          <div class="meta">Ngày tạo: ${new Date(survey.created_at).toLocaleDateString('vi-VN')}</div>
+        </div>
       `;
 
-      // Add questions
-      survey.questions.forEach((question, index) => {
+      // Add questions - use the alias 'questions'
+      const questions = survey.questions || [];
+      
+      if (questions.length === 0) {
         htmlContent += `
-          <div class="question">
-            <div class="question-number">${index + 1}. ${question.question_text}</div>
+          <div class="no-questions">
+            <p><strong>Chưa có câu hỏi nào trong khảo sát này.</strong></p>
+            <p>Vui lòng thêm câu hỏi vào khảo sát trước khi xuất PDF.</p>
+          </div>
         `;
+      } else {
+        questions.forEach((question, index) => {
+          htmlContent += `
+            <div class="question">
+              <div class="question-number">${index + 1}. ${question.question_text}</div>
+              <div class="question-type">[${question.question_type}]</div>
+          `;
 
-        if (question.question_type === 'multiple_choice' && question.options) {
-          htmlContent += '<div class="options">';
-          question.options.forEach((option) => {
-            htmlContent += `<div class="option"><span class="checkbox"></span> ${option.option_text}</div>`;
-          });
+          const options = question.options || [];
+          
+          if (question.question_type === 'multiple_choice' && options.length > 0) {
+            htmlContent += '<div class="options">';
+            options.forEach((option) => {
+              htmlContent += `<div class="option"><span class="checkbox"></span> ${option.option_text}</div>`;
+            });
+            htmlContent += '</div>';
+          } else if (question.question_type === 'checkbox' && options.length > 0) {
+            htmlContent += '<div class="options">';
+            options.forEach((option) => {
+              htmlContent += `<div class="option"><span class="checkbox"></span> ${option.option_text}</div>`;
+            });
+            htmlContent += '</div>';
+          } else if (question.question_type === 'dropdown' && options.length > 0) {
+            htmlContent += '<div class="options"><strong>Tùy chọn:</strong><br>';
+            options.forEach((option) => {
+              htmlContent += `<div class="option">• ${option.option_text}</div>`;
+            });
+            htmlContent += '</div>';
+          } else if (question.question_type === 'likert_scale') {
+            htmlContent += `
+              <div class="rating">
+                Đánh giá từ 1 đến 5: 
+                <span class="rating-box">1</span>
+                <span class="rating-box">2</span>
+                <span class="rating-box">3</span>
+                <span class="rating-box">4</span>
+                <span class="rating-box">5</span>
+              </div>
+            `;
+          } else {
+            htmlContent += '<div class="text-answer"></div><div class="text-answer"></div><div class="text-answer"></div>';
+          }
+
           htmlContent += '</div>';
-        } else if (question.question_type === 'yes_no') {
-          htmlContent += `
-            <div class="options">
-              <div class="option"><span class="checkbox"></span> Có</div>
-              <div class="option"><span class="checkbox"></span> Không</div>
-            </div>
-          `;
-        } else if (question.question_type === 'rating') {
-          htmlContent += `
-            <div class="rating">
-              Đánh giá: 
-              <span class="checkbox"></span> 1
-              <span class="checkbox"></span> 2
-              <span class="checkbox"></span> 3
-              <span class="checkbox"></span> 4
-              <span class="checkbox"></span> 5
-            </div>
-          `;
-        } else {
-          htmlContent += '<div class="text-answer"></div>';
+        });
+      }
+
+      return {
+        htmlContent,
+        survey: {
+          title: survey.title,
+          questionCount: questions.length
         }
-
-        htmlContent += '</div>';
-      });
-
-      htmlContent += `
-          </body>
-        </html>
-      `;
-
-      // For now, return HTML content as buffer
-      // In production, you would use a proper PDF library
-      return Buffer.from(htmlContent, 'utf8');
+      };
 
     } catch (error) {
       this.logger.error('Error exporting survey to PDF:', error);
@@ -787,6 +800,259 @@ class LLMService {
     } catch (error) {
       this.logger.error('Error generating public link:', error);
       throw new Error(`Failed to generate public link: ${error.message}`);
+    }
+  }
+
+  /**
+   * Get survey by public link token
+   */
+  async getSurveyByPublicLink(token) {
+    const { Survey, Question, QuestionOption, SurveyLink } = require('../../../src/models');
+    
+    try {
+      // Find survey link
+      const surveyLink = await SurveyLink.findOne({
+        where: { 
+          token,
+          is_active: true
+        }
+      });
+
+      if (!surveyLink) {
+        throw new Error('Survey link not found or expired');
+      }
+
+      // Check if link is expired
+      if (surveyLink.expires_at && new Date() > surveyLink.expires_at) {
+        throw new Error('Survey link has expired');
+      }
+
+      // Get survey with questions
+      const survey = await Survey.findOne({
+        where: { id: surveyLink.survey_id },
+        include: [{
+          model: Question,
+          as: 'questions',
+          include: [{ model: QuestionOption, as: 'options' }],
+          order: [['question_order', 'ASC']]
+        }]
+      });
+
+      if (!survey) {
+        throw new Error('Survey not found');
+      }
+
+      return {
+        id: survey.id,
+        title: survey.title,
+        description: survey.description,
+        questions: survey.questions.map(q => ({
+          id: q.id,
+          text: q.question_text,
+          type: q.question_type,
+          required: q.is_required,
+          order: q.question_order,
+          options: q.options ? q.options.map(opt => ({
+            id: opt.id,
+            text: opt.option_text,
+            order: opt.option_order
+          })) : []
+        })),
+        settings: JSON.parse(survey.share_settings || '{}')
+      };
+
+    } catch (error) {
+      console.error('Get survey by public link error:', error);
+      throw new Error(`Failed to get survey: ${error.message}`);
+    }
+  }
+
+  /**
+   * Submit survey response
+   */
+  async submitSurveyResponse(token, responseData) {
+    const { Survey, Question, SurveyResponse, ResponseAnswer, SurveyLink } = require('../../../src/models');
+    
+    try {
+      // Verify survey link
+      const surveyLink = await SurveyLink.findOne({
+        where: { 
+          token,
+          is_active: true
+        }
+      });
+
+      if (!surveyLink) {
+        throw new Error('Survey link not found or expired');
+      }
+
+      // Create survey response
+      const surveyResponse = await SurveyResponse.create({
+        survey_id: surveyLink.survey_id,
+        respondent_name: responseData.respondent_name || null,
+        respondent_email: responseData.respondent_email || null,
+        session_token: responseData.session_token || null,
+        is_completed: true,
+        submitted_at: new Date()
+      });
+
+      // Create response answers
+      if (responseData.answers && responseData.answers.length > 0) {
+        for (const answer of responseData.answers) {
+          await ResponseAnswer.create({
+            response_id: surveyResponse.id,
+            question_id: answer.question_id,
+            answer_text: answer.answer_text || null,
+            selected_option_id: answer.selected_option_id || null
+          });
+        }
+      }
+
+      return {
+        success: true,
+        responseId: surveyResponse.id,
+        message: 'Survey response submitted successfully'
+      };
+
+    } catch (error) {
+      console.error('Submit survey response error:', error);
+      throw new Error(`Failed to submit response: ${error.message}`);
+    }
+  }
+
+  /**
+   * Get survey responses and analytics
+   */
+  async getSurveyResponses(surveyId, userId) {
+    const { Survey, SurveyResponse, ResponseAnswer, Question, QuestionOption } = require('../../../src/models');
+
+    try {
+      // Verify survey exists and user has access
+      const survey = await Survey.findByPk(surveyId, {
+        attributes: ['id', 'title', 'description', 'created_by', 'status', 'created_at'],
+        include: [
+          {
+            model: Question,
+            attributes: ['id', 'question_text', 'question_type', 'question_order'],
+            include: [
+              {
+                model: QuestionOption,
+                attributes: ['id', 'option_text', 'option_order']
+              }
+            ]
+          }
+        ],
+        order: [[Question, 'question_order', 'ASC']]
+      });
+
+      if (!survey) {
+        throw new Error('Survey not found');
+      }
+
+      // Check if user has permission to view results (only survey creator can view)
+      if (survey.created_by !== userId) {
+        throw new Error('Access denied. Only survey creator can view results.');
+      }
+
+      // Get all responses for this survey
+      const responses = await SurveyResponse.findAll({
+        where: { survey_id: surveyId },
+        include: [
+          {
+            model: ResponseAnswer,
+            attributes: ['question_id', 'answer_text', 'selected_option_id'],
+            include: [
+              {
+                model: Question,
+                attributes: ['id', 'question_text', 'question_type']
+              },
+              {
+                model: QuestionOption,
+                attributes: ['id', 'option_text']
+              }
+            ]
+          }
+        ],
+        order: [['submitted_at', 'DESC']]
+      });
+
+      // Calculate summary statistics
+      const totalResponses = responses.length;
+      const completedResponses = responses.filter(r => r.is_completed).length;
+      const completionRate = totalResponses > 0 ? (completedResponses / totalResponses) * 100 : 0;
+
+      // Group responses by question for analytics
+      const questionAnalytics = {};
+      
+      survey.Questions.forEach(question => {
+        questionAnalytics[question.id] = {
+          question: question.question_text,
+          type: question.question_type,
+          totalAnswers: 0,
+          answers: {}
+        };
+
+        if (question.question_type === 'multiple_choice') {
+          // Initialize option counts
+          question.QuestionOptions.forEach(option => {
+            questionAnalytics[question.id].answers[option.option_text] = 0;
+          });
+        } else {
+          questionAnalytics[question.id].textAnswers = [];
+        }
+      });
+
+      // Process each response
+      responses.forEach(response => {
+        if (response.ResponseAnswers) {
+          response.ResponseAnswers.forEach(answer => {
+            const questionId = answer.question_id;
+            if (questionAnalytics[questionId]) {
+              questionAnalytics[questionId].totalAnswers++;
+
+              if (answer.selected_option_id && answer.QuestionOption) {
+                // Multiple choice answer
+                const optionText = answer.QuestionOption.option_text;
+                if (questionAnalytics[questionId].answers[optionText] !== undefined) {
+                  questionAnalytics[questionId].answers[optionText]++;
+                }
+              } else if (answer.answer_text) {
+                // Text answer
+                if (questionAnalytics[questionId].textAnswers) {
+                  questionAnalytics[questionId].textAnswers.push(answer.answer_text);
+                }
+              }
+            }
+          });
+        }
+      });
+
+      return {
+        survey: {
+          id: survey.id,
+          title: survey.title,
+          description: survey.description,
+          status: survey.status,
+          created_at: survey.created_at
+        },
+        summary: {
+          totalResponses,
+          completedResponses,
+          completionRate: Math.round(completionRate * 100) / 100,
+          lastResponseAt: totalResponses > 0 ? responses[0].submitted_at : null
+        },
+        questions: Object.values(questionAnalytics),
+        recentResponses: responses.slice(0, 10).map(r => ({
+          id: r.id,
+          submitted_at: r.submitted_at,
+          respondent_name: r.respondent_name || 'Anonymous',
+          is_completed: r.is_completed
+        }))
+      };
+
+    } catch (error) {
+      console.error('Get survey responses error:', error);
+      throw new Error(`Failed to get survey responses: ${error.message}`);
     }
   }
 }
