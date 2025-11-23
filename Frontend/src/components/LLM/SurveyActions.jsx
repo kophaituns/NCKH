@@ -10,7 +10,7 @@ import { useToast } from '../../contexts/ToastContext';
 import LLMService from '../../api/services/llm.service';
 import styles from './SurveyActions.module.scss';
 
-const SurveyActions = ({ survey, onClose }) => {
+const SurveyActions = ({ survey, onClose, onEditSurvey }) => {
   const { showToast } = useToast();
   const [loading, setLoading] = useState(false);
   const [showLinkModal, setShowLinkModal] = useState(false);
@@ -78,6 +78,13 @@ const SurveyActions = ({ survey, onClose }) => {
       showToast(error.response?.data?.message || 'Có lỗi xảy ra khi tải kết quả', 'error');
     } finally {
       setResultsLoading(false);
+    }
+  };
+
+  const handleEditSurvey = () => {
+    if (onEditSurvey) {
+      onEditSurvey(survey.survey.id);
+      showToast('Đang chuyển đến chế độ chỉnh sửa...', 'info');
     }
   };
 
@@ -157,6 +164,7 @@ const SurveyActions = ({ survey, onClose }) => {
           <h4>Chỉnh Sửa</h4>
           <p>Chỉnh sửa câu hỏi và cài đặt survey</p>
           <Button 
+            onClick={handleEditSurvey}
             variant="outline"
             className={styles.actionButton}
           >

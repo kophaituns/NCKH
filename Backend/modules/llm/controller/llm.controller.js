@@ -537,6 +537,129 @@ class LLMController {
       });
     }
   }
+
+  /**
+   * Get survey for editing
+   */
+  async getSurveyForEditing(req, res) {
+    try {
+      const { surveyId } = req.params;
+      const userId = req.user?.id;
+
+      console.log('getSurveyForEditing - userId:', userId, 'req.user:', req.user);
+
+      const result = await llmService.getSurveyForEditing(surveyId, userId);
+
+      res.status(200).json({
+        success: true,
+        data: result.survey
+      });
+    } catch (error) {
+      logger.error('Get survey for editing error:', error);
+      res.status(500).json({
+        success: false,
+        message: error.message || 'Error getting survey for editing'
+      });
+    }
+  }
+
+  /**
+   * Update survey settings
+   */
+  async updateSurveySettings(req, res) {
+    try {
+      const { surveyId } = req.params;
+      const userId = req.user?.id;
+      const updateData = req.body;
+
+      const result = await llmService.updateSurveySettings(surveyId, userId, updateData);
+
+      res.status(200).json({
+        success: true,
+        data: result.survey,
+        message: result.message
+      });
+    } catch (error) {
+      logger.error('Update survey settings error:', error);
+      res.status(500).json({
+        success: false,
+        message: error.message || 'Error updating survey settings'
+      });
+    }
+  }
+
+  /**
+   * Update survey question
+   */
+  async updateSurveyQuestion(req, res) {
+    try {
+      const { surveyId, questionId } = req.params;
+      const userId = req.user?.id;
+      const questionData = req.body;
+
+      const result = await llmService.updateSurveyQuestion(surveyId, questionId, userId, questionData);
+
+      res.status(200).json({
+        success: true,
+        data: result.question,
+        message: result.message
+      });
+    } catch (error) {
+      logger.error('Update survey question error:', error);
+      res.status(500).json({
+        success: false,
+        message: error.message || 'Error updating survey question'
+      });
+    }
+  }
+
+  /**
+   * Delete survey question
+   */
+  async deleteSurveyQuestion(req, res) {
+    try {
+      const { surveyId, questionId } = req.params;
+      const userId = req.user?.id;
+
+      const result = await llmService.deleteSurveyQuestion(surveyId, questionId, userId);
+
+      res.status(200).json({
+        success: true,
+        message: result.message
+      });
+    } catch (error) {
+      logger.error('Delete survey question error:', error);
+      res.status(500).json({
+        success: false,
+        message: error.message || 'Error deleting survey question'
+      });
+    }
+  }
+
+  /**
+   * Add new survey question
+   */
+  async addSurveyQuestion(req, res) {
+    try {
+      const { surveyId } = req.params;
+      const userId = req.user?.id;
+      const questionData = req.body;
+
+      const result = await llmService.addSurveyQuestion(surveyId, userId, questionData);
+
+      res.status(201).json({
+        success: true,
+        data: result.question,
+        message: result.message
+      });
+    } catch (error) {
+      logger.error('Add survey question error:', error);
+      res.status(500).json({
+        success: false,
+        message: error.message || 'Error adding survey question'
+      });
+    }
+  }
 }
 
 // Create instance
@@ -559,5 +682,11 @@ module.exports = {
   getSurveyByToken: llmController.getSurveyByToken.bind(llmController),
   submitSurveyResponse: llmController.submitSurveyResponse.bind(llmController),
   getSurveyResults: llmController.getSurveyResults.bind(llmController),
-  getSurveyResultsPublic: llmController.getSurveyResultsPublic.bind(llmController)
+  getSurveyResultsPublic: llmController.getSurveyResultsPublic.bind(llmController),
+  // Survey editing methods
+  getSurveyForEditing: llmController.getSurveyForEditing.bind(llmController),
+  updateSurveySettings: llmController.updateSurveySettings.bind(llmController),
+  updateSurveyQuestion: llmController.updateSurveyQuestion.bind(llmController),
+  deleteSurveyQuestion: llmController.deleteSurveyQuestion.bind(llmController),
+  addSurveyQuestion: llmController.addSurveyQuestion.bind(llmController)
 };

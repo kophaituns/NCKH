@@ -10,6 +10,7 @@ import { useToast } from '../../contexts/ToastContext';
 import LLMService from '../../api/services/llm.service';
 import SurveyCreator from '../../components/LLM/SurveyCreator';
 import SurveyActions from '../../components/LLM/SurveyActions';
+import SurveyQuestionEditor from '../../components/LLM/SurveyQuestionEditor';
 import styles from './LLM.module.scss';
 
 const LLM = () => {
@@ -27,6 +28,7 @@ const LLM = () => {
   const [prompts, setPrompts] = useState([]);
   const [selectedPrompt, setSelectedPrompt] = useState('');
   const [createdSurvey, setCreatedSurvey] = useState(null);
+  const [editingSurveyId, setEditingSurveyId] = useState(null);
 
   const loadInitialData = useCallback(async () => {
     try {
@@ -134,6 +136,11 @@ const LLM = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleEditSurvey = (surveyId) => {
+    setEditingSurveyId(surveyId);
+    setActiveTab('edit');
   };
 
   const renderQuestionGeneration = () => (
@@ -311,6 +318,17 @@ const LLM = () => {
             Kết Quả Survey
           </button>
         )}
+        {createdSurvey && (
+          <button 
+            className={`${styles.tab} ${activeTab === 'edit' ? styles.active : ''}`}
+            onClick={() => {
+              setEditingSurveyId(createdSurvey.id);
+              setActiveTab('edit');
+            }}
+          >
+            Chỉnh Sửa Survey
+          </button>
+        )}
       </div>
 
       {activeTab === 'generate' && renderQuestionGeneration()}
@@ -328,6 +346,17 @@ const LLM = () => {
         <SurveyActions 
           survey={createdSurvey}
           onClose={() => setActiveTab('generate')}
+          onEditSurvey={handleEditSurvey}
+        />
+      )}
+      {activeTab === 'edit' && editingSurveyId && (
+        <SurveyQuestionEditor 
+          surveyId={editingSurveyId}
+          onClose={() => setActiveTab('result')}
+          onSurveyUpdated={() => {
+            // You could refresh survey data here if needed
+            showToast('Survey đã được cập nhật', 'success');
+          }}
         />
       )}
     </div>

@@ -116,6 +116,41 @@ router.post('/generate-link/:surveyId', llmController.generatePublicLink);
  */
 router.get('/surveys/:surveyId/results', llmController.getSurveyResults);
 
+/**
+ * @route   GET /api/modules/llm/surveys/:surveyId/edit
+ * @desc    Get survey for editing
+ * @access  Private
+ */
+router.get('/surveys/:surveyId/edit', llmController.getSurveyForEditing);
+
+/**
+ * @route   PUT /api/modules/llm/surveys/:surveyId/settings
+ * @desc    Update survey settings (title, description, etc.)
+ * @access  Private
+ */
+router.put('/surveys/:surveyId/settings', llmController.updateSurveySettings);
+
+/**
+ * @route   PUT /api/modules/llm/surveys/:surveyId/questions/:questionId
+ * @desc    Update survey question
+ * @access  Private
+ */
+router.put('/surveys/:surveyId/questions/:questionId', llmController.updateSurveyQuestion);
+
+/**
+ * @route   DELETE /api/modules/llm/surveys/:surveyId/questions/:questionId
+ * @desc    Delete survey question
+ * @access  Private
+ */
+router.delete('/surveys/:surveyId/questions/:questionId', llmController.deleteSurveyQuestion);
+
+/**
+ * @route   POST /api/modules/llm/surveys/:surveyId/questions
+ * @desc    Add new question to survey
+ * @access  Private
+ */
+router.post('/surveys/:surveyId/questions', llmController.addSurveyQuestion);
+
 // Health check
 router.get('/health', (req, res) => {
     res.json({ 

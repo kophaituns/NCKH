@@ -154,6 +154,46 @@ const LLMService = {
     const response = await http.get(`/llm/surveys/${surveyId}/results`);
     return response.data;
   },
+
+  /**
+   * Get survey for editing
+   */
+  async getSurveyForEditing(surveyId) {
+    const response = await http.get(`/llm/surveys/${surveyId}/edit`);
+    return response.data;
+  },
+
+  /**
+   * Update survey settings
+   */
+  async updateSurveySettings(surveyId, settingsData) {
+    const response = await http.put(`/llm/surveys/${surveyId}/settings`, settingsData);
+    return response.data;
+  },
+
+  /**
+   * Update survey question
+   */
+  async updateSurveyQuestion(surveyId, questionId, questionData) {
+    const response = await http.put(`/llm/surveys/${surveyId}/questions/${questionId}`, questionData);
+    return response.data;
+  },
+
+  /**
+   * Delete survey question
+   */
+  async deleteSurveyQuestion(surveyId, questionId) {
+    const response = await http.delete(`/llm/surveys/${surveyId}/questions/${questionId}`);
+    return response.data;
+  },
+
+  /**
+   * Add new question to survey
+   */
+  async addSurveyQuestion(surveyId, questionData) {
+    const response = await http.post(`/llm/surveys/${surveyId}/questions`, questionData);
+    return response.data;
+  },
 };
 
 export default LLMService;

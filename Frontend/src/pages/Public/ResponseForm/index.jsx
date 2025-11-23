@@ -187,7 +187,7 @@ const PublicResponseForm = () => {
                   type="radio"
                   name={`question-${question.id}`}
                   value={option.id}
-                  checked={answer == option.id}
+                  checked={answer === option.id}
                   onChange={(e) => handleAnswerChange(question.id, option.id, question.type)}
                   className={styles.radioInput}
                 />
@@ -239,7 +239,7 @@ const PublicResponseForm = () => {
                 key={rating}
                 type="button"
                 onClick={() => handleAnswerChange(question.id, rating, question.type)}
-                className={`${styles.ratingButton} ${answer == rating ? styles.ratingSelected : ''}`}
+                className={`${styles.ratingButton} ${answer === rating ? styles.ratingSelected : ''}`}
               >
                 {rating}
               </button>

@@ -1223,6 +1223,273 @@ class LLMService {
     }
   }
 
+  /**
+   * Update survey settings
+   */
+  async updateSurveySettings(surveyId, userId, updateData) {
+    const { Survey, Question, QuestionOption } = require('../../../src/models');
+    try {
+      console.log(`Updating survey ${surveyId} settings by user ${userId}`);
+
+      // Verify user owns the survey
+      const survey = await Survey.findOne({
+        where: { id: surveyId },
+        include: [{
+          model: Question,
+          as: 'questions',
+          include: [{ model: QuestionOption, as: 'options' }]
+        }]
+      });
+
+      if (!survey) {
+        throw new Error('Survey not found');
+      }
+
+      if (survey.created_by !== userId) {
+        throw new Error('Access denied. Only survey creator can edit.');
+      }
+
+      // Update survey basic info
+      const updatedSurvey = await survey.update({
+        title: updateData.title || survey.title,
+        description: updateData.description || survey.description,
+        status: updateData.status || survey.status,
+        start_date: updateData.start_date || survey.start_date,
+        end_date: updateData.end_date || survey.end_date,
+        target_audience: updateData.target_audience || survey.target_audience
+      });
+
+      return {
+        success: true,
+        survey: updatedSurvey,
+        message: 'Survey settings updated successfully'
+      };
+
+    } catch (error) {
+      console.error('Update survey settings error:', error);
+      throw new Error(`Failed to update survey settings: ${error.message}`);
+    }
+  }
+
+  /**
+   * Update survey question
+   */
+  async updateSurveyQuestion(surveyId, questionId, userId, questionData) {
+    const { Survey, Question, QuestionOption } = require('../../../src/models');
+    try {
+      console.log(`Updating question ${questionId} in survey ${surveyId}`);
+
+      // Verify user owns the survey
+      const survey = await Survey.findOne({
+        where: { id: surveyId },
+        include: [{ model: Question, where: { id: questionId } }]
+      });
+
+      if (!survey) {
+        throw new Error('Survey or question not found');
+      }
+
+      if (survey.created_by !== userId) {
+        throw new Error('Access denied. Only survey creator can edit questions.');
+      }
+
+      const question = survey.questions[0];
+      if (!question) {
+        throw new Error('Question not found');
+      }
+
+      // Update question
+      const updatedQuestion = await question.update({
+        question_text: questionData.question_text || question.question_text,
+        question_type: questionData.question_type || question.question_type,
+        is_required: questionData.is_required !== undefined ? questionData.is_required : question.is_required,
+        description: questionData.description || question.description
+      });
+
+      // Update question options if provided
+      if (questionData.options && Array.isArray(questionData.options)) {
+        // Delete existing options
+        await QuestionOption.destroy({ where: { question_id: questionId } });
+        
+        // Create new options
+        for (let i = 0; i < questionData.options.length; i++) {
+          await QuestionOption.create({
+            question_id: questionId,
+            option_text: questionData.options[i],
+            display_order: i + 1
+          });
+        }
+      }
+
+      // Fetch updated question with options
+      const finalQuestion = await Question.findOne({
+        where: { id: questionId },
+        include: [{ model: QuestionOption, as: 'options' }]
+      });
+
+      return {
+        success: true,
+        question: finalQuestion,
+        message: 'Question updated successfully'
+      };
+
+    } catch (error) {
+      console.error('Update survey question error:', error);
+      throw new Error(`Failed to update question: ${error.message}`);
+    }
+  }
+
+  /**
+   * Delete survey question
+   */
+  async deleteSurveyQuestion(surveyId, questionId, userId) {
+    const { Survey, Question, QuestionOption } = require('../../../src/models');
+    try {
+      console.log(`Deleting question ${questionId} from survey ${surveyId}`);
+
+      // Verify user owns the survey
+      const survey = await Survey.findOne({
+        where: { id: surveyId },
+        include: [{ model: Question, where: { id: questionId } }]
+      });
+
+      if (!survey) {
+        throw new Error('Survey or question not found');
+      }
+
+      if (survey.created_by !== userId) {
+        throw new Error('Access denied. Only survey creator can delete questions.');
+      }
+
+      // Delete question options first
+      await QuestionOption.destroy({ where: { question_id: questionId } });
+      
+      // Delete question
+      await Question.destroy({ where: { id: questionId, survey_id: surveyId } });
+
+      return {
+        success: true,
+        message: 'Question deleted successfully'
+      };
+
+    } catch (error) {
+      console.error('Delete survey question error:', error);
+      throw new Error(`Failed to delete question: ${error.message}`);
+    }
+  }
+
+  /**
+   * Add new question to survey
+   */
+  async addSurveyQuestion(surveyId, userId, questionData) {
+    const { Survey, Question, QuestionOption } = require('../../../src/models');
+    try {
+      console.log(`Adding new question to survey ${surveyId}`);
+
+      // Verify user owns the survey
+      const survey = await Survey.findByPk(surveyId);
+      if (!survey) {
+        throw new Error('Survey not found');
+      }
+
+      if (survey.created_by !== userId) {
+        throw new Error('Access denied. Only survey creator can add questions.');
+      }
+
+      // Get next question order
+      const lastQuestion = await Question.findOne({
+        where: { survey_id: surveyId },
+        order: [['question_order', 'DESC']],
+        limit: 1
+      });
+
+      const nextOrder = lastQuestion ? lastQuestion.question_order + 1 : 1;
+
+      // Create new question
+      const newQuestion = await Question.create({
+        survey_id: surveyId,
+        question_text: questionData.question_text,
+        question_type: questionData.question_type,
+        is_required: questionData.is_required || false,
+        question_order: nextOrder,
+        description: questionData.description || ''
+      });
+
+      // Add question options if provided
+      if (questionData.options && Array.isArray(questionData.options)) {
+        for (let i = 0; i < questionData.options.length; i++) {
+          await QuestionOption.create({
+            question_id: newQuestion.id,
+            option_text: questionData.options[i],
+            display_order: i + 1
+          });
+        }
+      }
+
+      // Fetch created question with options
+      const finalQuestion = await Question.findOne({
+        where: { id: newQuestion.id },
+        include: [{ model: QuestionOption, as: 'options' }]
+      });
+
+      return {
+        success: true,
+        question: finalQuestion,
+        message: 'Question added successfully'
+      };
+
+    } catch (error) {
+      console.error('Add survey question error:', error);
+      throw new Error(`Failed to add question: ${error.message}`);
+    }
+  }
+
+  /**
+   * Get survey for editing
+   */
+  async getSurveyForEditing(surveyId, userId) {
+    const { Survey, Question, QuestionOption } = require('../../../src/models');
+    try {
+      console.log(`Getting survey ${surveyId} for editing by user ${userId}`);
+
+      if (!userId) {
+        throw new Error('User ID is required for editing survey');
+      }
+
+      const survey = await Survey.findOne({
+        where: { id: surveyId },
+        include: [
+          {
+            model: Question,
+            as: 'questions',
+            include: [{ model: QuestionOption, as: 'options' }],
+            order: [['question_order', 'ASC']]
+          }
+        ],
+        order: [
+          [{ model: Question, as: 'questions' }, 'question_order', 'ASC']
+        ]
+      });
+
+      if (!survey) {
+        throw new Error('Survey not found');
+      }
+
+      if (survey.created_by !== userId) {
+        throw new Error('Access denied. Only survey creator can edit.');
+      }
+
+      return {
+        success: true,
+        survey: survey
+      };
+
+    } catch (error) {
+      console.error('Get survey for editing error:', error);
+      throw new Error(`Failed to get survey for editing: ${error.message}`);
+    }
+  }
+
   // Generate PDF HTML for survey
   async generateSurveyPDF(surveyId, userId) {
     const { Survey, Question, QuestionOption } = require('../../../src/models');
