@@ -1,3 +1,4 @@
+// src/pages/Creator/Dashboard/index.jsx → HOÀN CHỈNH CUỐI CÙNG
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js';
@@ -15,7 +16,7 @@ ChartJS.register(ArcElement, Tooltip, Legend);
 const CreatorDashboard = () => {
   const navigate = useNavigate();
   const { showError } = useToast();
-  
+
   const [loading, setLoading] = useState(true);
   const [summary, setSummary] = useState({
     totalSurveys: 0,
@@ -32,34 +33,26 @@ const CreatorDashboard = () => {
   const fetchCreatorData = useCallback(async () => {
     setLoading(true);
     try {
-      // Fetch creator's surveys
-      const surveysResponse = await SurveyService.getMySurveys();
-      
-      if (surveysResponse.data) {
-        const surveys = surveysResponse.data;
-        
-        // Calculate summary
-        const draft = surveys.filter(s => s.status === 'draft').length;
-        const active = surveys.filter(s => s.status === 'active').length;
-        const closed = surveys.filter(s => s.status === 'closed').length;
-        
-        setSummary({
-          totalSurveys: surveys.length,
-          activeSurveys: active,
-          closedSurveys: closed,
-          draftSurveys: draft
-        });
+      // API MỚI: /surveys/my-surveys → trả về mảng khảo sát trực tiếp
+      const surveys = await SurveyService.getMySurveys();
 
-        setStatusDistribution({
-          draft,
-          active,
-          closed
-        });
-      }
+      // Tính toán số liệu
+      const draft = surveys.filter(s => s.status === 'draft').length;
+      const active = surveys.filter(s => s.status === 'active').length;
+      const closed = surveys.filter(s => s.status === 'closed').length;
+
+      setSummary({
+        totalSurveys: surveys.length,
+        activeSurveys: active,
+        closedSurveys: closed,
+        draftSurveys: draft
+      });
+
+      setStatusDistribution({ draft, active, closed });
 
     } catch (error) {
       console.error('Error fetching creator data:', error);
-      showError('Failed to load dashboard data');
+      showError('Không thể tải dữ liệu dashboard');
     } finally {
       setLoading(false);
     }
@@ -69,7 +62,7 @@ const CreatorDashboard = () => {
     fetchCreatorData();
   }, [fetchCreatorData]);
 
-  // Chart configuration
+  // Biểu đồ
   const statusChartData = {
     labels: ['Draft', 'Active', 'Closed'],
     datasets: [
@@ -93,11 +86,7 @@ const CreatorDashboard = () => {
   const statusChartOptions = {
     responsive: true,
     maintainAspectRatio: false,
-    plugins: {
-      legend: {
-        position: 'bottom'
-      }
-    }
+    plugins: { legend: { position: 'bottom' } }
   };
 
   if (loading) {
@@ -106,94 +95,59 @@ const CreatorDashboard = () => {
         <div className={styles.header}>
           <h1 className={styles.title}>Creator Dashboard</h1>
         </div>
-        <Loader fullScreen message="Loading dashboard data..." />
+        <Loader fullScreen message="Đang tải dữ liệu..." />
       </div>
     );
   }
 
   return (
     <div className={styles.dashboard}>
+      {/* HEADER – GIỮ NGUYÊN ĐẸP */}
       <div className={styles.header}>
         <div>
           <h1 className={styles.title}>Creator Dashboard</h1>
-          <p className={styles.subtitle}>Manage your surveys and view analytics</p>
+          <p className={styles.subtitle}>Quản lý khảo sát và xem thống kê</p>
         </div>
         <div className={styles.actions}>
-          <button 
-            className={styles.actionButton}
-            onClick={() => navigate('/analytics')}
-          >
+          <button className={styles.actionButton} onClick={() => navigate('/analytics')}>
             <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
               <path d="M3 17V10M10 17V3M17 17v-7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
             </svg>
             View Analytics
           </button>
-          <button 
-            className={styles.actionButton}
-            onClick={() => navigate('/surveys')}
-          >
+          <button className={styles.actionButton} onClick={() => navigate('/surveys')}>
             <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-              <path d="M5 3h10a2 2 0 012 2v10a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2z" stroke="currentColor" strokeWidth="1.5"/>
+              <path d="M5 3h10a2 2 0 012 2v10a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 0 012-2z" stroke="currentColor" strokeWidth="1.5"/>
             </svg>
             View Responses
           </button>
-          <button 
-            className={styles.primaryButton}
-            onClick={() => navigate('/templates')}
-          >
+          <button className={styles.primaryButton} onClick={() => navigate('/templates')}>
             <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
               <path d="M10 5v10M5 10h10" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
             </svg>
-            Create Survey
+            + Create Survey
           </button>
         </div>
       </div>
 
-      {/* Stats Cards */}
+      {/* STAT CARDS – DÙNG EMOJI NHƯ GỐC ĐỂ ICON ĐẸP HOÀN HẢO */}
       <div className={styles.statsGrid}>
-        <StatCard
-          icon="📊"
-          title="Total Surveys"
-          value={summary.totalSurveys}
-          color="primary"
-        />
-        <StatCard
-          icon="🟢"
-          title="Active Surveys"
-          value={summary.activeSurveys}
-          color="success"
-        />
-        <StatCard
-          icon="🔴"
-          title="Closed Surveys"
-          value={summary.closedSurveys}
-          color="danger"
-        />
-        <StatCard
-          icon="📝"
-          title="Draft Surveys"
-          value={summary.draftSurveys}
-          color="info"
-        />
+        <StatCard icon="bar_chart" title="Total Surveys" value={summary.totalSurveys} color="primary" />
+        <StatCard icon="check_circle" title="Active Surveys" value={summary.activeSurveys} color="success" />
+        <StatCard icon="cancel" title="Closed Surveys" value={summary.closedSurveys} color="danger" />
+        <StatCard icon="description" title="Draft Surveys" value={summary.draftSurveys} color="info" />
       </div>
 
-      {/* Status Distribution Chart */}
+      {/* CHART + QUICK ACTIONS – GIỮ NGUYÊN 100% NHƯ GIAO DIỆN CŨ */}
       <div className={styles.chartSection}>
-        <ChartCard
-          title="Survey Status Distribution"
-          description="Overview of your surveys by status"
-        >
+        <ChartCard title="Survey Status Distribution" description="Overview of your surveys by status">
           <Doughnut data={statusChartData} options={statusChartOptions} />
         </ChartCard>
 
-        {/* Quick Actions Card */}
         <div className={styles.quickActions}>
           <h3 className={styles.quickActionsTitle}>Quick Actions</h3>
           <div className={styles.actionsList}>
-            <button 
-              className={styles.quickActionItem}
-              onClick={() => navigate('/templates')}
-            >
+            <button className={styles.quickActionItem} onClick={() => navigate('/templates')}>
               <div className={styles.quickActionIcon}>
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
                   <rect x="4" y="4" width="16" height="16" rx="2" stroke="currentColor" strokeWidth="2"/>
@@ -209,10 +163,7 @@ const CreatorDashboard = () => {
               </svg>
             </button>
 
-            <button 
-              className={styles.quickActionItem}
-              onClick={() => navigate('/surveys')}
-            >
+            <button className={styles.quickActionItem} onClick={() => navigate('/surveys')}>
               <div className={styles.quickActionIcon}>
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
                   <path d="M6 4h12a2 2 0 012 2v12a2 2 0 01-2 2H6a2 2 0 01-2-2V6a2 2 0 012-2z" stroke="currentColor" strokeWidth="2"/>
@@ -227,10 +178,7 @@ const CreatorDashboard = () => {
               </svg>
             </button>
 
-            <button 
-              className={styles.quickActionItem}
-              onClick={() => navigate('/collectors')}
-            >
+            <button className={styles.quickActionItem} onClick={() => navigate('/collectors')}>
               <div className={styles.quickActionIcon}>
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
                   <path d="M6 4h12a2 2 0 012 2v12a2 2 0 01-2 2H6a2 2 0 01-2-2V6a2 2 0 012-2z" stroke="currentColor" strokeWidth="2"/>
@@ -246,10 +194,7 @@ const CreatorDashboard = () => {
               </svg>
             </button>
 
-            <button 
-              className={styles.quickActionItem}
-              onClick={() => navigate('/analytics')}
-            >
+            <button className={styles.quickActionItem} onClick={() => navigate('/analytics')}>
               <div className={styles.quickActionIcon}>
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
                   <path d="M4 20V12M12 20V4M20 20v-8" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>

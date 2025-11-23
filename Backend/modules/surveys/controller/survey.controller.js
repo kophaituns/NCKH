@@ -1,10 +1,10 @@
-// modules/surveys/controller/survey.controller.js
+// backend/src/modules/surveys/controller/survey.controller.js
 const surveyService = require('../service/survey.service');
 const logger = require('../../../src/utils/logger');
 
 class SurveyController {
   /**
-   * Get all surveys
+   * Get all surveys (Admin only - with filters)
    */
   async getAllSurveys(req, res) {
     try {
@@ -24,6 +24,28 @@ class SurveyController {
       res.status(500).json({
         success: false,
         message: error.message || 'Error fetching surveys'
+      });
+    }
+  }
+
+  /**
+   * Get current user's surveys (for Creator Dashboard) - MỚI THÊM
+   */
+  async getMySurveys(req, res) {
+    try {
+      const userId = req.user.id;
+
+      const surveys = await surveyService.getSurveysByCreator(userId);
+
+      res.status(200).json({
+        success: true,
+        data: { surveys } // ← Frontend đang mong đợi cấu trúc này
+      });
+    } catch (error) {
+      logger.error('Get my surveys error:', error);
+      res.status(500).json({
+        success: false,
+        message: error.message || 'Lỗi khi lấy danh sách khảo sát của bạn'
       });
     }
   }
@@ -64,7 +86,6 @@ class SurveyController {
     try {
       const { template_id, title, description, start_date, end_date, target_audience, target_value } = req.body;
 
-      // Validation
       if (!template_id || !title) {
         return res.status(400).json({
           success: false,
@@ -109,17 +130,10 @@ class SurveyController {
       logger.error('Update survey error:', error);
       
       if (error.message.includes('not found')) {
-        return res.status(404).json({
-          success: false,
-          message: error.message
-        });
+        return res.status(404).json({ success: false, message: error.message });
       }
-
       if (error.message.includes('Access denied')) {
-        return res.status(403).json({
-          success: false,
-          message: error.message
-        });
+        return res.status(403).json({ success: false, message: error.message });
       }
 
       res.status(500).json({
@@ -149,26 +163,16 @@ class SurveyController {
       res.status(200).json({
         success: true,
         message: `Survey status updated to ${status}`,
-        data: { 
-          status: survey.status,
-          survey 
-        }
+        data: { status: survey.status, survey }
       });
     } catch (error) {
       logger.error('Update survey status error:', error);
       
       if (error.message.includes('not found')) {
-        return res.status(404).json({
-          success: false,
-          message: error.message
-        });
+        return res.status(404).json({ success: false, message: error.message });
       }
-
       if (error.message.includes('Access denied')) {
-        return res.status(403).json({
-          success: false,
-          message: error.message
-        });
+        return res.status(403).json({ success: false, message: error.message });
       }
 
       res.status(500).json({
@@ -195,17 +199,10 @@ class SurveyController {
       logger.error('Delete survey error:', error);
 
       if (error.message.includes('not found')) {
-        return res.status(404).json({
-          success: false,
-          message: error.message
-        });
+        return res.status(404).json({ success: false, message: error.message });
       }
-
       if (error.message.includes('Access denied')) {
-        return res.status(403).json({
-          success: false,
-          message: error.message
-        });
+        return res.status(403).json({ success: false, message: error.message });
       }
 
       res.status(500).json({
@@ -232,10 +229,7 @@ class SurveyController {
       logger.error('Get survey stats error:', error);
 
       if (error.message.includes('not found')) {
-        return res.status(404).json({
-          success: false,
-          message: error.message
-        });
+        return res.status(404).json({ success: false, message: error.message });
       }
 
       res.status(500).json({

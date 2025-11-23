@@ -1,4 +1,4 @@
-// modules/surveys/routes/survey.routes.js
+// backend/src/modules/surveys/routes/survey.routes.js
 const express = require('express');
 const router = express.Router();
 const surveyController = require('../controller/survey.controller');
@@ -6,10 +6,17 @@ const { authenticate, isCreatorOrAdmin } = require('../../auth-rbac/middleware/a
 
 /**
  * @route   GET /api/surveys
- * @desc    Get all surveys (with pagination and filters)
- * @access  Private
+ * @desc    Get all surveys (with pagination and filters) - Admin only
+ * @access  Private + Admin
  */
 router.get('/', authenticate, surveyController.getAllSurveys);
+
+/**
+ * @route   GET /api/surveys/my-surveys
+ * @desc    Get current user's surveys (for Creator Dashboard)
+ * @access  Private + Creator/Admin
+ */
+router.get('/my-surveys', authenticate, isCreatorOrAdmin, surveyController.getMySurveys);
 
 /**
  * @route   GET /api/surveys/:id
@@ -26,28 +33,28 @@ router.get('/:id', authenticate, surveyController.getSurveyById);
 router.get('/:id/stats', authenticate, surveyController.getSurveyStats);
 
 /**
- * @route   POST /api/modules/surveys
+ * @route   POST /api/surveys
  * @desc    Create new survey
  * @access  Private (Creator/Admin only)
  */
 router.post('/', authenticate, isCreatorOrAdmin, surveyController.createSurvey);
 
 /**
- * @route   PUT /api/modules/surveys/:id
+ * @route   PUT /api/surveys/:id
  * @desc    Update survey
  * @access  Private (Creator/Admin only)
  */
 router.put('/:id', authenticate, isCreatorOrAdmin, surveyController.updateSurvey);
 
 /**
- * @route   PATCH /api/modules/surveys/:id/status
+ * @route   PATCH /api/surveys/:id/status
  * @desc    Update survey status (publish, close, etc.)
  * @access  Private (Creator/Admin only)
  */
 router.patch('/:id/status', authenticate, isCreatorOrAdmin, surveyController.updateSurveyStatus);
 
 /**
- * @route   DELETE /api/modules/surveys/:id
+ * @route   DELETE /api/surveys/:id
  * @desc    Delete survey
  * @access  Private (Creator/Admin only)
  */

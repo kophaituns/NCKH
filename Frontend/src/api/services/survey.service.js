@@ -110,6 +110,17 @@ const SurveyService = {
   async getMySurveys(params = {}) {
     return this.getAll(params);
   },
+
+  async getMySurveys(params = {}) {
+    try {
+      const response = await http.get('/surveys/my-surveys', { params });
+      // Backend trả về: { success: true, data: { surveys: [...] } }
+      return response.data.data?.surveys || response.data?.surveys || [];
+    } catch (error) {
+      console.error('Error fetching my surveys:', error);
+      return [];
+    }
+  },
 };
 
 export default SurveyService;

@@ -1,4 +1,4 @@
-// modules/surveys/service/survey.service.js
+// backend/src/modules/surveys/service/survey.service.js
 const { Survey, User, SurveyTemplate, SurveyResponse } = require('../../../src/models');
 const { Op } = require('sequelize');
 
@@ -99,6 +99,35 @@ class SurveyService {
     });
 
     return survey;
+  }
+
+  /**
+   * Get surveys created by a specific user (for Creator Dashboard) - MỚI THÊM
+   */
+  async getSurveysByCreator(creatorId) {
+    try {
+      const surveys = await Survey.findAll({
+        where: { created_by: creatorId },
+        include: [
+          {
+            model: User,
+            as: 'creator',
+            attributes: ['id', 'username', 'full_name', 'email']
+          },
+          {
+            model: SurveyTemplate,
+            as: 'template',
+            attributes: ['id', 'title', 'description']
+          }
+        ],
+        order: [['created_at', 'DESC']]
+      });
+
+      return surveys;
+    } catch (error) {
+      console.error('Error in getSurveysByCreator:', error);
+      throw new Error('Không thể lấy danh sách khảo sát của bạn');
+    }
   }
 
   /**
