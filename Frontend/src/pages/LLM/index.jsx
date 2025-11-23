@@ -354,7 +354,7 @@ const LLM = () => {
           surveyId={editingSurveyId}
           onClose={() => setActiveTab('result')}
           onSurveyUpdated={() => {
-            // You could refresh survey data here if needed
+            // Survey has been updated successfully
             showToast('Survey đã được cập nhật', 'success');
           }}
         />

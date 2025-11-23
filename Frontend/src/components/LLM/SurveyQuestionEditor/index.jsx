@@ -16,7 +16,7 @@ const QUESTION_TYPES = [
   { value: 'yes_no', label: 'Có/Không' }
 ];
 
-const SurveyQuestionEditor = ({ surveyId, onClose, onSave }) => {
+const SurveyQuestionEditor = ({ surveyId, onClose, onSurveyUpdated }) => {
   const { showToast } = useToast();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -71,6 +71,7 @@ const SurveyQuestionEditor = ({ surveyId, onClose, onSave }) => {
       setSurvey(prev => ({ ...prev, ...surveySettings }));
       setShowSettingsModal(false);
       showToast('Cập nhật cài đặt survey thành công', 'success');
+      onSurveyUpdated?.(); // Notify parent component
     } catch (error) {
       showToast('Lỗi khi cập nhật cài đặt survey', 'error');
       console.error('Update survey settings error:', error);
@@ -104,6 +105,7 @@ const SurveyQuestionEditor = ({ surveyId, onClose, onSave }) => {
       });
       setShowAddModal(false);
       showToast('Thêm câu hỏi thành công', 'success');
+      onSurveyUpdated?.(); // Notify parent component
     } catch (error) {
       showToast('Lỗi khi thêm câu hỏi', 'error');
       console.error('Add question error:', error);
@@ -131,6 +133,7 @@ const SurveyQuestionEditor = ({ surveyId, onClose, onSave }) => {
       setEditingQuestion(null);
       setShowEditModal(false);
       showToast('Cập nhật câu hỏi thành công', 'success');
+      onSurveyUpdated?.(); // Notify parent component
     } catch (error) {
       showToast('Lỗi khi cập nhật câu hỏi', 'error');
       console.error('Update question error:', error);
@@ -150,6 +153,7 @@ const SurveyQuestionEditor = ({ surveyId, onClose, onSave }) => {
         questions: prev.questions.filter(q => q.id !== questionId)
       }));
       showToast('Xóa câu hỏi thành công', 'success');
+      onSurveyUpdated?.(); // Notify parent component
     } catch (error) {
       showToast('Lỗi khi xóa câu hỏi', 'error');
       console.error('Delete question error:', error);
@@ -241,7 +245,9 @@ const SurveyQuestionEditor = ({ surveyId, onClose, onSave }) => {
           >
             Cài đặt Survey
           </Button>
-          <Button onClick={onClose}>Đóng</Button>
+          <Button onClick={onClose} variant="primary">
+            Hoàn thành chỉnh sửa
+          </Button>
         </div>
       </div>
 
