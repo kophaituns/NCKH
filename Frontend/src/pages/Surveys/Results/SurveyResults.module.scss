@@ -1,0 +1,307 @@
+// src/pages/Surveys/Results/SurveyResults.module.scss
+
+.surveyResults {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+
+  .header {
+    text-align: center;
+    margin-bottom: 40px;
+    
+    h1 {
+      font-size: 2.5rem;
+      color: var(--text-primary);
+      margin-bottom: 10px;
+    }
+    
+    .description {
+      font-size: 1.1rem;
+      color: var(--text-secondary);
+      max-width: 600px;
+      margin: 0 auto;
+      line-height: 1.6;
+    }
+  }
+
+  .summary {
+    margin-bottom: 40px;
+
+    .summaryCard {
+      background: var(--card-bg);
+      border-radius: 12px;
+      padding: 30px;
+      box-shadow: var(--shadow-md);
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 30px;
+
+      .statItem {
+        text-align: center;
+
+        .statNumber {
+          display: block;
+          font-size: 2.5rem;
+          font-weight: bold;
+          color: var(--primary-color);
+          margin-bottom: 5px;
+        }
+
+        .statLabel {
+          font-size: 0.9rem;
+          color: var(--text-secondary);
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+        }
+      }
+    }
+  }
+
+  .questions {
+    display: flex;
+    flex-direction: column;
+    gap: 30px;
+
+    .questionCard {
+      background: var(--card-bg);
+      border-radius: 12px;
+      padding: 30px;
+      box-shadow: var(--shadow-md);
+
+      .questionHeader {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 25px;
+        
+        h3 {
+          font-size: 1.3rem;
+          color: var(--text-primary);
+          margin: 0;
+          flex: 1;
+          margin-right: 20px;
+        }
+
+        .questionType {
+          background: var(--primary-color);
+          color: white;
+          padding: 4px 12px;
+          border-radius: 20px;
+          font-size: 0.8rem;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+          font-weight: 500;
+        }
+      }
+
+      .questionContent {
+        .chartContainer {
+          display: grid;
+          grid-template-columns: 1fr 300px;
+          gap: 30px;
+          align-items: start;
+
+          .chartWrapper {
+            position: relative;
+            height: 300px;
+            background: #fafafa;
+            border-radius: 8px;
+            padding: 20px;
+          }
+
+          .chartStats {
+            .breakdown {
+              margin-top: 15px;
+
+              .statItem {
+                display: flex;
+                align-items: center;
+                margin-bottom: 8px;
+                font-size: 0.9rem;
+
+                .colorDot {
+                  width: 12px;
+                  height: 12px;
+                  border-radius: 50%;
+                  margin-right: 10px;
+                  flex-shrink: 0;
+                }
+              }
+            }
+          }
+        }
+
+        .textAnswers {
+          h4 {
+            color: var(--text-primary);
+            margin-bottom: 20px;
+          }
+
+          .textList {
+            max-height: 400px;
+            overflow-y: auto;
+
+            .textAnswer {
+              display: flex;
+              padding: 15px;
+              margin-bottom: 10px;
+              background: #f8f9fa;
+              border-radius: 8px;
+              border-left: 4px solid var(--primary-color);
+
+              .answerNumber {
+                font-weight: bold;
+                color: var(--primary-color);
+                margin-right: 15px;
+                flex-shrink: 0;
+              }
+
+              .answerText {
+                line-height: 1.5;
+                color: var(--text-primary);
+              }
+            }
+          }
+        }
+
+        .noData, .noResponses {
+          text-align: center;
+          padding: 40px;
+          color: var(--text-secondary);
+          font-style: italic;
+        }
+      }
+    }
+  }
+
+  .recentResponses {
+    margin-top: 40px;
+    background: var(--card-bg);
+    border-radius: 12px;
+    padding: 30px;
+    box-shadow: var(--shadow-md);
+
+    h3 {
+      color: var(--text-primary);
+      margin-bottom: 20px;
+    }
+
+    .responsesList {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+
+      .responseItem {
+        display: flex;
+        align-items: center;
+        padding: 15px;
+        background: #f8f9fa;
+        border-radius: 8px;
+        gap: 15px;
+
+        .responseId {
+          font-weight: bold;
+          color: var(--primary-color);
+          font-family: monospace;
+        }
+
+        .responseDate {
+          color: var(--text-secondary);
+          font-size: 0.9rem;
+          flex: 1;
+        }
+
+        .responseStatus {
+          padding: 4px 8px;
+          border-radius: 4px;
+          font-size: 0.8rem;
+          text-transform: uppercase;
+          font-weight: 500;
+
+          &.completed {
+            background: #d4edda;
+            color: #155724;
+          }
+
+          &.partial {
+            background: #fff3cd;
+            color: #856404;
+          }
+
+          &.abandoned {
+            background: #f8d7da;
+            color: #721c24;
+          }
+        }
+      }
+    }
+  }
+
+  .error {
+    text-align: center;
+    padding: 60px 20px;
+
+    h2 {
+      color: var(--error-color);
+      margin-bottom: 15px;
+    }
+
+    p {
+      color: var(--text-secondary);
+    }
+  }
+}
+
+// Responsive design
+@media (max-width: 768px) {
+  .surveyResults {
+    padding: 15px;
+
+    .header h1 {
+      font-size: 2rem;
+    }
+
+    .summary .summaryCard {
+      grid-template-columns: repeat(2, 1fr);
+      gap: 20px;
+      padding: 20px;
+    }
+
+    .questions .questionCard {
+      padding: 20px;
+
+      .questionHeader {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+
+        h3 {
+          margin-right: 0;
+        }
+      }
+
+      .questionContent .chartContainer {
+        grid-template-columns: 1fr;
+        gap: 20px;
+
+        .chartWrapper {
+          height: 250px;
+        }
+      }
+    }
+  }
+}
+
+// Dark mode support
+@media (prefers-color-scheme: dark) {
+  .surveyResults {
+    .questions .questionCard .questionContent .chartContainer .chartWrapper {
+      background: #2a2a2a;
+    }
+
+    .questions .questionCard .questionContent .textAnswers .textList .textAnswer,
+    .recentResponses .responsesList .responseItem {
+      background: #2a2a2a;
+    }
+  }
+}

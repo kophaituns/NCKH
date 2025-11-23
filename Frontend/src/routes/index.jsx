@@ -18,7 +18,7 @@ import TemplateEditor from '../pages/Templates/TemplateEditor/index.jsx';
 import SurveyList from '../pages/Surveys/SurveyList/index.jsx';
 import SurveyEditor from '../pages/Surveys/SurveyEditor/index.jsx';
 import SurveyDistribute from '../pages/Surveys/Distribute/index.jsx';
-import SurveyResults from '../pages/Surveys/Results/index.jsx';
+import SurveyResults from '../pages/Surveys/Results/SurveyResults.jsx';
 import CollectorList from '../pages/Collectors/CollectorList/index.jsx';
 import PublicResponseForm from '../pages/Public/ResponseForm/index.jsx';
 import LLM from '../pages/LLM/index.jsx';

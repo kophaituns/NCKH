@@ -12,6 +12,7 @@ const Survey = require('./survey.model')(sequelize, DataTypes);
 const SurveyCollector = require('./surveyCollector.model')(sequelize, DataTypes);
 const SurveyResponse = require('./surveyResponse.model')(sequelize, DataTypes);
 const Answer = require('./answer.model')(sequelize, DataTypes);
+const ResponseAnswer = require('./responseAnswer.model')(sequelize, DataTypes);
 const AnalysisResult = require('./analysisResult.model')(sequelize, DataTypes);
 const Visualization = require('./visualization.model')(sequelize, DataTypes);
 const LlmPrompt = require('./llmPrompt.model')(sequelize, DataTypes);
@@ -19,6 +20,7 @@ const LlmInteraction = require('./llmInteraction.model')(sequelize, DataTypes);
 const ChatConversation = require('./chatConversation.model')(sequelize, DataTypes);
 const ChatMessage = require('./chatMessage.model')(sequelize, DataTypes);
 const SurveyLink = require('./surveyLink.model')(sequelize, DataTypes);
+const GeneratedQuestion = require('./generatedQuestion.model')(sequelize, DataTypes);
 
 // Define associations
 User.hasMany(SurveyTemplate, { foreignKey: 'created_by' });
@@ -52,6 +54,16 @@ SurveyResponse.belongsTo(User, { foreignKey: 'respondent_id' });
 SurveyResponse.hasMany(Answer, { foreignKey: 'survey_response_id' });
 Answer.belongsTo(SurveyResponse, { foreignKey: 'survey_response_id' });
 
+// ResponseAnswer associations
+SurveyResponse.hasMany(ResponseAnswer, { foreignKey: 'response_id', as: 'responseAnswers' });
+ResponseAnswer.belongsTo(SurveyResponse, { foreignKey: 'response_id', as: 'response' });
+
+Question.hasMany(ResponseAnswer, { foreignKey: 'question_id' });
+ResponseAnswer.belongsTo(Question, { foreignKey: 'question_id', as: 'question' });
+
+QuestionOption.hasMany(ResponseAnswer, { foreignKey: 'selected_option_id' });
+ResponseAnswer.belongsTo(QuestionOption, { foreignKey: 'selected_option_id', as: 'selectedOption' });
+
 Question.hasMany(Answer, { foreignKey: 'question_id' });
 Answer.belongsTo(Question, { foreignKey: 'question_id' });
 
@@ -80,8 +92,9 @@ SurveyCollector.belongsTo(Survey, { foreignKey: 'survey_id', as: 'Survey' });
 User.hasMany(SurveyCollector, { foreignKey: 'created_by' });
 SurveyCollector.belongsTo(User, { foreignKey: 'created_by' });
 
-SurveyCollector.hasMany(SurveyResponse, { foreignKey: 'collector_id' });
-SurveyResponse.belongsTo(SurveyCollector, { foreignKey: 'collector_id' });
+// Removed collector_id associations since that column doesn't exist
+// SurveyCollector.hasMany(SurveyResponse, { foreignKey: 'collector_id' });
+// SurveyResponse.belongsTo(SurveyCollector, { foreignKey: 'collector_id' });
 
 // Chat associations
 User.hasMany(ChatConversation, { foreignKey: 'user_id' });
@@ -97,6 +110,10 @@ SurveyLink.belongsTo(Survey, { foreignKey: 'survey_id', as: 'survey' });
 User.hasMany(SurveyLink, { foreignKey: 'created_by' });
 SurveyLink.belongsTo(User, { foreignKey: 'created_by', as: 'creator' });
 
+// GeneratedQuestion associations
+User.hasMany(GeneratedQuestion, { foreignKey: 'generated_by' });
+GeneratedQuestion.belongsTo(User, { foreignKey: 'generated_by', as: 'generator' });
+
 module.exports = {
   sequelize,
   User,
@@ -108,11 +125,13 @@ module.exports = {
   SurveyCollector,
   SurveyResponse,
   Answer,
+  ResponseAnswer,
   AnalysisResult,
   Visualization,
   LlmPrompt,
   LlmInteraction,
   ChatConversation,
   ChatMessage,
-  SurveyLink
+  SurveyLink,
+  GeneratedQuestion
 };

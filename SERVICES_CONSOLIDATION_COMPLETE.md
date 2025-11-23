@@ -160,7 +160,7 @@ Message: refactor: consolidate services - move TokenService to api/services,
 
 ---
 
-## 🎉 Conclusion
+##  Conclusion
 
 **Services folder consolidation complete!**
 

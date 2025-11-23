@@ -16,10 +16,6 @@ module.exports = (sequelize, DataTypes) => {
         type: DataTypes.INTEGER,
         allowNull: true,  // Allow null for anonymous responses
       },
-      collector_id: {
-        type: DataTypes.INTEGER,
-        allowNull: true,
-      },
       start_time: {
         type: DataTypes.DATE,
         allowNull: true,

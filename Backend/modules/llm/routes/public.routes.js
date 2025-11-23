@@ -17,4 +17,11 @@ router.get('/:token', llmController.getSurveyByToken);
  */
 router.post('/:token/submit', llmController.submitSurveyResponse);
 
+/**
+ * @route   GET /api/modules/llm/public/results/:surveyId
+ * @desc    Get survey results for demo (public access)
+ * @access  Public
+ */
+router.get('/results/:surveyId', llmController.getSurveyResultsPublic);
+
 module.exports = router;

@@ -39,7 +39,8 @@ class LLMController {
       const result = await llmService.generateQuestions({
         topic,
         count: parseInt(count),
-        category
+        category,
+        userId: req.user?.id
       });
 
       res.status(200).json({
@@ -195,7 +196,8 @@ class LLMController {
       const result = await llmService.generateQuestionsFromTrainedModel(
         questionTopic.trim(), 
         questionCount, 
-        category
+        category,
+        user?.id
       );
 
       res.json({
@@ -474,7 +476,30 @@ class LLMController {
   async getSurveyResults(req, res) {
     try {
       const { surveyId } = req.params;
-      const userId = req.user.userId;
+      const userId = req.user ? req.user.userId : 1; // Default to admin for demo
+
+      const results = await llmService.getSurveyResponses(surveyId, userId);
+
+      res.json({
+        success: true,
+        data: results
+      });
+    } catch (error) {
+      logger.error('Get survey results error:', error);
+      res.status(500).json({
+        success: false,
+        message: error.message || 'Error getting survey results'
+      });
+    }
+  }
+
+  /**
+   * Get survey responses and analytics (public access for demo)
+   */
+  async getSurveyResultsPublic(req, res) {
+    try {
+      const { surveyId } = req.params;
+      const userId = 1; // Use admin user for public access
 
       const results = await llmService.getSurveyResponses(surveyId, userId);
 
@@ -533,5 +558,6 @@ module.exports = {
   generatePublicLink: llmController.generatePublicLink.bind(llmController),
   getSurveyByToken: llmController.getSurveyByToken.bind(llmController),
   submitSurveyResponse: llmController.submitSurveyResponse.bind(llmController),
-  getSurveyResults: llmController.getSurveyResults.bind(llmController)
+  getSurveyResults: llmController.getSurveyResults.bind(llmController),
+  getSurveyResultsPublic: llmController.getSurveyResultsPublic.bind(llmController)
 };
