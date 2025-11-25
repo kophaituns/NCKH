@@ -22,6 +22,7 @@ import SurveyResults from '../pages/Surveys/Results/index.jsx';
 import CollectorList from '../pages/Collectors/CollectorList/index.jsx';
 import Workspaces from '../pages/Workspaces/index.jsx';
 import WorkspaceDetail from '../pages/Workspaces/WorkspaceDetail/index.jsx';
+import ManageInvitations from '../pages/Workspaces/ManageInvitations/index.jsx';
 import Notifications from '../pages/User/Notifications/index.jsx';
 import PublicResponseForm from '../pages/Public/ResponseForm/index.jsx';
 import WorkspaceInvitationAccept from '../pages/Public/WorkspaceInvitationAccept/index.jsx';
@@ -235,6 +236,18 @@ const AppRoutes = () => {
           <ProtectedRoute allowedRoles={['admin', 'creator']}>
             <DefaultLayout>
               <WorkspaceDetail />
+            </DefaultLayout>
+          </ProtectedRoute>
+        } 
+      />
+
+      {/* Manage Workspace Invitations Route */}
+      <Route 
+        path="/workspaces/:id/invitations" 
+        element={
+          <ProtectedRoute allowedRoles={['admin', 'creator']}>
+            <DefaultLayout>
+              <ManageInvitations />
             </DefaultLayout>
           </ProtectedRoute>
         } 

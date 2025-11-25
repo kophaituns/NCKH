@@ -12,7 +12,7 @@ module.exports = (sequelize, DataTypes) => {
         type: DataTypes.INTEGER,
         allowNull: false,
       },
-      inviter_id: {
+      invited_by: {
         type: DataTypes.INTEGER,
         allowNull: false,
       },

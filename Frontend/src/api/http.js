@@ -33,15 +33,23 @@ http.interceptors.response.use(
     // Safely extract data, handle cases where response might not have expected structure
     const data = response.data;
     
+    // Handle empty or undefined responses
+    if (!data || typeof data !== 'object') {
+      return {
+        ...response,
+        data: {
+          ok: response.status >= 200 && response.status < 300,
+          message: 'Success'
+        }
+      };
+    }
+    
     // Ensure we always return an object with ok/success flag
-    if (typeof data === 'object' && data !== null) {
-      // If backend sent ok or success, keep it
-      if (!('ok' in data) && 'success' in data) {
-        data.ok = data.success;
-      }
-      if (!('success' in data) && 'ok' in data) {
-        data.success = data.ok;
-      }
+    if (!('ok' in data) && 'success' in data) {
+      data.ok = data.success;
+    }
+    if (!('success' in data) && 'ok' in data) {
+      data.success = data.ok;
     }
     
     return response;

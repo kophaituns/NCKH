@@ -104,6 +104,9 @@ WorkspaceInvitation.belongsTo(User, { foreignKey: 'invited_by', as: 'inviter' })
 Workspace.hasMany(WorkspaceActivity, { foreignKey: 'workspace_id', as: 'activities' });
 WorkspaceActivity.belongsTo(Workspace, { foreignKey: 'workspace_id' });
 
+User.hasMany(WorkspaceActivity, { foreignKey: 'user_id' });
+WorkspaceActivity.belongsTo(User, { foreignKey: 'user_id', as: 'user' });
+
 Workspace.hasMany(Survey, { foreignKey: 'workspace_id', as: 'surveys' });
 Survey.belongsTo(Workspace, { foreignKey: 'workspace_id' });
 
