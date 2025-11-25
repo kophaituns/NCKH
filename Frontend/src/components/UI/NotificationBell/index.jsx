@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import styles from './NotificationBell.module.scss';
 import NotificationService from '../../../api/services/notification.service';
+import useRealTimeNotifications from '../../../hooks/useRealTimeNotifications';
 import NotificationPanel from '../NotificationPanel';
 
 const NotificationBell = () => {
@@ -11,10 +12,13 @@ const NotificationBell = () => {
 
   useEffect(() => {
     fetchUnreadCount();
-    // Poll for new notifications every 30 seconds
-    const interval = setInterval(fetchUnreadCount, 30000);
-    return () => clearInterval(interval);
   }, []);
+
+  // Setup real-time notifications with fallback polling
+  useRealTimeNotifications(
+    () => fetchUnreadCount(), // onNewNotification callback
+    (count) => setUnreadCount(count) // onUnreadCountUpdate callback
+  );
 
   const fetchUnreadCount = async () => {
     const result = await NotificationService.getUnreadCount();

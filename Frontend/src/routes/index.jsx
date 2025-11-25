@@ -24,6 +24,7 @@ import Workspaces from '../pages/Workspaces/index.jsx';
 import WorkspaceDetail from '../pages/Workspaces/WorkspaceDetail/index.jsx';
 import Notifications from '../pages/User/Notifications/index.jsx';
 import PublicResponseForm from '../pages/Public/ResponseForm/index.jsx';
+import WorkspaceInvitationAccept from '../pages/Public/WorkspaceInvitationAccept/index.jsx';
 
 // Placeholder components for routes not yet implemented
 const ComingSoon = ({ title }) => (
@@ -297,6 +298,12 @@ const AppRoutes = () => {
       <Route 
         path="/collect/:token" 
         element={<PublicResponseForm />} 
+      />
+
+      {/* Workspace Invitation Acceptance Route (public, no auth required) */}
+      <Route 
+        path="/workspace/invitation/:inviteToken/accept" 
+        element={<WorkspaceInvitationAccept />} 
       />
 
       {/* Profile & Settings (All authenticated users) */}

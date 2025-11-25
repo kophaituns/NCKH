@@ -1,8 +1,10 @@
 // src/server.js
 // Server entry point - starts the Express app
 require('dotenv').config();
+const http = require('http');
 const app = require('./app');
 const logger = require('./utils/logger');
+const { initializeSocket } = require('./config/socket.config');
 
 // Validate required environment variables with defaults
 const requiredEnvVars = {
@@ -37,7 +39,16 @@ if (missingCritical.length > 0) {
 
 const PORT = process.env.PORT;
 
-const server = app.listen(PORT, async () => {
+// Create HTTP server
+const httpServer = http.createServer(app);
+
+// Initialize Socket.IO
+const io = initializeSocket(httpServer);
+
+// Make io accessible globally for use in controllers/services
+app.set('io', io);
+
+const server = httpServer.listen(PORT, async () => {
   logger.info(`🚀 Server running on port ${PORT}`);
   logger.info(`📍 Environment: ${process.env.NODE_ENV || 'development'}`);
   
@@ -69,6 +80,9 @@ const server = app.listen(PORT, async () => {
   logger.info(`   Collectors: http://localhost:${PORT}/api/modules/collectors/*`);
   logger.info(`   Responses: http://localhost:${PORT}/api/modules/responses/*`);
   logger.info(`   Analytics: http://localhost:${PORT}/api/modules/analytics/*`);
+  if (io) {
+    logger.info(`\n🔌 WebSocket: ws://localhost:${PORT}/socket.io`);
+  }
 });
 
 // Graceful shutdown
