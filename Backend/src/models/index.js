@@ -16,6 +16,7 @@ const AnalysisResult = require('./analysisResult.model')(sequelize, DataTypes);
 const Visualization = require('./visualization.model')(sequelize, DataTypes);
 const LlmPrompt = require('./llmPrompt.model')(sequelize, DataTypes);
 const LlmInteraction = require('./llmInteraction.model')(sequelize, DataTypes);
+const Notification = require('./notification.model')(sequelize, DataTypes);
 const Workspace = require('./workspace.model')(sequelize, DataTypes);
 const WorkspaceMember = require('./workspaceMember.model')(sequelize, DataTypes);
 const WorkspaceInvitation = require('./workspaceInvitation.model')(sequelize, DataTypes);
@@ -70,6 +71,10 @@ LlmInteraction.belongsTo(LlmPrompt, { foreignKey: 'prompt_id' });
 User.hasMany(LlmInteraction, { foreignKey: 'user_id' });
 LlmInteraction.belongsTo(User, { foreignKey: 'user_id' });
 
+// Notification associations
+User.hasMany(Notification, { foreignKey: 'user_id', as: 'notifications' });
+Notification.belongsTo(User, { foreignKey: 'user_id' });
+
 // SurveyCollector associations
 Survey.hasMany(SurveyCollector, { foreignKey: 'survey_id', as: 'Collectors' });
 SurveyCollector.belongsTo(Survey, { foreignKey: 'survey_id', as: 'Survey' });
@@ -117,6 +122,7 @@ module.exports = {
   Visualization,
   LlmPrompt,
   LlmInteraction,
+  Notification,
   Workspace,
   WorkspaceMember,
   WorkspaceInvitation,

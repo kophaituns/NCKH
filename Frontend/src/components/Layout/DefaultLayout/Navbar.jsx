@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import NotificationBell from '../../UI/NotificationBell';
 import styles from './Navbar.module.scss';
 
 const Navbar = ({ onToggleSidebar }) => {
@@ -59,7 +60,9 @@ const Navbar = ({ onToggleSidebar }) => {
 
       <div className={styles.navbarRight}>
         {state.user && (
-          <div className={styles.userSection}>
+          <>
+            <NotificationBell />
+            <div className={styles.userSection}>
             <div 
               className={styles.userInfo}
               onClick={() => setShowUserMenu(!showUserMenu)}
@@ -132,10 +135,11 @@ const Navbar = ({ onToggleSidebar }) => {
               </div>
             )}
           </div>
+            </>
         )}
       </div>
 
-      {/* Click outside to close dropdown */}
+      {/* Click outside to close dropdown */
       {showUserMenu && (
         <div 
           className={styles.overlay}
