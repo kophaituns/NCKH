@@ -39,9 +39,11 @@ class WorkspaceController {
         });
       }
 
+      const io = req.app.get('io'); // Get Socket.IO instance
       const workspace = await workspaceService.createWorkspace(
         { name, description },
-        req.user.id
+        req.user.id,
+        io // Pass io for real-time notifications
       );
 
       res.status(201).json({
@@ -349,11 +351,13 @@ class WorkspaceController {
         });
       }
 
+      const io = req.app.get('io'); // Get Socket.IO instance
       const invitation = await workspaceService.inviteToWorkspace(
         id, 
         req.user.id, 
         email, 
-        role
+        role,
+        io // Pass io for real-time notifications
       );
 
       res.status(201).json({

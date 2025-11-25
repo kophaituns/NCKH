@@ -78,7 +78,7 @@ class WorkspaceService {
   /**
    * Create a new workspace
    */
-  async createWorkspace(data, userId) {
+  async createWorkspace(data, userId, io = null) {
     const { name, description } = data;
 
     if (!name || name.trim() === '') {
@@ -181,7 +181,7 @@ class WorkspaceService {
   /**
    * Add member to workspace (owner only)
    */
-  async addMember(workspaceId, userId, newMemberId, role, currentUserId) {
+  async addMember(workspaceId, userId, newMemberId, role, currentUserId, io = null) {
     const workspace = await Workspace.findByPk(workspaceId);
     if (!workspace) {
       throw new Error('Workspace not found');
@@ -218,6 +218,22 @@ class WorkspaceService {
     if (!created) {
       // Update existing membership
       await member.update({ role });
+    }
+
+    // Send notification if member was added
+    if (created) {
+      try {
+        const currentUser = await User.findByPk(currentUserId);
+        await notificationService.notifyMemberAdded(
+          newMemberId,
+          workspaceId,
+          workspace.name,
+          currentUser?.full_name || currentUser?.username || 'A user',
+          io // Pass io for real-time notifications
+        );
+      } catch (notifError) {
+        logger.warn(`[WorkspaceService] Failed to notify member: ${notifError.message}`);
+      }
     }
 
     logger.info(
@@ -540,7 +556,7 @@ class WorkspaceService {
   /**
    * Invite user to workspace
    */
-  async inviteToWorkspace(workspaceId, inviterUserId, inviteeEmail, role = 'member') {
+  async inviteToWorkspace(workspaceId, inviterUserId, inviteeEmail, role = 'member', io = null) {
     // Validate workspace exists and inviter has permission
     const workspace = await Workspace.findByPk(workspaceId, {
       include: [
@@ -640,7 +656,8 @@ class WorkspaceService {
           workspaceId,
           inviterUserId,
           `You've been invited to join "${workspace.name}"`,
-          token
+          token,
+          io // Pass io for real-time notifications
         );
       } catch (notifError) {
         logger.warn(`[WorkspaceService] Failed to create notification: ${notifError.message}`);

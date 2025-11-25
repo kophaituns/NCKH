@@ -1,6 +1,6 @@
 // src/hooks/useRealTimeNotifications.js
 
-import { useEffect, useCallback, useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import socketService from '../api/services/socket.service';
 import NotificationService from '../api/services/notification.service';
 
@@ -11,6 +11,7 @@ import NotificationService from '../api/services/notification.service';
  */
 export const useRealTimeNotifications = (onNewNotification, onUnreadCountUpdate) => {
   const unsubscribeRef = useRef(null);
+  const pollIntervalRef = useRef(null);
   const isInitializedRef = useRef(false);
 
   useEffect(() => {
@@ -39,7 +40,7 @@ export const useRealTimeNotifications = (onNewNotification, onUnreadCountUpdate)
     });
 
     // Fallback: If socket is not available, use polling
-    const pollInterval = setInterval(async () => {
+    pollIntervalRef.current = setInterval(async () => {
       if (!socketService.isConnected) {
         const result = await NotificationService.getUnreadCount();
         if (result.ok && onUnreadCountUpdate) {
@@ -49,10 +50,13 @@ export const useRealTimeNotifications = (onNewNotification, onUnreadCountUpdate)
     }, 30000); // Poll every 30 seconds if socket is not connected
 
     return () => {
+      // Cleanup on unmount
       if (unsubscribeRef.current) {
         unsubscribeRef.current();
       }
-      clearInterval(pollInterval);
+      if (pollIntervalRef.current) {
+        clearInterval(pollIntervalRef.current);
+      }
     };
   }, [onNewNotification, onUnreadCountUpdate]);
 };
