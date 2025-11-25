@@ -713,11 +713,16 @@ class WorkspaceService {
       return invitation.workspace;
     }
 
-    // Add user as member
-    await WorkspaceMember.create({
-      workspace_id: invitation.workspace_id,
-      user_id: userId,
-      role: invitation.role
+    // Add user as member - use findOrCreate to handle race conditions
+    const [member, created] = await WorkspaceMember.findOrCreate({
+      where: {
+        workspace_id: invitation.workspace_id,
+        user_id: userId
+      },
+      defaults: {
+        role: invitation.role,
+        is_active: true
+      }
     });
 
     // Update invitation status
@@ -726,11 +731,13 @@ class WorkspaceService {
       invitee_id: userId
     });
 
-    // Log activity
-    await this.logActivity(invitation.workspace_id, userId, 'joined', 'workspace', invitation.workspace_id, {
-      via_invitation: true,
-      role: invitation.role
-    });
+    // Log activity only if member was newly created
+    if (created) {
+      await this.logActivity(invitation.workspace_id, userId, 'joined', 'workspace', invitation.workspace_id, {
+        via_invitation: true,
+        role: invitation.role
+      });
+    }
 
     return invitation.workspace;
   }
