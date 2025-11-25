@@ -21,6 +21,7 @@ import SurveyDistribute from '../pages/Surveys/Distribute/index.jsx';
 import SurveyResults from '../pages/Surveys/Results/index.jsx';
 import CollectorList from '../pages/Collectors/CollectorList/index.jsx';
 import Workspaces from '../pages/Workspaces/index.jsx';
+import WorkspaceDetail from '../pages/Workspaces/WorkspaceDetail/index.jsx';
 import PublicResponseForm from '../pages/Public/ResponseForm/index.jsx';
 
 // Placeholder components for routes not yet implemented
@@ -220,6 +221,18 @@ const AppRoutes = () => {
           <ProtectedRoute allowedRoles={['admin', 'creator']}>
             <DefaultLayout>
               <Workspaces />
+            </DefaultLayout>
+          </ProtectedRoute>
+        } 
+      />
+      
+      {/* Workspace Detail Route */}
+      <Route 
+        path="/workspaces/:id" 
+        element={
+          <ProtectedRoute allowedRoles={['admin', 'creator']}>
+            <DefaultLayout>
+              <WorkspaceDetail />
             </DefaultLayout>
           </ProtectedRoute>
         } 
