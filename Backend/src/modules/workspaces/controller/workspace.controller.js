@@ -120,7 +120,15 @@ class WorkspaceController {
         });
       }
 
-      await workspaceService.addMember(id, userId, userId, role, req.user.id);
+      const io = req.app.get('io'); // Get Socket.IO instance
+      await workspaceService.addMember(
+        id,           // workspaceId
+        req.user.id,  // userId (not used in current addMember)
+        userId,       // newMemberId
+        role,         // role
+        req.user.id,  // currentUserId
+        io            // Socket.IO instance
+      );
 
       res.status(200).json({
         ok: true,
@@ -432,29 +440,6 @@ class WorkspaceController {
       res.status(400).json({
         ok: false,
         message: error.message || 'Error fetching workspace members'
-      });
-    }
-  }
-
-  /**
-   * DELETE /api/modules/workspaces/:id/members/:userId
-   * Remove member from workspace
-   */
-  async removeMember(req, res) {
-    try {
-      const { id, userId } = req.params;
-
-      await workspaceService.removeMember(id, req.user.id, parseInt(userId));
-
-      res.status(200).json({
-        ok: true,
-        message: 'Member removed successfully'
-      });
-    } catch (error) {
-      logger.error('Remove member error:', error);
-      res.status(400).json({
-        ok: false,
-        message: error.message || 'Error removing member'
       });
     }
   }
