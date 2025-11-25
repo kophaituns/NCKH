@@ -22,6 +22,7 @@ import SurveyResults from '../pages/Surveys/Results/index.jsx';
 import CollectorList from '../pages/Collectors/CollectorList/index.jsx';
 import Workspaces from '../pages/Workspaces/index.jsx';
 import WorkspaceDetail from '../pages/Workspaces/WorkspaceDetail/index.jsx';
+import Notifications from '../pages/User/Notifications/index.jsx';
 import PublicResponseForm from '../pages/Public/ResponseForm/index.jsx';
 
 // Placeholder components for routes not yet implemented
@@ -233,6 +234,18 @@ const AppRoutes = () => {
           <ProtectedRoute allowedRoles={['admin', 'creator']}>
             <DefaultLayout>
               <WorkspaceDetail />
+            </DefaultLayout>
+          </ProtectedRoute>
+        } 
+      />
+
+      {/* Notifications Routes - All authenticated users */}
+      <Route 
+        path="/notifications" 
+        element={
+          <ProtectedRoute>
+            <DefaultLayout>
+              <Notifications />
             </DefaultLayout>
           </ProtectedRoute>
         } 

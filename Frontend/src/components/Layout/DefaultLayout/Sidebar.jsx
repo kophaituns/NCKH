@@ -9,7 +9,9 @@ const Sidebar = ({ isOpen, onClose }) => {
 
   // Define menu items based on roles
   const getMenuItems = () => {
-    const baseItems = [];
+    const baseItems = [
+      { path: '/notifications', label: 'Notifications', icon: 'notifications' },
+    ];
 
     if (userRole === 'admin') {
       return [
@@ -102,6 +104,13 @@ const Sidebar = ({ isOpen, onClose }) => {
           <rect x="12" y="3" width="5" height="5" rx="1" stroke="currentColor" strokeWidth="1.5"/>
           <rect x="3" y="12" width="5" height="5" rx="1" stroke="currentColor" strokeWidth="1.5"/>
           <rect x="12" y="12" width="5" height="5" rx="1" stroke="currentColor" strokeWidth="1.5"/>
+        </svg>
+      ),
+      notifications: (
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+          <path d="M15 17H5a1 1 0 01-1-1v-5a4 4 0 014-4h4a4 4 0 014 4v5a1 1 0 01-1 1z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+          <path d="M9 2a1 1 0 012 0" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+          <circle cx="16" cy="6" r="2.5" fill="currentColor"/>
         </svg>
       ),
     };
