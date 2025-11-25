@@ -121,6 +121,15 @@ const CreatorDashboard = () => {
         <div className={styles.actions}>
           <button 
             className={styles.actionButton}
+            onClick={() => navigate('/workspaces')}
+          >
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+              <path d="M3 3h5v5H3V3zm9 0h5v5h-5V3zm-9 9h5v5H3v-5zm9 0h5v5h-5v-5z" stroke="currentColor" strokeWidth="1.5" fill="none"/>
+            </svg>
+            My Workspaces
+          </button>
+          <button 
+            className={styles.actionButton}
             onClick={() => navigate('/analytics')}
           >
             <svg width="20" height="20" viewBox="0 0 20 20" fill="none">

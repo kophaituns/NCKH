@@ -14,8 +14,8 @@ router.use('/templates', modules.templates.routes);
 router.use('/analytics', modules.analytics.routes);
 router.use('/export', modules.export.routes);
 router.use('/collectors', modules.collectors.routes);
-
-// TODO: Add these routes when modules are implemented
-// router.use('/llm', modules.llm.routes);
+router.use('/llm', modules.llm.routes);
+router.use('/notifications', modules.notifications.routes);
+router.use('/workspaces', modules.workspaces.routes);
 
 module.exports = router;

@@ -1,18 +1,18 @@
 // src/modules/index.js
 // Central module loader for modular architecture
 
-const path = require('path');
-const modulesPath = path.join(__dirname, '../../modules');
-
-const authRbac = require(path.join(modulesPath, 'auth-rbac'));
-const users = require(path.join(modulesPath, 'users'));
-const surveys = require(path.join(modulesPath, 'surveys'));
-const responses = require(path.join(modulesPath, 'responses'));
-const templates = require(path.join(modulesPath, 'templates'));
-const analytics = require(path.join(modulesPath, 'analytics'));
-const exportModule = require(path.join(modulesPath, 'export'));
-const collectors = require(path.join(modulesPath, 'collectors'));
-const health = require(path.join(modulesPath, 'health'));
+const authRbac = require('./auth-rbac');
+const users = require('./users');
+const surveys = require('./surveys');
+const responses = require('./responses');
+const templates = require('./templates');
+const analytics = require('./analytics');
+const exportModule = require('./export');
+const collectors = require('./collectors');
+const health = require('./health');
+const llm = require('./llm');
+const notifications = require('./notifications');
+const workspaces = require('./workspaces');
 
 module.exports = {
   authRbac,
@@ -23,5 +23,8 @@ module.exports = {
   analytics,
   export: exportModule,
   collectors,
-  health
+  health,
+  llm,
+  notifications,
+  workspaces
 };
