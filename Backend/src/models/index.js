@@ -16,6 +16,10 @@ const AnalysisResult = require('./analysisResult.model')(sequelize, DataTypes);
 const Visualization = require('./visualization.model')(sequelize, DataTypes);
 const LlmPrompt = require('./llmPrompt.model')(sequelize, DataTypes);
 const LlmInteraction = require('./llmInteraction.model')(sequelize, DataTypes);
+const Workspace = require('./workspace.model')(sequelize, DataTypes);
+const WorkspaceMember = require('./workspaceMember.model')(sequelize, DataTypes);
+const WorkspaceInvitation = require('./workspaceInvitation.model')(sequelize, DataTypes);
+const WorkspaceActivity = require('./workspaceActivity.model')(sequelize, DataTypes);
 
 // Define associations
 User.hasMany(SurveyTemplate, { foreignKey: 'created_by' });
@@ -76,6 +80,28 @@ SurveyCollector.belongsTo(User, { foreignKey: 'created_by' });
 SurveyCollector.hasMany(SurveyResponse, { foreignKey: 'collector_id' });
 SurveyResponse.belongsTo(SurveyCollector, { foreignKey: 'collector_id' });
 
+// Workspace associations
+User.hasMany(Workspace, { foreignKey: 'owner_id', as: 'ownedWorkspaces' });
+Workspace.belongsTo(User, { foreignKey: 'owner_id', as: 'owner' });
+
+Workspace.hasMany(WorkspaceMember, { foreignKey: 'workspace_id', as: 'members' });
+WorkspaceMember.belongsTo(Workspace, { foreignKey: 'workspace_id' });
+
+User.hasMany(WorkspaceMember, { foreignKey: 'user_id' });
+WorkspaceMember.belongsTo(User, { foreignKey: 'user_id' });
+
+Workspace.hasMany(WorkspaceInvitation, { foreignKey: 'workspace_id', as: 'invitations' });
+WorkspaceInvitation.belongsTo(Workspace, { foreignKey: 'workspace_id' });
+
+User.hasMany(WorkspaceInvitation, { foreignKey: 'invited_by', as: 'sentInvitations' });
+WorkspaceInvitation.belongsTo(User, { foreignKey: 'invited_by', as: 'inviter' });
+
+Workspace.hasMany(WorkspaceActivity, { foreignKey: 'workspace_id', as: 'activities' });
+WorkspaceActivity.belongsTo(Workspace, { foreignKey: 'workspace_id' });
+
+Workspace.hasMany(Survey, { foreignKey: 'workspace_id', as: 'surveys' });
+Survey.belongsTo(Workspace, { foreignKey: 'workspace_id' });
+
 module.exports = {
   sequelize,
   User,
@@ -90,5 +116,9 @@ module.exports = {
   AnalysisResult,
   Visualization,
   LlmPrompt,
-  LlmInteraction
+  LlmInteraction,
+  Workspace,
+  WorkspaceMember,
+  WorkspaceInvitation,
+  WorkspaceActivity
 };
