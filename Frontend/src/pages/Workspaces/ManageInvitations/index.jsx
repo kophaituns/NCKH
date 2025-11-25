@@ -26,7 +26,7 @@ const ManageInvitations = () => {
         setError('Failed to load workspace');
         return;
       }
-      setWorkspace(workspaceResult.workspace);
+      setWorkspace(workspaceResult.data);
 
       // Get pending invitations
       const invitationsResult = await WorkspaceService.getPendingInvitations(workspaceId);

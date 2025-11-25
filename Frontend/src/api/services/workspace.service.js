@@ -499,6 +499,11 @@ const WorkspaceService = {
   // Alias for removeWorkspaceMember for backward compatibility
   removeMember(workspaceId, memberId) {
     return this.removeWorkspaceMember(workspaceId, memberId);
+  },
+
+  // Alias for getWorkspaceById for backward compatibility
+  getWorkspace(id) {
+    return this.getWorkspaceById(id);
   }
 };
 
