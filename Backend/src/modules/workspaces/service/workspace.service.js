@@ -941,15 +941,15 @@ class WorkspaceService {
 
     return invitations.map(inv => ({
       id: inv.id,
-      workspaceId: inv.workspace_id,
-      inviteeEmail: inv.invitee_email,
+      workspace_id: inv.workspace_id,
+      invitee_email: inv.invitee_email,
       inviter: inv.inviter,
       role: inv.role,
       status: inv.status,
       token: inv.token,
-      expiresAt: inv.expires_at,
-      createdAt: inv.created_at,
-      sentAt: inv.sent_at
+      expires_at: inv.expires_at,
+      created_at: inv.created_at,
+      sent_at: inv.sent_at
     }));
   }
 
