@@ -293,7 +293,7 @@ const WorkspaceDetail = () => {
           {canInvite && (
             <button 
               className={styles.manageInvitationsButton}
-              onClick={() => navigate(`/workspace/${id}/invitations`)}
+              onClick={() => navigate(`/workspaces/${id}/invitations`)}
             >
               📋 Manage Invitations
             </button>

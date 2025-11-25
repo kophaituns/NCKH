@@ -621,7 +621,7 @@ class WorkspaceService {
 
     const invitation = await WorkspaceInvitation.create({
       workspace_id: workspaceId,
-      inviter_id: inviterUserId,
+      invited_by: inviterUserId,
       invitee_email: inviteeEmail,
       invitee_id: inviteeUser?.id || null,
       role,
