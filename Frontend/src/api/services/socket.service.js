@@ -1,5 +1,7 @@
 // src/api/services/socket.service.js
 
+import io from 'socket.io-client';
+
 /**
  * Socket.IO Service for Real-time Notifications
  * Handles WebSocket connection and event listeners
@@ -24,17 +26,10 @@ class SocketService {
     }
 
     try {
-      // Check if Socket.IO is available
-      if (typeof window.io === 'undefined') {
-        console.warn('[SocketService] Socket.IO library not loaded. Using fallback polling.');
-        this.useFallbackPolling();
-        return;
-      }
-
       const socketUrl = process.env.REACT_APP_API_URL || 'http://localhost:5000';
-      const token = localStorage.getItem('authToken');
+      const token = localStorage.getItem('token');
 
-      this.socket = window.io(socketUrl, {
+      this.socket = io(socketUrl, {
         auth: {
           token
         },
