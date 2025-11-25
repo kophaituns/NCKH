@@ -30,14 +30,18 @@ const WorkspaceService = {
         total: total,
       };
     } catch (error) {
-      console.error('[WorkspaceService.getMyWorkspaces] ERROR:', error.message || error);
+      console.error('[WorkspaceService.getMyWorkspaces] ERROR:', error);
+      
+      // If error response has data, use that message
+      const errorMessage = error.response?.data?.message || error.message || 'Failed to fetch workspaces';
+      console.error('[WorkspaceService.getMyWorkspaces] Error message:', errorMessage);
 
       // Always return an object with ok: false, never throw
       return {
         ok: false,
         items: [],
         total: 0,
-        error: error.message || 'Failed to fetch workspaces',
+        error: errorMessage,
       };
     }
   },
