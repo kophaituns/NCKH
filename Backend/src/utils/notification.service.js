@@ -5,9 +5,31 @@ const logger = require('./logger');
 
 class NotificationService {
   /**
+   * Emit notification via Socket.IO if available
+   */
+  static emitNotificationToUser(io, userId, notification) {
+    if (!io) return; // Socket.IO not available
+
+    try {
+      io.to(`user:${userId}`).emit('notification:new', {
+        id: notification.id,
+        type: notification.type,
+        title: notification.title,
+        body: notification.message,
+        data: notification.data,
+        created_at: notification.created_at,
+        is_read: notification.is_read
+      });
+      logger.debug(`[NotificationService] Real-time notification emitted to user ${userId}`);
+    } catch (error) {
+      logger.error('[NotificationService] Error emitting real-time notification:', error.message);
+    }
+  }
+
+  /**
    * Create notification for workspace invitation
    */
-  async notifyWorkspaceInvitation(userId, workspaceId, inviterId, message, token) {
+  async notifyWorkspaceInvitation(userId, workspaceId, inviterId, message, token, io = null) {
     try {
       logger.info(`[NotificationService] Creating invitation notification - token: ${token ? 'present' : 'missing'}`);
       const notification = await Notification.create({
@@ -22,6 +44,10 @@ class NotificationService {
       });
 
       logger.info(`[NotificationService] Created notification for user ${userId}: workspace_id=${workspaceId}, has_data=${token ? 'yes' : 'no'}`);
+      
+      // Emit via Socket.IO
+      NotificationService.emitNotificationToUser(io, userId, notification);
+      
       return notification;
     } catch (error) {
       logger.error('[NotificationService] Error creating workspace invitation notification:', error.message);
@@ -32,7 +58,7 @@ class NotificationService {
   /**
    * Create notification for survey response
    */
-  async notifySurveyResponse(surveyCreatorId, surveyId, responseCount, message) {
+  async notifySurveyResponse(surveyCreatorId, surveyId, responseCount, message, io = null) {
     try {
       const notification = await Notification.create({
         user_id: surveyCreatorId,
@@ -45,6 +71,10 @@ class NotificationService {
       });
 
       logger.info(`[NotificationService] Created response notification for survey ${surveyId}`);
+      
+      // Emit via Socket.IO
+      NotificationService.emitNotificationToUser(io, surveyCreatorId, notification);
+      
       return notification;
     } catch (error) {
       logger.error('[NotificationService] Error creating survey response notification:', error.message);
@@ -54,7 +84,7 @@ class NotificationService {
   /**
    * Create notification for member added to workspace
    */
-  async notifyMemberAdded(userId, workspaceId, workspaceName, addedByName) {
+  async notifyMemberAdded(userId, workspaceId, workspaceName, addedByName, io = null) {
     try {
       const notification = await Notification.create({
         user_id: userId,
@@ -67,6 +97,10 @@ class NotificationService {
       });
 
       logger.info(`[NotificationService] Created member added notification for user ${userId}`);
+      
+      // Emit via Socket.IO
+      NotificationService.emitNotificationToUser(io, userId, notification);
+      
       return notification;
     } catch (error) {
       logger.error('[NotificationService] Error creating member added notification:', error.message);
