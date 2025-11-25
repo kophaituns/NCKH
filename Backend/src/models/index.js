@@ -14,8 +14,6 @@ const SurveyResponse = require('./surveyResponse.model')(sequelize, DataTypes);
 const Answer = require('./answer.model')(sequelize, DataTypes);
 const AnalysisResult = require('./analysisResult.model')(sequelize, DataTypes);
 const Visualization = require('./visualization.model')(sequelize, DataTypes);
-const LlmPrompt = require('./llmPrompt.model')(sequelize, DataTypes);
-const LlmInteraction = require('./llmInteraction.model')(sequelize, DataTypes);
 const Notification = require('./notification.model')(sequelize, DataTypes);
 const Workspace = require('./workspace.model')(sequelize, DataTypes);
 const WorkspaceMember = require('./workspaceMember.model')(sequelize, DataTypes);
@@ -61,15 +59,6 @@ AnalysisResult.belongsTo(Survey, { foreignKey: 'survey_id' });
 
 Survey.hasMany(Visualization, { foreignKey: 'survey_id' });
 Visualization.belongsTo(Survey, { foreignKey: 'survey_id' });
-
-User.hasMany(LlmPrompt, { foreignKey: 'created_by' });
-LlmPrompt.belongsTo(User, { foreignKey: 'created_by' });
-
-LlmPrompt.hasMany(LlmInteraction, { foreignKey: 'prompt_id' });
-LlmInteraction.belongsTo(LlmPrompt, { foreignKey: 'prompt_id' });
-
-User.hasMany(LlmInteraction, { foreignKey: 'user_id' });
-LlmInteraction.belongsTo(User, { foreignKey: 'user_id' });
 
 // Notification associations
 User.hasMany(Notification, { foreignKey: 'user_id', as: 'notifications' });
@@ -123,8 +112,6 @@ module.exports = {
   Answer,
   AnalysisResult,
   Visualization,
-  LlmPrompt,
-  LlmInteraction,
   Notification,
   Workspace,
   WorkspaceMember,

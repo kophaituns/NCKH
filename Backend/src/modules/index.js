@@ -10,7 +10,6 @@ const analytics = require('./analytics');
 const exportModule = require('./export');
 const collectors = require('./collectors');
 const health = require('./health');
-const llm = require('./llm');
 const notifications = require('./notifications');
 const workspaces = require('./workspaces');
 
@@ -24,7 +23,6 @@ module.exports = {
   export: exportModule,
   collectors,
   health,
-  llm,
   notifications,
   workspaces
 };
