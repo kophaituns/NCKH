@@ -47,6 +47,8 @@ http.interceptors.response.use(
     return response;
   },
   async (error) => {
+    console.error('[HTTP] Response error:', error.response?.status, error.response?.data || error.message);
+    
     const originalRequest = error.config;
 
     // If 401 and not already retrying
@@ -58,6 +60,7 @@ http.interceptors.response.use(
         
         if (!refreshToken) {
           // No refresh token, redirect to login
+          console.warn('[HTTP] No refresh token, redirecting to login');
           localStorage.clear();
           window.location.href = '/login';
           return Promise.reject(error);
@@ -81,6 +84,7 @@ http.interceptors.response.use(
         return http(originalRequest);
       } catch (refreshError) {
         // Refresh failed, clear storage and redirect to login
+        console.error('[HTTP] Token refresh failed:', refreshError.message);
         localStorage.clear();
         window.location.href = '/login';
         return Promise.reject(refreshError);
