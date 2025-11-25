@@ -134,12 +134,12 @@ const Navbar = ({ onToggleSidebar }) => {
                 </button>
               </div>
             )}
-          </div>
-            </>
+            </div>
+          </>
         )}
       </div>
 
-      {/* Click outside to close dropdown */
+      {/* Click outside to close dropdown */}
       {showUserMenu && (
         <div 
           className={styles.overlay}
