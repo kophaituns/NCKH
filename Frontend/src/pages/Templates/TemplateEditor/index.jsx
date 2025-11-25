@@ -36,6 +36,16 @@ const TemplateEditor = () => {
   const [optionForm, setOptionForm] = useState({ option_text: '', display_order: 0 });
   const [editingOption, setEditingOption] = useState(null);
 
+  // Confirmation modal state
+  const [confirmModal, setConfirmModal] = useState({
+    isOpen: false,
+    title: '',
+    message: '',
+    onConfirm: null,
+    confirmText: 'Delete',
+    cancelText: 'Cancel'
+  });
+
   const fetchTemplateData = useCallback(async () => {
     if (!id || id === 'new') return;
     
@@ -220,15 +230,23 @@ const TemplateEditor = () => {
   const questionTypesWithOptions = ['multiple_choice', 'checkbox', 'dropdown'];
 
   const handleDeleteQuestion = async (questionId) => {
-    if (!window.confirm('Are you sure you want to delete this question?')) return;
-
-    try {
-      await QuestionService.delete(questionId);
-      showToast('Question deleted successfully', 'success');
-      fetchTemplateData();
-    } catch (error) {
-      showToast(error.response?.data?.message || 'Failed to delete question', 'error');
-    }
+    setConfirmModal({
+      isOpen: true,
+      title: 'Delete Question',
+      message: 'Are you sure you want to delete this question? This action cannot be undone.',
+      confirmText: 'Delete',
+      cancelText: 'Cancel',
+      onConfirm: async () => {
+        try {
+          await QuestionService.delete(questionId);
+          showToast('Question deleted successfully', 'success');
+          setConfirmModal({ ...confirmModal, isOpen: false });
+          fetchTemplateData();
+        } catch (error) {
+          showToast(error.response?.data?.message || 'Failed to delete question', 'error');
+        }
+      }
+    });
   };
 
   const openAddOptionModal = (questionId) => {
@@ -272,15 +290,23 @@ const TemplateEditor = () => {
   };
 
   const handleDeleteOption = async (optionId) => {
-    if (!window.confirm('Are you sure you want to delete this option?')) return;
-
-    try {
-      await QuestionService.deleteOption(optionId);
-      showToast('Option deleted successfully', 'success');
-      fetchTemplateData();
-    } catch (error) {
-      showToast(error.response?.data?.message || 'Failed to delete option', 'error');
-    }
+    setConfirmModal({
+      isOpen: true,
+      title: 'Delete Option',
+      message: 'Are you sure you want to delete this option? This action cannot be undone.',
+      confirmText: 'Delete',
+      cancelText: 'Cancel',
+      onConfirm: async () => {
+        try {
+          await QuestionService.deleteOption(optionId);
+          showToast('Option deleted successfully', 'success');
+          setConfirmModal({ ...confirmModal, isOpen: false });
+          fetchTemplateData();
+        } catch (error) {
+          showToast(error.response?.data?.message || 'Failed to delete option', 'error');
+        }
+      }
+    });
   };
 
   // Note: questionTypesWithOptions logic is handled inline in the UI components
@@ -497,6 +523,36 @@ const TemplateEditor = () => {
           </div>
         </div>
       </Modal>
+
+      {/* Confirmation Modal */}
+      {confirmModal.isOpen && (
+        <Modal
+          isOpen={confirmModal.isOpen}
+          onClose={() => setConfirmModal({ ...confirmModal, isOpen: false })}
+          title={confirmModal.title}
+        >
+          <div className={styles.modalForm}>
+            <p style={{ marginBottom: '2rem', color: '#666', fontSize: '0.95rem', lineHeight: '1.5' }}>
+              {confirmModal.message}
+            </p>
+
+            <div className={styles.modalActions}>
+              <button 
+                onClick={() => setConfirmModal({ ...confirmModal, isOpen: false })} 
+                className={styles.cancelButton}
+              >
+                {confirmModal.cancelText}
+              </button>
+              <button 
+                onClick={() => confirmModal.onConfirm && confirmModal.onConfirm()}
+                className={`${styles.submitButton} ${styles.danger}`}
+              >
+                {confirmModal.confirmText}
+              </button>
+            </div>
+          </div>
+        </Modal>
+      )}
     </div>
   );
 };

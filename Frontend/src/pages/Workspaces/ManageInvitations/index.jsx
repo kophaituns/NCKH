@@ -11,6 +11,18 @@ const ManageInvitations = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [workspace, setWorkspace] = useState(null);
+  
+  // Modal state
+  const [modal, setModal] = useState({
+    isOpen: false,
+    type: 'info', // 'success', 'error', 'warning', 'info', 'confirm'
+    title: '',
+    message: '',
+    onConfirm: null,
+    onCancel: null,
+    confirmText: 'OK',
+    cancelText: 'Cancel'
+  });
 
   useEffect(() => {
     fetchData();
@@ -42,34 +54,84 @@ const ManageInvitations = () => {
   };
 
   const handleCancelInvitation = async (invitationId) => {
-    if (!window.confirm('Are you sure you want to cancel this invitation?')) {
-      return;
-    }
-
-    try {
-      const result = await WorkspaceService.cancelInvitation(invitationId);
-      if (result.ok) {
-        setInvitations(prev => prev.filter(inv => inv.id !== invitationId));
-      } else {
-        alert('Failed to cancel invitation: ' + (result.message || 'Unknown error'));
-      }
-    } catch (err) {
-      console.error('Error canceling invitation:', err);
-      alert('Failed to cancel invitation');
-    }
+    setModal({
+      isOpen: true,
+      type: 'warning',
+      title: 'Cancel Invitation',
+      message: 'Are you sure you want to cancel this invitation?',
+      confirmText: 'Cancel Invitation',
+      cancelText: 'Keep It',
+      onConfirm: async () => {
+        try {
+          const result = await WorkspaceService.cancelInvitation(invitationId);
+          if (result.ok) {
+            setInvitations(prev => prev.filter(inv => inv.id !== invitationId));
+            setModal({
+              isOpen: true,
+              type: 'success',
+              title: 'Success',
+              message: 'Invitation cancelled successfully',
+              confirmText: 'OK',
+              onConfirm: () => setModal({ ...modal, isOpen: false })
+            });
+          } else {
+            setModal({
+              isOpen: true,
+              type: 'error',
+              title: 'Error',
+              message: 'Failed to cancel invitation: ' + (result.message || 'Unknown error'),
+              confirmText: 'OK',
+              onConfirm: () => setModal({ ...modal, isOpen: false })
+            });
+          }
+        } catch (err) {
+          console.error('Error canceling invitation:', err);
+          setModal({
+            isOpen: true,
+            type: 'error',
+            title: 'Error',
+            message: 'Failed to cancel invitation',
+            confirmText: 'OK',
+            onConfirm: () => setModal({ ...modal, isOpen: false })
+          });
+        }
+      },
+      onCancel: () => setModal({ ...modal, isOpen: false })
+    });
   };
 
   const handleResendInvitation = async (invitationId) => {
     try {
       const result = await WorkspaceService.resendInvitation(invitationId);
       if (result.ok) {
-        alert('Invitation resent successfully!');
+        setModal({
+          isOpen: true,
+          type: 'success',
+          title: 'Success',
+          message: 'Invitation resent successfully!',
+          confirmText: 'OK',
+          onConfirm: () => setModal({ ...modal, isOpen: false })
+        });
       } else {
-        alert('Failed to resend invitation: ' + (result.message || 'Unknown error'));
+        setModal({
+          isOpen: true,
+          type: 'error',
+          title: 'Error',
+          message: 'Failed to resend invitation: ' + (result.message || 'Unknown error'),
+          confirmText: 'OK',
+          onConfirm: () => setModal({ ...modal, isOpen: false })
+        });
       }
     } catch (err) {
       console.error('Error resending invitation:', err);
-      alert('Failed to resend invitation');
+      setModal({
+        isOpen: true,
+        type: 'error',
+        title: 'Error',
+        message: 'Failed to resend invitation',
+        confirmText: 'OK',
+        onConfirm: () => setModal({ ...modal, isOpen: false })
+      });
     }
   };
 
@@ -147,6 +209,56 @@ const ManageInvitations = () => {
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* Modal Dialog */}
+      {modal.isOpen && (
+        <div className={`${styles.modalOverlay} ${styles[modal.type]}`}>
+          <div className={`${styles.modal} ${styles[modal.type]}`}>
+            <div className={styles.modalHeader}>
+              <h2>{modal.title}</h2>
+              <button 
+                className={styles.closeButton} 
+                onClick={() => modal.onCancel ? modal.onCancel() : setModal({ ...modal, isOpen: false })}
+              >
+                ✕
+              </button>
+            </div>
+            <div className={styles.modalBody}>
+              <p>{modal.message}</p>
+            </div>
+            <div className={styles.modalFooter}>
+              {modal.type === 'warning' && (
+                <>
+                  <button 
+                    className={`${styles.modalButton} ${styles.secondary}`}
+                    onClick={() => modal.onCancel ? modal.onCancel() : setModal({ ...modal, isOpen: false })}
+                  >
+                    {modal.cancelText || 'Cancel'}
+                  </button>
+                  <button 
+                    className={`${styles.modalButton} ${styles.danger}`}
+                    onClick={() => {
+                      if (modal.onConfirm) modal.onConfirm();
+                    }}
+                  >
+                    {modal.confirmText || 'Confirm'}
+                  </button>
+                </>
+              )}
+              {modal.type !== 'warning' && (
+                <button 
+                  className={`${styles.modalButton} ${styles[modal.type] || 'primary'}`}
+                  onClick={() => {
+                    if (modal.onConfirm) modal.onConfirm();
+                  }}
+                >
+                  {modal.confirmText || 'OK'}
+                </button>
+              )}
+            </div>
+          </div>
         </div>
       )}
     </div>
