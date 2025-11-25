@@ -25,6 +25,7 @@ const Sidebar = ({ isOpen, onClose }) => {
     if (userRole === 'creator') {
       return [
         { path: '/dashboard', label: 'Dashboard', icon: 'dashboard' },
+        { path: '/workspaces', label: 'Workspaces', icon: 'workspaces' },
         { path: '/templates', label: 'Templates', icon: 'templates' },
         { path: '/surveys', label: 'Surveys', icon: 'surveys' },
         { path: '/collectors', label: 'Collectors', icon: 'collectors' },
@@ -93,6 +94,14 @@ const Sidebar = ({ isOpen, onClose }) => {
         <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
           <path d="M10 3v14M3 10h14" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
           <circle cx="10" cy="10" r="7" stroke="currentColor" strokeWidth="1.5"/>
+        </svg>
+      ),
+      workspaces: (
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+          <rect x="3" y="3" width="5" height="5" rx="1" stroke="currentColor" strokeWidth="1.5"/>
+          <rect x="12" y="3" width="5" height="5" rx="1" stroke="currentColor" strokeWidth="1.5"/>
+          <rect x="3" y="12" width="5" height="5" rx="1" stroke="currentColor" strokeWidth="1.5"/>
+          <rect x="12" y="12" width="5" height="5" rx="1" stroke="currentColor" strokeWidth="1.5"/>
         </svg>
       ),
     };
