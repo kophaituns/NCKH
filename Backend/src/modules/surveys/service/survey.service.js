@@ -1,10 +1,65 @@
+/**
+ * Survey Service Module
+ * ========================
+ * 
+ * FEATURE: Complete Survey Management System
+ * 
+ * This service handles all survey-related operations including:
+ * - Survey CRUD operations (Create, Read, Update, Delete)
+ * - Status lifecycle management (draft → active → closed → analyzed)
+ * - Role-based access control (admin can see all, users see their own)
+ * - Survey statistics and response tracking
+ * - Auto-closing of expired surveys
+ * - Survey publishing and closing workflows
+ * 
+ * Survey Lifecycle:
+ *   1. Draft: Initial state after creation, not visible to respondents
+ *   2. Active: Survey is published and accepting responses (between start_date and end_date)
+ *   3. Closed: Survey has ended or been manually closed, no new responses accepted
+ *   4. Analyzed: Survey has been analyzed and archived
+ * 
+ * Access Control:
+ *   - Admin: Can view, edit, delete all surveys
+ *   - Teachers/Users: Can only view/edit surveys they created
+ *   - Students: Can only respond to active surveys they're invited to
+ * 
+ * Database: Surveys are stored in 'surveys' table with relationships to:
+ *   - templates (SurveyTemplate) - defines questions and structure
+ *   - users (User) - tracks creator/owner
+ *   - responses (SurveyResponse) - stores submitted answers
+ * 
+ * Integration Points:
+ *   - Used by: SurveyController, ResponseService, NotificationService
+ *   - Emits: Socket events for status changes, new responses
+ *   - Requires: User authentication, template validation
+ */
+
 // src/modules/surveys/service/survey.service.js
 const { Survey, User, SurveyTemplate, SurveyResponse, Question } = require('../../../models');
 const { Op } = require('sequelize');
 
 class SurveyService {
   /**
-   * Get all surveys with filters and pagination
+   * FEATURE: Get all surveys with advanced filtering and pagination
+   * 
+   * Purpose: Retrieve a paginated list of surveys with optional filters
+   * 
+   * Parameters:
+   *   - options.page: Page number (default: 1)
+   *   - options.limit: Items per page (default: 10)
+   *   - options.status: Filter by status (draft|active|closed|analyzed)
+   *   - options.target_audience: Filter by target audience (all_users|students|teachers)
+   *   - options.search: Search by title or description (text search)
+   * 
+   * Access Control:
+   *   - Admins: See all surveys
+   *   - Other roles: See only surveys they created
+   * 
+   * Returns: Object with:
+   *   - surveys[]: Array of survey objects with question count
+   *   - pagination: Object with total, page, limit, totalPages
+   * 
+   * Throws: Database errors
    */
   async getAllSurveys(options = {}, user) {
     const {

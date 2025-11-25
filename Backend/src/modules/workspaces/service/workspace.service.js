@@ -1,3 +1,52 @@
+/**
+ * Workspace Service Module
+ * =========================
+ * 
+ * FEATURE: Multi-Workspace Team Collaboration System
+ * 
+ * This service provides complete workspace management for team-based survey creation:
+ * - Create and manage workspaces as containers for collaboration
+ * - Member role-based access control within workspaces
+ * - Invitation system with email notifications
+ * - Activity logging and audit trail
+ * - Workspace settings and configuration
+ * 
+ * Workspace Roles (4 levels):
+ *   1. owner: Can delete workspace, manage all settings, add/remove members
+ *   2. manager: Can manage members, create surveys, edit workspace settings
+ *   3. collaborator: Can create surveys, templates, and manage own content
+ *   4. viewer: Read-only access to workspace surveys and templates
+ * 
+ * Key Features:
+ *   - Multiple workspaces per user
+ *   - Role-based permissions within each workspace
+ *   - Invitation system with expiration (default: 7 days)
+ *   - Email notifications for invitations
+ *   - Activity logging for audit trail
+ *   - Member list with role management
+ *   - Workspace archiving/deletion
+ * 
+ * Workspace Workflow:
+ *   1. User creates workspace (becomes owner)
+ *   2. Owner invites members via email
+ *   3. Invited users accept/decline invitation
+ *   4. Members can create surveys within workspace
+ *   5. Owner can change member roles anytime
+ *   6. Activity logged for audit trail
+ * 
+ * Database Structure:
+ *   - Workspace: Main container
+ *   - WorkspaceMember: Member roles and permissions
+ *   - WorkspaceInvitation: Pending invitations
+ *   - WorkspaceActivity: Audit trail
+ * 
+ * Integration:
+ *   - Users can switch between workspaces
+ *   - Surveys belong to workspaces
+ *   - Templates can be workspace-specific or global
+ *   - Notifications sent on member changes
+ */
+
 // src/modules/workspaces/service/workspace.service.js
 const { Workspace, WorkspaceMember, WorkspaceInvitation, WorkspaceActivity, User, Survey } = require('../../../models');
 const { Op } = require('sequelize');
@@ -8,7 +57,23 @@ const notificationService = require('../../../utils/notification.service');
 
 class WorkspaceService {
   /**
-   * Get workspaces where user is owner or member
+   * FEATURE: Get all workspaces for authenticated user
+   * 
+   * Purpose: Retrieve all workspaces where user is owner or member
+   * 
+   * Returns: Array of workspace objects including:
+   *   - id, name, description
+   *   - owner info (for owned workspaces)
+   *   - user's role in workspace (owner/manager/collaborator/viewer)
+   *   - survey count
+   *   - member list
+   *   - created date
+   * 
+   * Access Control:
+   *   - Only returns workspaces user owns or is member of
+   *   - Non-members cannot see workspace even if it exists
+   * 
+   * Uses: OR query to find workspaces where user is owner_id OR in members table
    */
   async getMyWorkspaces(userId) {
     const workspaces = await Workspace.findAll({

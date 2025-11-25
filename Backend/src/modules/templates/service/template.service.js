@@ -1,10 +1,85 @@
+/**
+ * Survey Template Service Module
+ * ================================
+ * 
+ * FEATURE: Survey Template Management System
+ * 
+ * This service handles creation and management of survey templates, which are:
+ * - Reusable question sets that define survey structure
+ * - Templates for creating multiple surveys with consistent format
+ * - Shareable across team members in workspace
+ * - Versionable with archiving capability
+ * 
+ * Key Capabilities:
+ *   - Create templates with multiple question types
+ *   - Manage questions: add, edit, delete, reorder
+ *   - Support multiple question types:
+ *     • MCQ (Multiple Choice - single select)
+ *     • MRQ (Multiple Response - multi-select)
+ *     • Likert (5-point rating scale)
+ *     • Short Text (text input)
+ *     • Long Text (textarea)
+ *   - Template cloning for easy duplication
+ *   - Archive/unarchive templates
+ *   - Search and filtering
+ *   - Pagination support
+ * 
+ * Template Workflow:
+ *   1. Create template with basic info
+ *   2. Add questions with specific types
+ *   3. Add options for MCQ/MRQ questions
+ *   4. Set question order and display properties
+ *   5. Publish template (if private, shares with team)
+ *   6. Use template to create surveys
+ *   7. Archive when no longer needed
+ * 
+ * Database Schema:
+ *   - SurveyTemplate: Main template record
+ *   - Question: Individual questions in template
+ *   - QuestionOption: Answer options for MCQ/MRQ
+ *   - QuestionType: Type definitions (MCQ, Likert, etc.)
+ * 
+ * Relationships:
+ *   - Templates belong to User (creator)
+ *   - Templates have many Questions
+ *   - Questions have many QuestionOptions
+ *   - Questions have QuestionType
+ * 
+ * Integration:
+ *   - Survey creation uses templates
+ *   - Templates can be shared in workspaces
+ *   - Used in LLM survey generation
+ */
+
 // src/modules/templates/service/template.service.js
 const { SurveyTemplate, Question, QuestionOption, QuestionType, User } = require('../../../models');
 const { Op } = require('sequelize');
 
 class TemplateService {
   /**
-   * Get all templates
+   * FEATURE: Retrieve all templates with search and pagination
+   * 
+   * Purpose: Get paginated list of survey templates with optional search
+   * 
+   * Parameters:
+   *   - options.page: Page number (default: 1)
+   *   - options.limit: Items per page (default: 10)
+   *   - options.search: Search templates by title or description
+   * 
+   * Access Control:
+   *   - Returns all templates (can be filtered at controller level)
+   *   - Can be limited to user's templates or workspace templates
+   * 
+   * Returns: Object with:
+   *   - templates[]: Array of template objects with creator info
+   *   - pagination: Total, page, limit, totalPages
+   * 
+   * Database Query:
+   *   - Uses LIKE operator for partial text search (case-insensitive)
+   *   - Joins with User model to include creator details
+   *   - Ordered by creation date (newest first)
+   * 
+   * Performance: O(n) with database indexing on title/description
    */
   async getAllTemplates(options = {}, user) {
     const { page = 1, limit = 10, search } = options;

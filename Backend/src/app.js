@@ -1,3 +1,57 @@
+/**
+ * Express Application Configuration
+ * ==================================
+ * 
+ * FEATURE: API Server Core Setup
+ * 
+ * This file configures the Express.js application with:
+ * - Security middleware (Helmet, CORS)
+ * - Request parsing and logging
+ * - Route mounting for modular API
+ * - Global error handling
+ * - Health checks
+ * 
+ * Security Configuration:
+ *   ✅ Helmet.js: Sets HTTP headers for security
+ *   ✅ CORS: Whitelist allowed origins from .env
+ *   ✅ HTTPS ready: Works with reverse proxy (nginx, Apache)
+ *   ✅ Body size limits: 1MB default (configurable)
+ * 
+ * API Architecture:
+ *   - Modular design with separate modules for each feature
+ *   - All routes under /api/modules/* namespace
+ *   - RESTful endpoints for resource operations
+ *   - Consistent error response format
+ * 
+ * Available Modules (via /api/modules):
+ *   ✅ /auth-rbac - Authentication & authorization
+ *   ✅ /users - User management
+ *   ✅ /templates - Survey templates
+ *   ✅ /surveys - Survey management
+ *   ✅ /responses - Response collection
+ *   ✅ /collectors - Survey distribution
+ *   ✅ /workspaces - Team collaboration
+ *   ✅ /notifications - Real-time notifications
+ *   ✅ /analytics - Data analysis
+ *   ✅ /llm - AI-powered features
+ *   ✅ /export - Data export
+ *   ✅ /health - System status
+ * 
+ * Middleware Stack (order matters):
+ *   1. Security: helmet(), cors()
+ *   2. Parsing: json(), urlencoded()
+ *   3. Logging: morgan()
+ *   4. Routes: Mount all modules
+ *   5. Error Handler: Global catch-all
+ *   6. 404: Not found handler (last)
+ * 
+ * Error Handling:
+ *   - Centralized error handler middleware
+ *   - Consistent JSON error responses
+ *   - Stack traces in development only
+ *   - Proper HTTP status codes
+ */
+
 // src/app.js
 // Express app configuration with middleware and route mounting
 require('dotenv').config();

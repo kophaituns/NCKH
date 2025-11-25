@@ -1,5 +1,27 @@
-// src/modules/surveys/service/survey.access.service.js
-// Handle survey access control and permissions
+/**
+ * Survey Access Control Service
+ * 
+ * Purpose: Implement multi-layer survey access control system
+ * - Validates if user can respond to survey based on visibility level
+ * - Checks user permissions to manage surveys
+ * - Handles workspace-based access restrictions
+ * - Validates survey configuration rules
+ * 
+ * Supported Visibility Levels:
+ * 1. "public" - Anyone can respond, no authentication required
+ * 2. "authenticated" - Only logged-in users can respond
+ * 3. "workspace_members" - Only workspace members can respond
+ * 
+ * Supported Identity Modes:
+ * 1. "anonymous_only" - Responses must be anonymous
+ * 2. "identified_only" - Responder must provide identity
+ * 3. "mixed" - Responder can choose anonymous or identified
+ * 
+ * File: src/modules/surveys/service/survey.access.service.js
+ * Module: Surveys
+ * Version: 1.0
+ * Status: Production Ready
+ */
 
 const { Survey, SurveyCollector, Workspace, WorkspaceMember } = require('../../../models');
 const surveyValidationService = require('./survey.validation.service');
@@ -7,7 +29,27 @@ const logger = require('../../../utils/logger');
 
 class SurveyAccessService {
   /**
-   * Check if user can respond to survey via collector
+   * Check if user can respond to survey via collector token
+   * 
+   * This is the PRIMARY ACCESS CONTROL method for survey responses.
+   * It validates:
+   * 1. Collector token exists and is active
+   * 2. Collector hasn't expired
+   * 3. Survey is in active status
+   * 4. Delegates to collectorService for detailed permission checking
+   * 
+   * @param {string} collectorToken - Unique collector access token
+   * @param {number|null} userId - User ID if authenticated, null if anonymous
+   * @param {string|null} inviteToken - Invitation token for email-restricted surveys
+   * @returns {Object} - {allowed: boolean, reason?: string, code?: string}
+   * 
+   * Success response: { allowed: true }
+   * Error responses include 'code' for frontend handling:
+   * - COLLECTOR_NOT_FOUND: Collector token doesn't exist
+   * - COLLECTOR_INACTIVE: Collector was deactivated
+   * - SURVEY_INACTIVE: Survey not in active status
+   * - COLLECTOR_EXPIRED: Collector time window passed
+   * - ACCESS_DENIED: User lacks required permissions
    */
   async canRespondToSurvey(collectorToken, userId = null, inviteToken = null) {
     try {
