@@ -16,5 +16,7 @@ router.use('/export', modules.export.routes);
 router.use('/collectors', modules.collectors.routes);
 router.use('/notifications', modules.notifications.routes);
 router.use('/workspaces', modules.workspaces.routes);
+router.use('/llm', modules.llm.routes);
+router.use('/chat', modules.chat.routes);
 
 module.exports = router;

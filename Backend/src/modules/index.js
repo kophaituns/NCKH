@@ -12,6 +12,8 @@ const collectors = require('./collectors');
 const health = require('./health');
 const notifications = require('./notifications');
 const workspaces = require('./workspaces');
+const llm = require('./llm');
+const chat = require('./chat');
 
 module.exports = {
   authRbac,
@@ -23,6 +25,8 @@ module.exports = {
   export: exportModule,
   collectors,
   health,
-  notifications,
-  workspaces
+    notifications,
+    workspaces,
+    llm,
+    chat
 };
