@@ -23,10 +23,10 @@ const PublicSurveyForm = () => {
       if (data.success) {
         setSurvey(data.data);
       } else {
-        setError('Khảo sát không tồn tại hoặc đã hết hạn');
+        setError('Survey does not exist or has expired');
       }
     } catch (error) {
-      setError('Lỗi khi tải khảo sát');
+      setError('Error loading survey');
     } finally {
       setLoading(false);
     }
@@ -66,10 +66,10 @@ const PublicSurveyForm = () => {
       if (data.success) {
         setSubmitted(true);
       } else {
-        setError('Lỗi khi gửi phản hồi');
+        setError('Error submitting response');
       }
     } catch (error) {
-      setError('Lỗi khi gửi phản hồi');
+      setError('Error submitting response');
     } finally {
       setSubmitting(false);
     }
@@ -78,7 +78,7 @@ const PublicSurveyForm = () => {
   if (loading) {
     return (
       <div className={styles.container}>
-        <div className={styles.loading}>Đang tải khảo sát...</div>
+        <div className={styles.loading}>Loading survey...</div>
       </div>
     );
   }
@@ -95,8 +95,8 @@ const PublicSurveyForm = () => {
     return (
       <div className={styles.container}>
         <div className={styles.success}>
-          <h2>Cảm ơn bạn đã tham gia khảo sát!</h2>
-          <p>Phản hồi của bạn đã được ghi nhận thành công.</p>
+          <h2>Thank you for participating in the survey!</h2>
+          <p>Your response has been recorded successfully.</p>
         </div>
       </div>
     );
@@ -145,21 +145,21 @@ const PublicSurveyForm = () => {
                       <input
                         type="radio"
                         name={`question_${question.id}`}
-                        value="Có"
-                        onChange={() => handleAnswerChange(question.id, 'Có')}
+                        value="Yes"
+                        onChange={() => handleAnswerChange(question.id, 'Yes')}
                         required={question.required}
                       />
-                      <span>Có</span>
+                      <span>Yes</span>
                     </label>
                     <label className={styles.option}>
                       <input
                         type="radio"
                         name={`question_${question.id}`}
-                        value="Không"
-                        onChange={() => handleAnswerChange(question.id, 'Không')}
+                        value="No"
+                        onChange={() => handleAnswerChange(question.id, 'No')}
                         required={question.required}
                       />
-                      <span>Không</span>
+                      <span>No</span>
                     </label>
                   </div>
                 )}
@@ -184,7 +184,7 @@ const PublicSurveyForm = () => {
                 {question.type === 'text' && (
                   <textarea
                     className={styles.textInput}
-                    placeholder="Nhập câu trả lời của bạn..."
+                    placeholder="Enter your answer..."
                     onChange={(e) => handleAnswerChange(question.id, e.target.value)}
                     required={question.required}
                     rows={4}
@@ -209,7 +209,7 @@ const PublicSurveyForm = () => {
               className={styles.submitButton}
               disabled={submitting}
             >
-              {submitting ? 'Đang gửi...' : 'Gửi phản hồi'}
+              {submitting ? 'Submitting...' : 'Submit Response'}
             </button>
           </div>
         </form>

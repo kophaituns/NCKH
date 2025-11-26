@@ -110,12 +110,12 @@ const SurveyCreator = ({ generatedQuestions, onSurveyCreated }) => {
 
   const handleCreateSurvey = async () => {
     if (!surveyData.title.trim()) {
-      showToast('Vui lòng nhập tiêu đề survey', 'error');
+      showToast('Please enter survey title', 'error');
       return;
     }
 
     if (selectedQuestions.length === 0 && customQuestions.length === 0) {
-      showToast('Vui lòng chọn hoặc thêm ít nhất một câu hỏi', 'error');
+      showToast('Please select or add at least one question', 'error');
       return;
     }
 
@@ -133,10 +133,10 @@ const SurveyCreator = ({ generatedQuestions, onSurveyCreated }) => {
         shareSettings
       });
 
-      showToast('Tạo survey thành công!', 'success');
+      showToast('Survey created successfully!', 'success');
       onSurveyCreated && onSurveyCreated(response.data);
     } catch (error) {
-      showToast(error.response?.data?.message || 'Có lỗi xảy ra khi tạo survey', 'error');
+      showToast(error.response?.data?.message || 'Error occurred while creating survey', 'error');
     } finally {
       setLoading(false);
     }
@@ -149,56 +149,56 @@ const SurveyCreator = ({ generatedQuestions, onSurveyCreated }) => {
   return (
     <div className={styles.surveyCreator}>
       <Card className={styles.header}>
-        <h3>Tạo Survey từ Câu Hỏi AI</h3>
-        <p>Chọn câu hỏi và cấu hình survey của bạn</p>
+        <h3>Create Survey from AI Questions</h3>
+        <p>Select questions and configure your survey</p>
       </Card>
 
       {/* Survey Basic Info */}
       <Card className={styles.basicInfo}>
-        <h4>Thông Tin Cơ Bản</h4>
+        <h4>Basic Information</h4>
         <div className={styles.formGroup}>
-          <label>Tiêu đề Survey *</label>
+          <label>Survey Title *</label>
           <Input
             value={surveyData.title}
             onChange={(e) => setSurveyData({...surveyData, title: e.target.value})}
-            placeholder="Nhập tiêu đề survey"
+            placeholder="Enter survey title"
           />
         </div>
         
         <div className={styles.formGroup}>
-          <label>Mô tả</label>
+          <label>Description</label>
           <TextArea
             value={surveyData.description}
             onChange={(e) => setSurveyData({...surveyData, description: e.target.value})}
-            placeholder="Mô tả về survey này..."
+            placeholder="Description of this survey..."
             rows={3}
           />
         </div>
 
         <div className={styles.formRow}>
           <div className={styles.formGroup}>
-            <label>Đối tượng khảo sát</label>
+            <label>Target Audience</label>
             <Select
               value={surveyData.targetAudience}
               onChange={(value) => setSurveyData({...surveyData, targetAudience: value})}
             >
-              <option value="all_users">Tất cả người dùng</option>
-              <option value="specific_group">Nhóm cụ thể</option>
-              <option value="custom">Tùy chỉnh</option>
+              <option value="all_users">All Users</option>
+              <option value="specific_group">Specific Group</option>
+              <option value="custom">Custom</option>
             </Select>
           </div>
 
           {(surveyData.targetAudience === 'specific_group' || surveyData.targetAudience === 'custom') && (
             <div className={styles.formGroup}>
               <label>
-                {surveyData.targetAudience === 'specific_group' ? 'Tên nhóm' : 'Giá trị tùy chỉnh'}
+                {surveyData.targetAudience === 'specific_group' ? 'Group Name' : 'Custom Value'}
               </label>
               <Input
                 value={surveyData.targetValue}
                 onChange={(e) => setSurveyData({...surveyData, targetValue: e.target.value})}
                 placeholder={
                   surveyData.targetAudience === 'specific_group' 
-                    ? 'Ví dụ: Sinh viên IT, Khoa CNTT...' 
+                    ? 'Example: IT Students, Computer Science Faculty...' 
                     : 'Nhập giá trị tùy chỉnh...'
                 }
               />
@@ -251,7 +251,7 @@ const SurveyCreator = ({ generatedQuestions, onSurveyCreated }) => {
       <Card className={styles.tabContent}>
         {activeTab === 'select' && (
           <div className={styles.questionSelection}>
-            <h4>Chọn từ {generatedQuestions.length} câu hỏi được tạo</h4>
+            <h4>Select from {generatedQuestions.length} generated questions</h4>
             <div className={styles.questionList}>
               {generatedQuestions.map((question, index) => (
                 <div key={index} className={styles.questionItem}>
@@ -276,7 +276,7 @@ const SurveyCreator = ({ generatedQuestions, onSurveyCreated }) => {
             <div className={styles.sectionHeader}>
               <h4>Câu Hỏi Tùy Chỉnh</h4>
               <Button onClick={addCustomQuestion} variant="outline">
-                + Thêm Câu Hỏi
+                + Add Question
               </Button>
             </div>
 
@@ -303,7 +303,7 @@ const SurveyCreator = ({ generatedQuestions, onSurveyCreated }) => {
                     checked={question.is_required}
                     onChange={(checked) => updateCustomQuestion(question.id, 'is_required', checked)}
                   />
-                  <span className={styles.requiredLabel}>Bắt buộc</span>
+                  <span className={styles.requiredLabel}>Required</span>
                   <Button
                     onClick={() => removeCustomQuestion(question.id)}
                     variant="outline"
@@ -337,7 +337,7 @@ const SurveyCreator = ({ generatedQuestions, onSurveyCreated }) => {
                       variant="outline"
                       size="small"
                     >
-                      + Thêm tùy chọn
+                      + Add Option
                     </Button>
                   </div>
                 )}
@@ -346,7 +346,7 @@ const SurveyCreator = ({ generatedQuestions, onSurveyCreated }) => {
 
             {customQuestions.length === 0 && (
               <div className={styles.emptyState}>
-                <p>Chưa có câu hỏi tùy chỉnh. Nhấn "Thêm Câu Hỏi" để bắt đầu.</p>
+                <p>No custom questions yet. Click "Add Question" to start.</p>
               </div>
             )}
           </div>

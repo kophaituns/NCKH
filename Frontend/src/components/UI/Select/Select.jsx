@@ -5,7 +5,7 @@ import styles from './Select.module.scss';
 const Select = ({ 
   value,
   onChange,
-  placeholder = 'Chọn một tùy chọn',
+  placeholder = 'Select an option',
   children,
   className = '',
   error = false,

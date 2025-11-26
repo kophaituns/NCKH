@@ -136,7 +136,7 @@ const LLMService = {
       };
     }
     
-    return { success: true, message: 'PDF đã mở để in. Chọn "Save as PDF" trong hộp thoại in để tải xuống.' };
+    return { success: true, message: 'PDF opened for printing. Select "Save as PDF" in the print dialog to download.' };
   },
 
   /**
