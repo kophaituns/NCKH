@@ -8,5 +8,10 @@ export { default as ResponseService } from './response.service';
 export { default as AnalyticsService } from './analytics.service';
 export { default as ExportService } from './export.service';
 export { default as LLMService } from './llm.service';
+<<<<<<< HEAD
 export { default as ChatService } from './chat.service';
 export { TokenService } from './token.service';
+=======
+export { TokenService } from './token.service';
+export { default as ChatService } from './chat.service';
+>>>>>>> linh2

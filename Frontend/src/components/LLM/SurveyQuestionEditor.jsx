@@ -36,6 +36,7 @@ const SurveyQuestionEditor = ({ surveyId, onClose, onSurveyUpdated }) => {
   });
 
   const questionTypes = [
+<<<<<<< HEAD
     { value: 'multiple_choice', label: 'Trắc nghiệm' },
     { value: 'single_choice', label: 'Chọn 1 đáp án' },
     { value: 'text', label: 'Văn bản' },
@@ -43,6 +44,15 @@ const SurveyQuestionEditor = ({ surveyId, onClose, onSurveyUpdated }) => {
     { value: 'number', label: 'Số' },
     { value: 'rating', label: 'Đánh giá' },
     { value: 'boolean', label: 'Có/Không' }
+=======
+    { value: 'multiple_choice', label: 'Multiple Choice' },
+    { value: 'single_choice', label: 'Single Choice' },
+    { value: 'text', label: 'Text' },
+    { value: 'email', label: 'Email' },
+    { value: 'number', label: 'Number' },
+    { value: 'rating', label: 'Rating' },
+    { value: 'boolean', label: 'Yes/No' }
+>>>>>>> linh2
   ];
 
   // Load survey data for editing
@@ -58,7 +68,11 @@ const SurveyQuestionEditor = ({ surveyId, onClose, onSurveyUpdated }) => {
           status: response.data.status || 'draft'
         });
       } catch (error) {
+<<<<<<< HEAD
         showToast('Không thể tải thông tin survey', 'error');
+=======
+        showToast('Cannot load survey information', 'error');
+>>>>>>> linh2
         onClose();
       } finally {
         setLoading(false);
@@ -126,7 +140,11 @@ const SurveyQuestionEditor = ({ surveyId, onClose, onSurveyUpdated }) => {
 
       // Validate form
       if (!questionForm.question_text.trim()) {
+<<<<<<< HEAD
         showToast('Vui lòng nhập nội dung câu hỏi', 'error');
+=======
+        showToast('Please enter question content', 'error');
+>>>>>>> linh2
         return;
       }
 
@@ -142,11 +160,19 @@ const SurveyQuestionEditor = ({ surveyId, onClose, onSurveyUpdated }) => {
       if (editingQuestion) {
         // Update existing question
         response = await LLMService.updateSurveyQuestion(surveyId, editingQuestion.id, questionData);
+<<<<<<< HEAD
         showToast('Đã cập nhật câu hỏi', 'success');
       } else {
         // Add new question
         response = await LLMService.addSurveyQuestion(surveyId, questionData);
         showToast('Đã thêm câu hỏi mới', 'success');
+=======
+        showToast('Question updated', 'success');
+      } else {
+        // Add new question
+        response = await LLMService.addSurveyQuestion(surveyId, questionData);
+        showToast('Added new question', 'success');
+>>>>>>> linh2
       }
 
       // Reload survey data
@@ -168,7 +194,11 @@ const SurveyQuestionEditor = ({ surveyId, onClose, onSurveyUpdated }) => {
         onSurveyUpdated();
       }
     } catch (error) {
+<<<<<<< HEAD
       showToast(error.response?.data?.message || 'Lỗi khi lưu câu hỏi', 'error');
+=======
+      showToast(error.response?.data?.message || 'Error saving question', 'error');
+>>>>>>> linh2
     } finally {
       setSaving(false);
     }
@@ -176,12 +206,20 @@ const SurveyQuestionEditor = ({ surveyId, onClose, onSurveyUpdated }) => {
 
   // Delete question
   const deleteQuestion = async (questionId) => {
+<<<<<<< HEAD
     if (!window.confirm('Bạn có chắc muốn xóa câu hỏi này?')) return;
+=======
+    if (!window.confirm('Are you sure you want to delete this question?')) return;
+>>>>>>> linh2
 
     try {
       setSaving(true);
       await LLMService.deleteSurveyQuestion(surveyId, questionId);
+<<<<<<< HEAD
       showToast('Đã xóa câu hỏi', 'success');
+=======
+      showToast('Question deleted', 'success');
+>>>>>>> linh2
       
       // Reload survey data
       const updatedSurvey = await LLMService.getSurveyForEditing(surveyId);
@@ -191,7 +229,11 @@ const SurveyQuestionEditor = ({ surveyId, onClose, onSurveyUpdated }) => {
         onSurveyUpdated();
       }
     } catch (error) {
+<<<<<<< HEAD
       showToast('Lỗi khi xóa câu hỏi', 'error');
+=======
+      showToast('Error deleting question', 'error');
+>>>>>>> linh2
     } finally {
       setSaving(false);
     }
@@ -202,7 +244,11 @@ const SurveyQuestionEditor = ({ surveyId, onClose, onSurveyUpdated }) => {
     try {
       setSaving(true);
       await LLMService.updateSurveySettings(surveyId, settingsForm);
+<<<<<<< HEAD
       showToast('Đã cập nhật thông tin survey', 'success');
+=======
+      showToast('Survey information updated', 'success');
+>>>>>>> linh2
       
       // Update local state
       setSurvey(prev => ({
@@ -216,7 +262,11 @@ const SurveyQuestionEditor = ({ surveyId, onClose, onSurveyUpdated }) => {
         onSurveyUpdated();
       }
     } catch (error) {
+<<<<<<< HEAD
       showToast('Lỗi khi cập nhật thông tin survey', 'error');
+=======
+      showToast('Error updating survey information', 'error');
+>>>>>>> linh2
     } finally {
       setSaving(false);
     }
@@ -247,7 +297,11 @@ const SurveyQuestionEditor = ({ surveyId, onClose, onSurveyUpdated }) => {
           <div className={styles.questionsHeader}>
             <h3>Danh sách câu hỏi ({survey?.questions?.length || 0})</h3>
             <Button onClick={() => setShowAddModal(true)}>
+<<<<<<< HEAD
               + Thêm câu hỏi
+=======
+              + Add Question
+>>>>>>> linh2
             </Button>
           </div>
 
@@ -277,7 +331,11 @@ const SurveyQuestionEditor = ({ surveyId, onClose, onSurveyUpdated }) => {
                   <h4>{question.question_text}</h4>
                   <p className={styles.questionType}>
                     Loại: {questionTypes.find(t => t.value === question.question_type)?.label}
+<<<<<<< HEAD
                     {question.is_required && ' (Bắt buộc)'}
+=======
+                    {question.is_required && ' (Required)'}
+>>>>>>> linh2
                   </p>
                   {question.question_options?.length > 0 && (
                     <div className={styles.options}>
@@ -303,25 +361,41 @@ const SurveyQuestionEditor = ({ surveyId, onClose, onSurveyUpdated }) => {
           setShowAddModal(false);
           setEditingQuestion(null);
         }}
+<<<<<<< HEAD
         title={editingQuestion ? 'Chỉnh sửa câu hỏi' : 'Thêm câu hỏi mới'}
       >
         <div className={styles.questionForm}>
           <Input
             label="Nội dung câu hỏi *"
+=======
+        title={editingQuestion ? 'Edit Question' : 'Add New Question'}
+      >
+        <div className={styles.questionForm}>
+          <Input
+            label="Question Content *"
+>>>>>>> linh2
             value={questionForm.question_text}
             onChange={(e) => handleQuestionChange('question_text', e.target.value)}
             placeholder="Nhập nội dung câu hỏi"
           />
 
           <Select
+<<<<<<< HEAD
             label="Loại câu hỏi"
+=======
+            label="Question Type"
+>>>>>>> linh2
             value={questionForm.question_type}
             onChange={(e) => handleQuestionChange('question_type', e.target.value)}
             options={questionTypes}
           />
 
           <TextArea
+<<<<<<< HEAD
             label="Mô tả (không bắt buộc)"
+=======
+            label="Description (optional)"
+>>>>>>> linh2
             value={questionForm.description}
             onChange={(e) => handleQuestionChange('description', e.target.value)}
             placeholder="Nhập mô tả cho câu hỏi"
@@ -335,7 +409,11 @@ const SurveyQuestionEditor = ({ surveyId, onClose, onSurveyUpdated }) => {
                 checked={questionForm.is_required}
                 onChange={(e) => handleQuestionChange('is_required', e.target.checked)}
               />
+<<<<<<< HEAD
               Bắt buộc trả lời
+=======
+              Required to answer
+>>>>>>> linh2
             </label>
           </div>
 
@@ -360,7 +438,11 @@ const SurveyQuestionEditor = ({ surveyId, onClose, onSurveyUpdated }) => {
                 </div>
               ))}
               <Button variant="outline" onClick={addOption}>
+<<<<<<< HEAD
                 + Thêm tùy chọn
+=======
+                + Add Option
+>>>>>>> linh2
               </Button>
             </div>
           )}
@@ -379,7 +461,11 @@ const SurveyQuestionEditor = ({ surveyId, onClose, onSurveyUpdated }) => {
               onClick={saveQuestion}
               disabled={saving}
             >
+<<<<<<< HEAD
               {saving ? 'Đang lưu...' : editingQuestion ? 'Cập nhật' : 'Thêm câu hỏi'}
+=======
+              {saving ? 'Saving...' : editingQuestion ? 'Update' : 'Add Question'}
+>>>>>>> linh2
             </Button>
           </div>
         </div>
@@ -393,7 +479,11 @@ const SurveyQuestionEditor = ({ surveyId, onClose, onSurveyUpdated }) => {
       >
         <div className={styles.settingsForm}>
           <Input
+<<<<<<< HEAD
             label="Tiêu đề Survey *"
+=======
+            label="Survey Title *"
+>>>>>>> linh2
             value={settingsForm.title}
             onChange={(e) => setSettingsForm(prev => ({ ...prev, title: e.target.value }))}
             placeholder="Nhập tiêu đề survey"
@@ -430,7 +520,11 @@ const SurveyQuestionEditor = ({ surveyId, onClose, onSurveyUpdated }) => {
               onClick={updateSurveySettings}
               disabled={saving}
             >
+<<<<<<< HEAD
               {saving ? 'Đang lưu...' : 'Cập nhật'}
+=======
+              {saving ? 'Saving...' : 'Update'}
+>>>>>>> linh2
             </Button>
           </div>
         </div>

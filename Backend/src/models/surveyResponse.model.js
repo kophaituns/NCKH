@@ -14,7 +14,7 @@ module.exports = (sequelize, DataTypes) => {
       },
       respondent_id: {
         type: DataTypes.INTEGER,
-        allowNull: false,
+        allowNull: true,  // Allow null for anonymous responses
       },
       collector_id: {
         type: DataTypes.INTEGER,

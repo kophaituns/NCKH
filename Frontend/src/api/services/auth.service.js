@@ -35,12 +35,21 @@ const AuthService = {
     const { user, token, refreshToken } = response.data.data;
     
     // Store tokens and user data
+<<<<<<< HEAD
    if (token) {
     sessionStorage.setItem('token', token);
     sessionStorage.setItem('refreshToken', refreshToken);
     sessionStorage.setItem('user', JSON.stringify(user));
     setAuthToken(token);
 }
+=======
+    if (token) {
+      localStorage.setItem('token', token);
+      localStorage.setItem('refreshToken', refreshToken);
+      localStorage.setItem('user', JSON.stringify(user));
+      setAuthToken(token);
+    }
+>>>>>>> linh2
     
     return response.data;
   },
@@ -100,12 +109,24 @@ const AuthService = {
    * Get stored user data
    */
   getCurrentUser() {
+<<<<<<< HEAD
     const userStr = sessionStorage.getItem('user');
     return userStr ? JSON.parse(userStr) : null;
 },
 
 getToken() {
   return sessionStorage.getItem('token');
+=======
+    const userStr = localStorage.getItem('user');
+    return userStr ? JSON.parse(userStr) : null;
+  },
+
+  /**
+   * Get stored token
+   */
+  getToken() {
+    return localStorage.getItem('token');
+>>>>>>> linh2
   },
 };
 

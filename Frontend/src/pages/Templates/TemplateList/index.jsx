@@ -103,7 +103,10 @@ const TemplateList = () => {
               setCurrentPage(1);
             }}
             className={styles.searchInput}
+<<<<<<< HEAD
             style={{ paddingLeft: '4rem' }}
+=======
+>>>>>>> linh2
           />
         </div>
         <span className={styles.resultCount}>

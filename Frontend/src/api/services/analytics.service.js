@@ -3,6 +3,7 @@ import http from '../http';
 
 const AnalyticsService = {
   /**
+<<<<<<< HEAD
    * Get dashboard statistics (overview cho creator/general)
    */
   async getDashboardStats() {
@@ -19,10 +20,18 @@ const AnalyticsService = {
     const response = await http.get('/analytics/admin/dashboard');
     // Trả thẳng object stats để FE dùng cho tiện
     return response.data.data || response.data;
+=======
+   * Get dashboard statistics (overview)
+   */
+  async getDashboardStats() {
+    const response = await http.get('/analytics/dashboard');
+    return response.data;
+>>>>>>> linh2
   },
 
   /**
    * Get survey summary analytics
+<<<<<<< HEAD
    * Backend: /analytics/survey/:survey_id/summary
    */
   async getSurveySummary(surveyId) {
@@ -49,10 +58,33 @@ const AnalyticsService = {
   async getAllQuestionsAnalytics(surveyId) {
     const response = await http.get(`/analytics/survey/${surveyId}/questions`);
     return response.data.data || response.data;
+=======
+   */
+  async getSurveySummary(surveyId) {
+    const response = await http.get(`/analytics/surveys/${surveyId}/summary`);
+    return response.data;
+  },
+
+  /**
+   * Get detailed question analytics
+   */
+  async getQuestionAnalytics(surveyId, questionId) {
+    const response = await http.get(`/analytics/surveys/${surveyId}/questions/${questionId}`);
+    return response.data;
+  },
+
+  /**
+   * Get all questions analytics for a survey
+   */
+  async getAllQuestionsAnalytics(surveyId) {
+    const response = await http.get(`/analytics/surveys/${surveyId}/questions`);
+    return response.data;
+>>>>>>> linh2
   },
 
   /**
    * Get response details with analysis
+<<<<<<< HEAD
    * Backend: /analytics/survey/:survey_id/responses
    */
   async getResponseDetails(surveyId, params = {}) {
@@ -61,10 +93,17 @@ const AnalyticsService = {
       { params }
     );
     return response.data.data || response.data;
+=======
+   */
+  async getResponseDetails(surveyId, params = {}) {
+    const response = await http.get(`/analytics/surveys/${surveyId}/responses`, { params });
+    return response.data;
+>>>>>>> linh2
   },
 
   /**
    * Get time-series data for responses
+<<<<<<< HEAD
    * (nếu bạn có route /analytics/survey/:id/time-series)
    */
   async getResponseTimeSeries(surveyId, params = {}) {
@@ -73,10 +112,17 @@ const AnalyticsService = {
       { params }
     );
     return response.data.data || response.data;
+=======
+   */
+  async getResponseTimeSeries(surveyId, params = {}) {
+    const response = await http.get(`/analytics/surveys/${surveyId}/time-series`, { params });
+    return response.data;
+>>>>>>> linh2
   },
 
   /**
    * Get completion rate statistics
+<<<<<<< HEAD
    * (nếu bạn có route /analytics/survey/:id/completion)
    */
   async getCompletionStats(surveyId) {
@@ -84,16 +130,28 @@ const AnalyticsService = {
       `/analytics/survey/${surveyId}/completion`
     );
     return response.data.data || response.data;
+=======
+   */
+  async getCompletionStats(surveyId) {
+    const response = await http.get(`/analytics/surveys/${surveyId}/completion`);
+    return response.data;
+>>>>>>> linh2
   },
 
   /**
    * Get survey activity trend (for dashboard)
+<<<<<<< HEAD
    * Backend: /analytics/survey-activity-trend (nếu bạn đã khai báo)
    */
   async getSurveyActivityTrend(params = {}) {
     const response = await http.get('/analytics/survey-activity-trend', {
       params,
     });
+=======
+   */
+  async getSurveyActivityTrend(params = {}) {
+    const response = await http.get('/analytics/survey-activity-trend', { params });
+>>>>>>> linh2
     return response.data.data || [];
   },
 };

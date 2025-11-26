@@ -1,8 +1,14 @@
 # ALLMTAGS - AI-Powered Survey Generation System
 
+<<<<<<< HEAD
 **Status:** ✅ **FULLY OPERATIONAL** | **Version:** 1.0.0 | **Updated:** November 6, 2025
 
 ## 🎉 Quick Start (3 Commands)
+=======
+**Status:**  **FULLY OPERATIONAL** | **Version:** 1.0.0 | **Updated:** November 6, 2025
+
+##  Quick Start (3 Commands)
+>>>>>>> linh2
 
 ```bash
 # 1. Seed sample data (3 users + templates + surveys)

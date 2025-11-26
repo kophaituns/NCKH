@@ -37,7 +37,11 @@ const SurveyResults = ({ surveyId, onClose }) => {
       if (data.success) {
         setResults(data.data);
       } else {
+<<<<<<< HEAD
         throw new Error(data.message || 'Lỗi tải dữ liệu');
+=======
+        throw new Error(data.message || 'Data loading error');
+>>>>>>> linh2
       }
     } catch (err) {
       setError(err.message);
@@ -56,7 +60,11 @@ const SurveyResults = ({ surveyId, onClose }) => {
         </div>
         <div className={styles.loading}>
           <div className={styles.spinner}></div>
+<<<<<<< HEAD
           <p>Đang tải kết quả...</p>
+=======
+          <p>Loading results...</p>
+>>>>>>> linh2
         </div>
       </div>
     );
@@ -214,7 +222,11 @@ const SurveyResults = ({ surveyId, onClose }) => {
               <div key={idx} className={styles.answerItem}>
                 <div className={styles.questionText}>{answer.question_text}</div>
                 <div className={styles.answerText}>
+<<<<<<< HEAD
                   {answer.answer_text || 'Không có câu trả lời'}
+=======
+                  {answer.answer_text || 'No answer'}
+>>>>>>> linh2
                 </div>
               </div>
             ))}

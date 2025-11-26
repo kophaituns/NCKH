@@ -10,7 +10,7 @@ module.exports = (sequelize, DataTypes) => {
       },
       template_id: {
         type: DataTypes.INTEGER,
-        allowNull: false,
+        allowNull: true,
       },
       title: {
         type: DataTypes.STRING(255),
@@ -43,6 +43,17 @@ module.exports = (sequelize, DataTypes) => {
       status: {
         type: DataTypes.ENUM('draft', 'active', 'closed', 'analyzed'),
         defaultValue: 'draft',
+      },
+      share_settings: {
+        type: DataTypes.TEXT,
+        allowNull: true,
+        get() {
+          const value = this.getDataValue('share_settings');
+          return value ? JSON.parse(value) : null;
+        },
+        set(value) {
+          this.setDataValue('share_settings', JSON.stringify(value));
+        }
       },
       created_at: {
         type: DataTypes.DATE,

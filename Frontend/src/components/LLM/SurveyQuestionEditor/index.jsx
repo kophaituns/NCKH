@@ -9,11 +9,19 @@ import Modal from '../../UI/Modal';
 import styles from './SurveyQuestionEditor.module.scss';
 
 const QUESTION_TYPES = [
+<<<<<<< HEAD
   { value: 'text', label: 'Văn bản' },
   { value: 'multiple_choice', label: 'Lựa chọn đơn' },
   { value: 'multiple_select', label: 'Lựa chọn nhiều' },
   { value: 'rating', label: 'Đánh giá' },
   { value: 'yes_no', label: 'Có/Không' }
+=======
+  { value: 'text', label: 'Text' },
+  { value: 'multiple_choice', label: 'Single Choice' },
+  { value: 'multiple_select', label: 'Multiple Choice' },
+  { value: 'rating', label: 'Rating' },
+  { value: 'yes_no', label: 'Yes/No' }
+>>>>>>> linh2
 ];
 
 const SurveyQuestionEditor = ({ surveyId, onClose, onSurveyUpdated }) => {
@@ -57,7 +65,11 @@ const SurveyQuestionEditor = ({ surveyId, onClose, onSurveyUpdated }) => {
         status: response.data.status
       });
     } catch (error) {
+<<<<<<< HEAD
       showToast('Không thể tải survey để chỉnh sửa', 'error');
+=======
+      showToast('Unable to load survey for editing', 'error');
+>>>>>>> linh2
       console.error('Load survey error:', error);
     } finally {
       setLoading(false);
@@ -70,10 +82,17 @@ const SurveyQuestionEditor = ({ surveyId, onClose, onSurveyUpdated }) => {
       await LLMService.updateSurveySettings(surveyId, surveySettings);
       setSurvey(prev => ({ ...prev, ...surveySettings }));
       setShowSettingsModal(false);
+<<<<<<< HEAD
       showToast('Cập nhật cài đặt survey thành công', 'success');
       onSurveyUpdated?.(); // Notify parent component
     } catch (error) {
       showToast('Lỗi khi cập nhật cài đặt survey', 'error');
+=======
+      showToast('Survey settings updated successfully', 'success');
+      onSurveyUpdated?.(); // Notify parent component
+    } catch (error) {
+      showToast('Error updating survey settings', 'error');
+>>>>>>> linh2
       console.error('Update survey settings error:', error);
     } finally {
       setSaving(false);
@@ -104,10 +123,17 @@ const SurveyQuestionEditor = ({ surveyId, onClose, onSurveyUpdated }) => {
         options: ['']
       });
       setShowAddModal(false);
+<<<<<<< HEAD
       showToast('Thêm câu hỏi thành công', 'success');
       onSurveyUpdated?.(); // Notify parent component
     } catch (error) {
       showToast('Lỗi khi thêm câu hỏi', 'error');
+=======
+      showToast('Question added successfully', 'success');
+      onSurveyUpdated?.(); // Notify parent component
+    } catch (error) {
+      showToast('Error adding question', 'error');
+>>>>>>> linh2
       console.error('Add question error:', error);
     } finally {
       setSaving(false);
@@ -132,10 +158,17 @@ const SurveyQuestionEditor = ({ surveyId, onClose, onSurveyUpdated }) => {
       
       setEditingQuestion(null);
       setShowEditModal(false);
+<<<<<<< HEAD
       showToast('Cập nhật câu hỏi thành công', 'success');
       onSurveyUpdated?.(); // Notify parent component
     } catch (error) {
       showToast('Lỗi khi cập nhật câu hỏi', 'error');
+=======
+      showToast('Question updated successfully', 'success');
+      onSurveyUpdated?.(); // Notify parent component
+    } catch (error) {
+      showToast('Error updating question', 'error');
+>>>>>>> linh2
       console.error('Update question error:', error);
     } finally {
       setSaving(false);
@@ -143,7 +176,11 @@ const SurveyQuestionEditor = ({ surveyId, onClose, onSurveyUpdated }) => {
   };
 
   const handleDeleteQuestion = async (questionId) => {
+<<<<<<< HEAD
     if (!window.confirm('Bạn có chắc chắn muốn xóa câu hỏi này không?')) return;
+=======
+    if (!window.confirm('Are you sure you want to delete this question?')) return;
+>>>>>>> linh2
 
     try {
       setSaving(true);
@@ -152,10 +189,17 @@ const SurveyQuestionEditor = ({ surveyId, onClose, onSurveyUpdated }) => {
         ...prev,
         questions: prev.questions.filter(q => q.id !== questionId)
       }));
+<<<<<<< HEAD
       showToast('Xóa câu hỏi thành công', 'success');
       onSurveyUpdated?.(); // Notify parent component
     } catch (error) {
       showToast('Lỗi khi xóa câu hỏi', 'error');
+=======
+      showToast('Question deleted successfully', 'success');
+      onSurveyUpdated?.(); // Notify parent component
+    } catch (error) {
+      showToast('Error deleting question', 'error');
+>>>>>>> linh2
       console.error('Delete question error:', error);
     } finally {
       setSaving(false);
@@ -216,7 +260,11 @@ const SurveyQuestionEditor = ({ surveyId, onClose, onSurveyUpdated }) => {
     return (
       <div className={styles.loading}>
         <div className={styles.spinner}></div>
+<<<<<<< HEAD
         <p>Đang tải survey...</p>
+=======
+        <p>Loading survey...</p>
+>>>>>>> linh2
       </div>
     );
   }
@@ -234,7 +282,11 @@ const SurveyQuestionEditor = ({ surveyId, onClose, onSurveyUpdated }) => {
     <div className={styles.surveyEditor}>
       <div className={styles.header}>
         <div className={styles.headerLeft}>
+<<<<<<< HEAD
           <h2>Chỉnh sửa Survey: {survey.title}</h2>
+=======
+          <h2>Edit Survey: {survey.title}</h2>
+>>>>>>> linh2
           <p>Tổng số câu hỏi: {survey.questions?.length || 0}</p>
         </div>
         <div className={styles.headerRight}>
@@ -243,10 +295,17 @@ const SurveyQuestionEditor = ({ surveyId, onClose, onSurveyUpdated }) => {
             onClick={() => setShowSettingsModal(true)}
             icon="⚙️"
           >
+<<<<<<< HEAD
             Cài đặt Survey
           </Button>
           <Button onClick={onClose} variant="primary">
             Hoàn thành chỉnh sửa
+=======
+            Survey Settings
+          </Button>
+          <Button onClick={onClose} variant="primary">
+            Complete Editing
+>>>>>>> linh2
           </Button>
         </div>
       </div>
@@ -254,9 +313,15 @@ const SurveyQuestionEditor = ({ surveyId, onClose, onSurveyUpdated }) => {
       <div className={styles.content}>
         <div className={styles.questionsSection}>
           <div className={styles.sectionHeader}>
+<<<<<<< HEAD
             <h3>Danh sách câu hỏi</h3>
             <Button onClick={() => setShowAddModal(true)} icon="➕">
               Thêm câu hỏi
+=======
+            <h3>Questions List</h3>
+            <Button onClick={() => setShowAddModal(true)} icon="➕">
+              Add Question
+>>>>>>> linh2
             </Button>
           </div>
 
@@ -268,7 +333,11 @@ const SurveyQuestionEditor = ({ surveyId, onClose, onSurveyUpdated }) => {
                   <span className={styles.questionType}>
                     {QUESTION_TYPES.find(t => t.value === question.question_type)?.label || question.question_type}
                   </span>
+<<<<<<< HEAD
                   {question.is_required && <span className={styles.required}>Bắt buộc</span>}
+=======
+                  {question.is_required && <span className={styles.required}>Required</span>}
+>>>>>>> linh2
                 </div>
                 
                 <div className={styles.questionContent}>
@@ -277,7 +346,11 @@ const SurveyQuestionEditor = ({ surveyId, onClose, onSurveyUpdated }) => {
                   
                   {question.options?.length > 0 && (
                     <div className={styles.options}>
+<<<<<<< HEAD
                       <strong>Các lựa chọn:</strong>
+=======
+                      <strong>Options:</strong>
+>>>>>>> linh2
                       <ul>
                         {question.options.map(option => (
                           <li key={option.id}>{option.option_text}</li>
@@ -301,7 +374,11 @@ const SurveyQuestionEditor = ({ surveyId, onClose, onSurveyUpdated }) => {
                     onClick={() => handleDeleteQuestion(question.id)}
                     disabled={saving}
                   >
+<<<<<<< HEAD
                     🗑️ Xóa
+=======
+                    🗑️ Delete
+>>>>>>> linh2
                   </Button>
                 </div>
               </div>
@@ -310,37 +387,61 @@ const SurveyQuestionEditor = ({ surveyId, onClose, onSurveyUpdated }) => {
             {(!survey.questions || survey.questions.length === 0) && (
               <div className={styles.empty}>
                 <p>Chưa có câu hỏi nào</p>
+<<<<<<< HEAD
                 <Button onClick={() => setShowAddModal(true)}>Thêm câu hỏi đầu tiên</Button>
+=======
+                <Button onClick={() => setShowAddModal(true)}>Add First Question</Button>
+>>>>>>> linh2
               </div>
             )}
           </div>
         </div>
       </div>
 
+<<<<<<< HEAD
       {/* Modal Cài đặt Survey */}
+=======
+      {/* Survey Settings Modal */}
+>>>>>>> linh2
       {showSettingsModal && (
         <Modal
           isOpen={showSettingsModal}
           onClose={() => setShowSettingsModal(false)}
+<<<<<<< HEAD
           title="Cài đặt Survey"
         >
           <div className={styles.modalContent}>
             <Input
               label="Tiêu đề Survey"
+=======
+          title="Survey Settings"
+        >
+          <div className={styles.modalContent}>
+            <Input
+              label="Survey Title"
+>>>>>>> linh2
               value={surveySettings.title}
               onChange={(e) => setSurveySettings(prev => ({ ...prev, title: e.target.value }))}
               required
             />
             
             <TextArea
+<<<<<<< HEAD
               label="Mô tả"
+=======
+              label="Description"
+>>>>>>> linh2
               value={surveySettings.description}
               onChange={(e) => setSurveySettings(prev => ({ ...prev, description: e.target.value }))}
               rows={4}
             />
             
             <Select
+<<<<<<< HEAD
               label="Trạng thái"
+=======
+              label="Status"
+>>>>>>> linh2
               value={surveySettings.status}
               onChange={(e) => setSurveySettings(prev => ({ ...prev, status: e.target.value }))}
               options={[
@@ -356,19 +457,31 @@ const SurveyQuestionEditor = ({ surveyId, onClose, onSurveyUpdated }) => {
                 Hủy
               </Button>
               <Button onClick={handleUpdateSurveySettings} disabled={saving}>
+<<<<<<< HEAD
                 {saving ? 'Đang lưu...' : 'Lưu thay đổi'}
+=======
+                {saving ? 'Saving...' : 'Save Changes'}
+>>>>>>> linh2
               </Button>
             </div>
           </div>
         </Modal>
       )}
 
+<<<<<<< HEAD
       {/* Modal Thêm câu hỏi */}
+=======
+      {/* Add Question Modal */}
+>>>>>>> linh2
       {showAddModal && (
         <Modal
           isOpen={showAddModal}
           onClose={() => setShowAddModal(false)}
+<<<<<<< HEAD
           title="Thêm câu hỏi mới"
+=======
+          title="Add New Question"
+>>>>>>> linh2
         >
           <div className={styles.modalContent}>
             <Input
@@ -386,7 +499,11 @@ const SurveyQuestionEditor = ({ surveyId, onClose, onSurveyUpdated }) => {
             />
             
             <TextArea
+<<<<<<< HEAD
               label="Mô tả (tùy chọn)"
+=======
+              label="Description (optional)"
+>>>>>>> linh2
               value={newQuestion.description}
               onChange={(e) => setNewQuestion(prev => ({ ...prev, description: e.target.value }))}
               rows={3}
@@ -399,7 +516,11 @@ const SurveyQuestionEditor = ({ surveyId, onClose, onSurveyUpdated }) => {
                   checked={newQuestion.is_required}
                   onChange={(e) => setNewQuestion(prev => ({ ...prev, is_required: e.target.checked }))}
                 />
+<<<<<<< HEAD
                 Câu hỏi bắt buộc
+=======
+                Required Question
+>>>>>>> linh2
               </label>
             </div>
 
@@ -435,7 +556,11 @@ const SurveyQuestionEditor = ({ surveyId, onClose, onSurveyUpdated }) => {
                 Hủy
               </Button>
               <Button onClick={handleAddQuestion} disabled={saving || !newQuestion.question_text}>
+<<<<<<< HEAD
                 {saving ? 'Đang thêm...' : 'Thêm câu hỏi'}
+=======
+                {saving ? 'Adding...' : 'Add Question'}
+>>>>>>> linh2
               </Button>
             </div>
           </div>
@@ -447,11 +572,19 @@ const SurveyQuestionEditor = ({ surveyId, onClose, onSurveyUpdated }) => {
         <Modal
           isOpen={showEditModal}
           onClose={() => setShowEditModal(false)}
+<<<<<<< HEAD
           title="Chỉnh sửa câu hỏi"
         >
           <div className={styles.modalContent}>
             <Input
               label="Nội dung câu hỏi"
+=======
+          title="Edit Question"
+        >
+          <div className={styles.modalContent}>
+            <Input
+              label="Question Content"
+>>>>>>> linh2
               value={editingQuestion.question_text}
               onChange={(e) => setEditingQuestion(prev => ({ ...prev, question_text: e.target.value }))}
               required
@@ -465,7 +598,11 @@ const SurveyQuestionEditor = ({ surveyId, onClose, onSurveyUpdated }) => {
             />
             
             <TextArea
+<<<<<<< HEAD
               label="Mô tả (tùy chọn)"
+=======
+              label="Description (optional)"
+>>>>>>> linh2
               value={editingQuestion.description || ''}
               onChange={(e) => setEditingQuestion(prev => ({ ...prev, description: e.target.value }))}
               rows={3}
@@ -478,7 +615,11 @@ const SurveyQuestionEditor = ({ surveyId, onClose, onSurveyUpdated }) => {
                   checked={editingQuestion.is_required}
                   onChange={(e) => setEditingQuestion(prev => ({ ...prev, is_required: e.target.checked }))}
                 />
+<<<<<<< HEAD
                 Câu hỏi bắt buộc
+=======
+                Required Question
+>>>>>>> linh2
               </label>
             </div>
 
@@ -514,7 +655,11 @@ const SurveyQuestionEditor = ({ surveyId, onClose, onSurveyUpdated }) => {
                 Hủy
               </Button>
               <Button onClick={handleUpdateQuestion} disabled={saving || !editingQuestion.question_text}>
+<<<<<<< HEAD
                 {saving ? 'Đang cập nhật...' : 'Cập nhật câu hỏi'}
+=======
+                {saving ? 'Updating...' : 'Update Question'}
+>>>>>>> linh2
               </Button>
             </div>
           </div>

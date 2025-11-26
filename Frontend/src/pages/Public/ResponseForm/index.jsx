@@ -21,11 +21,16 @@ const PublicResponseForm = () => {
       setLoading(true);
       const response = await ResponseService.getSurveyByToken(token);
       
+<<<<<<< HEAD
       if (!response.ok) {
+=======
+      if (!response.ok && !response.success) {
+>>>>>>> linh2
         setError(response.message || 'Invalid or inactive survey link');
         return;
       }
 
+<<<<<<< HEAD
       setSurvey(response.data.survey);
       setCollectorId(response.data.collector_id);
 
@@ -39,6 +44,29 @@ const PublicResponseForm = () => {
           initialAnswers[q.id] = '';
         }
       });
+=======
+      // Backend returns data directly, not wrapped in 'survey'
+      const surveyData = response.data || response;
+      console.log('Survey data received:', surveyData); // Debug log
+      setSurvey(surveyData);
+      setCollectorId(response.data?.collector_id || null);
+
+      // Initialize answers based on question type
+      const initialAnswers = {};
+      if (surveyData.questions && Array.isArray(surveyData.questions)) {
+        console.log('Questions found:', surveyData.questions.length); // Debug log
+        surveyData.questions.forEach(q => {
+          // Checkbox needs array, others need empty string or null
+          if (q.type === 'checkbox') {
+            initialAnswers[q.id] = [];
+          } else {
+            initialAnswers[q.id] = '';
+          }
+        });
+      } else {
+        console.log('No questions found or questions is not an array'); // Debug log
+      }
+>>>>>>> linh2
       setAnswers(initialAnswers);
     } catch (error) {
       console.error('Error fetching survey:', error);
@@ -127,12 +155,21 @@ const PublicResponseForm = () => {
     return (
       <div key={question.id} className={styles.questionBlock}>
         <label className={styles.questionLabel}>
+<<<<<<< HEAD
           {question.label}
           {question.required && <span className={styles.required}>*</span>}
         </label>
 
         {/* Open Ended - Text area */}
         {question.type === 'open_ended' && (
+=======
+          {question.text}
+          {question.required && <span className={styles.required}>*</span>}
+        </label>
+
+        {/* Text/Open Ended - Text area */}
+        {(question.type === 'text' || question.type === 'open_ended') && (
+>>>>>>> linh2
           <textarea
             value={answer || ''}
             onChange={(e) => handleAnswerChange(question.id, e.target.value, question.type)}
@@ -142,6 +179,37 @@ const PublicResponseForm = () => {
           />
         )}
 
+<<<<<<< HEAD
+=======
+        {/* Yes/No - Radio buttons */}
+        {question.type === 'yes_no' && (
+          <div className={styles.optionsList}>
+            <label className={styles.optionLabel}>
+              <input
+                type="radio"
+                name={`question-${question.id}`}
+                value="yes"
+                checked={answer === 'yes'}
+                onChange={(e) => handleAnswerChange(question.id, 'yes', question.type)}
+                className={styles.radioInput}
+              />
+              <span>Yes</span>
+            </label>
+            <label className={styles.optionLabel}>
+              <input
+                type="radio"
+                name={`question-${question.id}`}
+                value="no"
+                checked={answer === 'no'}
+                onChange={(e) => handleAnswerChange(question.id, 'no', question.type)}
+                className={styles.radioInput}
+              />
+              <span>No</span>
+            </label>
+          </div>
+        )}
+
+>>>>>>> linh2
         {/* Multiple Choice - Radio buttons (single selection) */}
         {question.type === 'multiple_choice' && (
           <div className={styles.optionsList}>
@@ -151,7 +219,11 @@ const PublicResponseForm = () => {
                   type="radio"
                   name={`question-${question.id}`}
                   value={option.id}
+<<<<<<< HEAD
                   checked={answer == option.id}
+=======
+                  checked={answer === option.id}
+>>>>>>> linh2
                   onChange={(e) => handleAnswerChange(question.id, option.id, question.type)}
                   className={styles.radioInput}
                 />
@@ -196,14 +268,22 @@ const PublicResponseForm = () => {
         )}
 
         {/* Likert Scale - Rating 1-5 */}
+<<<<<<< HEAD
         {question.type === 'likert_scale' && (
+=======
+        {(question.type === 'likert_scale' || question.type === 'rating') && (
+>>>>>>> linh2
           <div className={styles.ratingScale}>
             {[1, 2, 3, 4, 5].map((rating) => (
               <button
                 key={rating}
                 type="button"
                 onClick={() => handleAnswerChange(question.id, rating, question.type)}
+<<<<<<< HEAD
                 className={`${styles.ratingButton} ${answer == rating ? styles.ratingSelected : ''}`}
+=======
+                className={`${styles.ratingButton} ${answer === rating ? styles.ratingSelected : ''}`}
+>>>>>>> linh2
               >
                 {rating}
               </button>
@@ -257,9 +337,25 @@ const PublicResponseForm = () => {
 
         <form onSubmit={handleSubmit} className={styles.form}>
           <div className={styles.questionsContainer}>
+<<<<<<< HEAD
             {survey.questions
               .sort((a, b) => a.display_order - b.display_order)
               .map(renderQuestion)}
+=======
+            {console.log('Survey data:', survey)}
+            {console.log('Questions:', survey.questions)}
+            {console.log('Questions length:', survey.questions?.length)}
+            {survey.questions && survey.questions.length > 0 ? (
+              survey.questions
+                .sort((a, b) => (a.order || a.display_order || 0) - (b.order || b.display_order || 0))
+                .map(renderQuestion)
+            ) : (
+              <div className={styles.noQuestions}>
+                <p>No questions available for this survey.</p>
+                <p>Debug: {JSON.stringify(survey, null, 2)}</p>
+              </div>
+            )}
+>>>>>>> linh2
           </div>
 
           <div className={styles.submitSection}>

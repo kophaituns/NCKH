@@ -219,7 +219,10 @@ const UserManagement = () => {
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className={styles.searchInput}
+<<<<<<< HEAD
             style={{ paddingLeft: '4rem' }} 
+=======
+>>>>>>> linh2
           />
         </div>
 

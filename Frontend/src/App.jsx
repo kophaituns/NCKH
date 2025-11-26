@@ -11,7 +11,14 @@ function App() {
     <AuthProvider>
       <ToastProvider>
         <GlobalStyles>
+<<<<<<< HEAD
           <Router>
+=======
+          <Router future={{ 
+            v7_startTransition: true, 
+            v7_relativeSplatPath: true 
+          }}>
+>>>>>>> linh2
             <AppRoutes />
           </Router>
         </GlobalStyles>

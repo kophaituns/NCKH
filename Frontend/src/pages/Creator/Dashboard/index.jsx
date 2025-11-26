@@ -121,6 +121,7 @@ const CreatorDashboard = () => {
         <div className={styles.actions}>
           <button 
             className={styles.actionButton}
+<<<<<<< HEAD
             onClick={() => navigate('/workspaces')}
           >
             <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
@@ -130,6 +131,8 @@ const CreatorDashboard = () => {
           </button>
           <button 
             className={styles.actionButton}
+=======
+>>>>>>> linh2
             onClick={() => navigate('/analytics')}
           >
             <svg width="20" height="20" viewBox="0 0 20 20" fill="none">

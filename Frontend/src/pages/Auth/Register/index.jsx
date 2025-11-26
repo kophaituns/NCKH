@@ -92,6 +92,7 @@ function Register() {
     }
   };
 
+<<<<<<< HEAD
   const handleBackHome = () => {
     navigate('/');
   };
@@ -107,6 +108,10 @@ function Register() {
         ← Back to Home
       </button>
 
+=======
+  return (
+    <div className={styles.registerPage}>
+>>>>>>> linh2
       <div className={styles.registerContainer}>
         <div className={styles.registerCard}>
           {/* Logo and Header */}

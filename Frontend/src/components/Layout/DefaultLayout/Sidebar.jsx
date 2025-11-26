@@ -9,10 +9,14 @@ const Sidebar = ({ isOpen, onClose }) => {
 
   // Define menu items based on roles
   const getMenuItems = () => {
+<<<<<<< HEAD
     const baseItems = [
       { path: '/notifications', label: 'Notifications', icon: 'notifications' },
       { path: '/chat', label: 'Chat', icon: 'chat' },
     ];
+=======
+    const baseItems = [];
+>>>>>>> linh2
 
     if (userRole === 'admin') {
       return [
@@ -22,20 +26,31 @@ const Sidebar = ({ isOpen, onClose }) => {
         { path: '/surveys', label: 'Surveys', icon: 'surveys' },
         { path: '/analytics', label: 'Analytics', icon: 'analytics' },
         { path: '/llm', label: 'AI Generation', icon: 'llm' },
+<<<<<<< HEAD
         { path: '/chat', label: 'Chat', icon: 'chat' },
+=======
+        { path: '/chat', label: 'AI Chat', icon: 'chat' },
+>>>>>>> linh2
       ];
     }
 
     if (userRole === 'creator') {
       return [
         { path: '/dashboard', label: 'Dashboard', icon: 'dashboard' },
+<<<<<<< HEAD
         { path: '/workspaces', label: 'Workspaces', icon: 'workspaces' },
+=======
+>>>>>>> linh2
         { path: '/templates', label: 'Templates', icon: 'templates' },
         { path: '/surveys', label: 'Surveys', icon: 'surveys' },
         { path: '/collectors', label: 'Collectors', icon: 'collectors' },
         { path: '/analytics', label: 'Analytics', icon: 'analytics' },
+<<<<<<< HEAD
         { path: '/llm', label: 'AI Generation', icon: 'llm' },
         { path: '/chat', label: 'Chat', icon: 'chat' },
+=======
+        { path: '/chat', label: 'AI Chat', icon: 'chat' },
+>>>>>>> linh2
       ];
     }
 
@@ -43,6 +58,10 @@ const Sidebar = ({ isOpen, onClose }) => {
       return [
         { path: '/surveys', label: 'My Surveys', icon: 'surveys' },
         { path: '/responses', label: 'My Responses', icon: 'responses' },
+<<<<<<< HEAD
+=======
+        { path: '/chat', label: 'AI Chat', icon: 'chat' },
+>>>>>>> linh2
       ];
     }
 
@@ -102,6 +121,7 @@ const Sidebar = ({ isOpen, onClose }) => {
           <circle cx="10" cy="10" r="7" stroke="currentColor" strokeWidth="1.5"/>
         </svg>
       ),
+<<<<<<< HEAD
       workspaces: (
         <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
           <rect x="3" y="3" width="5" height="5" rx="1" stroke="currentColor" strokeWidth="1.5"/>
@@ -120,6 +140,12 @@ const Sidebar = ({ isOpen, onClose }) => {
       chat: (
         <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
           <path d="M18 11c0 4.97-4.03 9-9 9H5l-3.5 2.5V11c0-4.97 4.03-9 9-9s9 4.03 9 9z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+=======
+      chat: (
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+          <path d="M3 5.5c0-1.4 1.1-2.5 2.5-2.5h9c1.4 0 2.5 1.1 2.5 2.5v6c0 1.4-1.1 2.5-2.5 2.5H8L3 17v-11.5z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round"/>
+          <path d="M6 8h8M6 11h5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+>>>>>>> linh2
         </svg>
       ),
     };

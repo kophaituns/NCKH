@@ -36,6 +36,7 @@ const TemplateEditor = () => {
   const [optionForm, setOptionForm] = useState({ option_text: '', display_order: 0 });
   const [editingOption, setEditingOption] = useState(null);
 
+<<<<<<< HEAD
   // Confirmation modal state
   const [confirmModal, setConfirmModal] = useState({
     isOpen: false,
@@ -46,6 +47,8 @@ const TemplateEditor = () => {
     cancelText: 'Cancel'
   });
 
+=======
+>>>>>>> linh2
   const fetchTemplateData = useCallback(async () => {
     if (!id || id === 'new') return;
     
@@ -230,6 +233,7 @@ const TemplateEditor = () => {
   const questionTypesWithOptions = ['multiple_choice', 'checkbox', 'dropdown'];
 
   const handleDeleteQuestion = async (questionId) => {
+<<<<<<< HEAD
     setConfirmModal({
       isOpen: true,
       title: 'Delete Question',
@@ -247,6 +251,17 @@ const TemplateEditor = () => {
         }
       }
     });
+=======
+    if (!window.confirm('Are you sure you want to delete this question?')) return;
+
+    try {
+      await QuestionService.delete(questionId);
+      showToast('Question deleted successfully', 'success');
+      fetchTemplateData();
+    } catch (error) {
+      showToast(error.response?.data?.message || 'Failed to delete question', 'error');
+    }
+>>>>>>> linh2
   };
 
   const openAddOptionModal = (questionId) => {
@@ -290,6 +305,7 @@ const TemplateEditor = () => {
   };
 
   const handleDeleteOption = async (optionId) => {
+<<<<<<< HEAD
     setConfirmModal({
       isOpen: true,
       title: 'Delete Option',
@@ -307,6 +323,17 @@ const TemplateEditor = () => {
         }
       }
     });
+=======
+    if (!window.confirm('Are you sure you want to delete this option?')) return;
+
+    try {
+      await QuestionService.deleteOption(optionId);
+      showToast('Option deleted successfully', 'success');
+      fetchTemplateData();
+    } catch (error) {
+      showToast(error.response?.data?.message || 'Failed to delete option', 'error');
+    }
+>>>>>>> linh2
   };
 
   // Note: questionTypesWithOptions logic is handled inline in the UI components
@@ -523,6 +550,7 @@ const TemplateEditor = () => {
           </div>
         </div>
       </Modal>
+<<<<<<< HEAD
 
       {/* Confirmation Modal */}
       {confirmModal.isOpen && (
@@ -553,6 +581,8 @@ const TemplateEditor = () => {
           </div>
         </Modal>
       )}
+=======
+>>>>>>> linh2
     </div>
   );
 };

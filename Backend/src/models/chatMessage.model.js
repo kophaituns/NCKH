@@ -25,7 +25,11 @@ module.exports = (sequelize) => {
         },
         api_provider: {
             type: DataTypes.ENUM('super_dev', 'gemini'),
+<<<<<<< HEAD
             allowNull: true,
+=======
+            allowNull: true, // Null for user messages
+>>>>>>> linh2
             comment: 'API provider used for AI responses'
         },
         response_time: {
@@ -69,14 +73,33 @@ module.exports = (sequelize) => {
         updatedAt: 'updated_at',
         underscored: true,
         indexes: [
+<<<<<<< HEAD
             { fields: ['conversation_id'] },
             { fields: ['sender_type'] },
             { fields: ['created_at'] },
             { fields: ['api_provider'] }
+=======
+            {
+                fields: ['conversation_id']
+            },
+            {
+                fields: ['sender_type']
+            },
+            {
+                fields: ['created_at']
+            },
+            {
+                fields: ['api_provider']
+            }
+>>>>>>> linh2
         ]
     });
 
     ChatMessage.associate = (models) => {
+<<<<<<< HEAD
+=======
+        // Association with ChatConversation model
+>>>>>>> linh2
         ChatMessage.belongsTo(models.ChatConversation, {
             foreignKey: 'conversation_id',
             as: 'conversation'

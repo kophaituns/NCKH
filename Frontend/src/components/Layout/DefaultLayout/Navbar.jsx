@@ -1,7 +1,10 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
+<<<<<<< HEAD
 import NotificationBell from '../../UI/NotificationBell';
+=======
+>>>>>>> linh2
 import styles from './Navbar.module.scss';
 
 const Navbar = ({ onToggleSidebar }) => {
@@ -60,9 +63,13 @@ const Navbar = ({ onToggleSidebar }) => {
 
       <div className={styles.navbarRight}>
         {state.user && (
+<<<<<<< HEAD
           <>
             <NotificationBell />
             <div className={styles.userSection}>
+=======
+          <div className={styles.userSection}>
+>>>>>>> linh2
             <div 
               className={styles.userInfo}
               onClick={() => setShowUserMenu(!showUserMenu)}
@@ -134,8 +141,12 @@ const Navbar = ({ onToggleSidebar }) => {
                 </button>
               </div>
             )}
+<<<<<<< HEAD
             </div>
           </>
+=======
+          </div>
+>>>>>>> linh2
         )}
       </div>
 

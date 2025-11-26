@@ -18,6 +18,7 @@ import TemplateEditor from '../pages/Templates/TemplateEditor/index.jsx';
 import SurveyList from '../pages/Surveys/SurveyList/index.jsx';
 import SurveyEditor from '../pages/Surveys/SurveyEditor/index.jsx';
 import SurveyDistribute from '../pages/Surveys/Distribute/index.jsx';
+<<<<<<< HEAD
 import SurveyResults from '../pages/Surveys/Results/index.jsx';
 import CollectorList from '../pages/Collectors/CollectorList/index.jsx';
 import Workspaces from '../pages/Workspaces/index.jsx';
@@ -28,6 +29,13 @@ import Chat from '../pages/Chat/index.jsx';
 import LLM from '../pages/LLM/index.jsx';
 import PublicResponseForm from '../pages/Public/ResponseForm/index.jsx';
 import WorkspaceInvitationAccept from '../pages/Public/WorkspaceInvitationAccept/index.jsx';
+=======
+import SurveyResults from '../pages/Surveys/Results/SurveyResults.jsx';
+import CollectorList from '../pages/Collectors/CollectorList/index.jsx';
+import PublicResponseForm from '../pages/Public/ResponseForm/index.jsx';
+import LLM from '../pages/LLM/index.jsx';
+import Chat from '../pages/Chat/index.jsx';
+>>>>>>> linh2
 
 // Placeholder components for routes not yet implemented
 const ComingSoon = ({ title }) => (
@@ -219,6 +227,7 @@ const AppRoutes = () => {
         } 
       />
 
+<<<<<<< HEAD
       {/* Workspaces Routes - Creator/Admin */}
       <Route 
         path="/workspaces" 
@@ -267,6 +276,8 @@ const AppRoutes = () => {
         } 
       />
 
+=======
+>>>>>>> linh2
       {/* Responses Routes - User */}
       <Route 
         path="/responses" 
@@ -320,6 +331,15 @@ const AppRoutes = () => {
         path="/public/:token" 
         element={<PublicResponseForm />} 
       />
+<<<<<<< HEAD
+=======
+      
+      {/* Survey Public Access Route */}
+      <Route 
+        path="/survey/public/:token" 
+        element={<PublicResponseForm />} 
+      />
+>>>>>>> linh2
 
       {/* Legacy route for backward compatibility */}
       <Route 
@@ -327,12 +347,15 @@ const AppRoutes = () => {
         element={<PublicResponseForm />} 
       />
 
+<<<<<<< HEAD
       {/* Workspace Invitation Acceptance Route (public, no auth required) */}
       <Route 
         path="/workspace/invitation/:inviteToken/accept" 
         element={<WorkspaceInvitationAccept />} 
       />
 
+=======
+>>>>>>> linh2
       {/* Profile & Settings (All authenticated users) */}
       <Route 
         path="/profile" 

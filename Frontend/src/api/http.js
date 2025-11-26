@@ -2,7 +2,11 @@
 import axios from 'axios';
 
 // API base URL
+<<<<<<< HEAD
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api/modules';
+=======
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5001/api/modules';
+>>>>>>> linh2
 
 // Create axios instance
 const http = axios.create({
@@ -33,6 +37,7 @@ http.interceptors.response.use(
     // Safely extract data, handle cases where response might not have expected structure
     const data = response.data;
     
+<<<<<<< HEAD
     // Handle empty or undefined responses
     if (!data || typeof data !== 'object') {
       return {
@@ -50,13 +55,27 @@ http.interceptors.response.use(
     }
     if (!('success' in data) && 'ok' in data) {
       data.success = data.ok;
+=======
+    // Ensure we always return an object with ok/success flag
+    if (typeof data === 'object' && data !== null) {
+      // If backend sent ok or success, keep it
+      if (!('ok' in data) && 'success' in data) {
+        data.ok = data.success;
+      }
+      if (!('success' in data) && 'ok' in data) {
+        data.success = data.ok;
+      }
+>>>>>>> linh2
     }
     
     return response;
   },
   async (error) => {
+<<<<<<< HEAD
     console.error('[HTTP] Response error:', error.response?.status, error.response?.data || error.message);
     
+=======
+>>>>>>> linh2
     const originalRequest = error.config;
 
     // If 401 and not already retrying
@@ -68,7 +87,10 @@ http.interceptors.response.use(
         
         if (!refreshToken) {
           // No refresh token, redirect to login
+<<<<<<< HEAD
           console.warn('[HTTP] No refresh token, redirecting to login');
+=======
+>>>>>>> linh2
           localStorage.clear();
           window.location.href = '/login';
           return Promise.reject(error);
@@ -92,7 +114,10 @@ http.interceptors.response.use(
         return http(originalRequest);
       } catch (refreshError) {
         // Refresh failed, clear storage and redirect to login
+<<<<<<< HEAD
         console.error('[HTTP] Token refresh failed:', refreshError.message);
+=======
+>>>>>>> linh2
         localStorage.clear();
         window.location.href = '/login';
         return Promise.reject(refreshError);
@@ -117,19 +142,34 @@ http.interceptors.response.use(
 export const setAuthToken = (token) => {
   if (token) {
     http.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+<<<<<<< HEAD
     sessionStorage.setItem('token', token);
   } else {
     delete http.defaults.headers.common['Authorization'];
     sessionStorage.removeItem('token');
+=======
+    localStorage.setItem('token', token);
+  } else {
+    delete http.defaults.headers.common['Authorization'];
+    localStorage.removeItem('token');
+>>>>>>> linh2
   }
 };
 
 export const clearAuth = () => {
   delete http.defaults.headers.common['Authorization'];
+<<<<<<< HEAD
   sessionStorage.removeItem('token');
   sessionStorage.removeItem('refreshToken');
   sessionStorage.removeItem('user');
 };
 
 
+=======
+  localStorage.removeItem('token');
+  localStorage.removeItem('refreshToken');
+  localStorage.removeItem('user');
+};
+
+>>>>>>> linh2
 export default http;

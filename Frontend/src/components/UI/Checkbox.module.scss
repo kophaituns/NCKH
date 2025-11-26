@@ -1,0 +1,71 @@
+// Checkbox.module.scss
+.checkboxContainer {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  user-select: none;
+  position: relative;
+  
+  &:hover .checkmark {
+    background-color: var(--primary-color-light);
+  }
+}
+
+.checkbox {
+  position: absolute;
+  opacity: 0;
+  cursor: pointer;
+  height: 0;
+  width: 0;
+  
+  &:checked ~ .checkmark {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+    
+    &:after {
+      display: block;
+    }
+  }
+  
+  &:disabled ~ .checkmark {
+    background-color: var(--bg-disabled);
+    border-color: var(--border-color);
+    cursor: not-allowed;
+    opacity: 0.6;
+  }
+  
+  &:disabled ~ .label {
+    color: var(--text-disabled);
+    cursor: not-allowed;
+  }
+}
+
+.checkmark {
+  position: relative;
+  height: 18px;
+  width: 18px;
+  background-color: var(--bg-primary);
+  border: 2px solid var(--border-color);
+  border-radius: 4px;
+  transition: all 0.3s ease;
+  
+  &:after {
+    content: "";
+    position: absolute;
+    display: none;
+    left: 5px;
+    top: 2px;
+    width: 4px;
+    height: 8px;
+    border: solid white;
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
+  }
+}
+
+.label {
+  margin-left: 10px;
+  color: var(--text-primary);
+  font-size: 0.95rem;
+  line-height: 1.4;
+}

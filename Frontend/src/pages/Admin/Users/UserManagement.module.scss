@@ -353,6 +353,7 @@
   }
 }
 
+<<<<<<< HEAD
 /* Responsive cho bảng Users */
 @media (max-width: 1024px) {
   .tableContainer {
@@ -414,3 +415,14 @@
 }
 
 
+=======
+@media (max-width: 768px) {
+  .tableContainer {
+    overflow-x: auto;
+  }
+
+  .table {
+    min-width: 800px;
+  }
+}
+>>>>>>> linh2
