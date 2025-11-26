@@ -1,6 +1,6 @@
 // modules/llm/controller/llm.controller.js
 const llmService = require('../service/llm.service');
-const logger = require('../../../src/utils/logger');
+const logger = require('../../../utils/logger');
 
 class LLMController {
   /**

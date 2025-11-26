@@ -1,9 +1,8 @@
-﻿const express = require('express');
+const express = require('express');
 const chatRoutes = require('./routes/chat.routes');
 
 const router = express.Router();
 
-// Mount chat routes
 router.use('/', chatRoutes);
 
 module.exports = {

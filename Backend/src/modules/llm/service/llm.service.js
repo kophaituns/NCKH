@@ -1,5 +1,5 @@
-const logger = require('../../../src/utils/logger');
-const { User, Survey, Question, QuestionOption, SurveyResponse, ResponseAnswer, SurveyLink } = require('../../../src/models');
+const logger = require('../../../../src/utils/logger');
+const { User, Survey, Question, QuestionOption, SurveyResponse, ResponseAnswer, SurveyLink } = require('../../../../src/models');
 const axios = require('axios');
 
 // LLM Service using your trained model
@@ -138,7 +138,7 @@ class LLMService {
    * Generate questions using your trained AI model
    */
   async generateQuestions(data) {
-    const models = require('../../../src/models');
+    const models = require('../../../models');
     const { GeneratedQuestion } = models;
     
     console.log('🔍 generateQuestions called with:', data);
@@ -256,7 +256,7 @@ class LLMService {
    */
   // Gọi trained model để generate questions
   async generateQuestionsFromTrainedModel(topic, count = 5, category = 'general', userId = null) {
-    const models = require('../../../src/models');
+    const models = require('../../../models');
     const { GeneratedQuestion } = models;
     
     try {
@@ -530,7 +530,7 @@ class LLMService {
 
   // Simple fallback nếu trained model không khả dụng
   async _generateSimpleFallbackQuestions(topic, count = 5, category = 'general', errorMessage = '', userId = null) {
-    const models = require('../../../src/models');
+    const models = require('../../../models');
     const { GeneratedQuestion } = models;
     
     this.logger.warn(`🔄 Using simple fallback for topic: ${topic}`);
@@ -685,7 +685,7 @@ class LLMService {
    * Create survey from generated questions
    */
   async createSurveyFromQuestions(userId, surveyData) {
-    const { Survey, Question, QuestionOption } = require('../../../src/models');
+    const { Survey, Question, QuestionOption } = require('../../../models');
     
     try {
       // Create the survey
@@ -788,7 +788,7 @@ class LLMService {
    * Export survey to PDF
    */
   async exportSurveyToPDF(surveyId, userId) {
-    const { Survey, Question, QuestionOption } = require('../../../src/models');
+    const { Survey, Question, QuestionOption } = require('../../../models');
     
     try {
       // Get survey with questions - use alias 'questions' instead of direct model
@@ -906,7 +906,7 @@ class LLMService {
    * Generate public link for survey
    */
   async generatePublicLink(surveyId, userId, expiryDays = 30) {
-    const { Survey, SurveyLink } = require('../../../src/models');
+    const { Survey, SurveyLink } = require('../../../models');
     const crypto = require('crypto');
     
     try {
@@ -953,7 +953,7 @@ class LLMService {
    * Get survey by public link token
    */
   async getSurveyByPublicLink(token) {
-    const { Survey, Question, QuestionOption, SurveyLink } = require('../../../src/models');
+    const { Survey, Question, QuestionOption, SurveyLink } = require('../../../models');
     
     try {
       // Find survey link
@@ -1017,7 +1017,7 @@ class LLMService {
    * Submit survey response
    */
   async submitSurveyResponse(token, responseData) {
-    const models = require('../../../src/models');
+    const models = require('../../../models');
     const { Survey, Question, SurveyResponse, ResponseAnswer, SurveyLink } = models;
     
     this.logger.info('🔍 Models loaded:', {
@@ -1227,7 +1227,7 @@ class LLMService {
    * Update survey settings
    */
   async updateSurveySettings(surveyId, userId, updateData) {
-    const { Survey, Question, QuestionOption } = require('../../../src/models');
+    const { Survey, Question, QuestionOption } = require('../../../models');
     try {
       console.log(`Updating survey ${surveyId} settings by user ${userId}`);
 
@@ -1275,7 +1275,7 @@ class LLMService {
    * Update survey question
    */
   async updateSurveyQuestion(surveyId, questionId, userId, questionData) {
-    const { Survey, Question, QuestionOption } = require('../../../src/models');
+    const { Survey, Question, QuestionOption } = require('../../../models');
     try {
       console.log(`Updating question ${questionId} in survey ${surveyId}`);
 
@@ -1343,7 +1343,7 @@ class LLMService {
    * Delete survey question
    */
   async deleteSurveyQuestion(surveyId, questionId, userId) {
-    const { Survey, Question, QuestionOption } = require('../../../src/models');
+    const { Survey, Question, QuestionOption } = require('../../../models');
     try {
       console.log(`Deleting question ${questionId} from survey ${surveyId}`);
 
@@ -1382,7 +1382,7 @@ class LLMService {
    * Add new question to survey
    */
   async addSurveyQuestion(surveyId, userId, questionData) {
-    const { Survey, Question, QuestionOption } = require('../../../src/models');
+    const { Survey, Question, QuestionOption } = require('../../../models');
     try {
       console.log(`Adding new question to survey ${surveyId}`);
 
@@ -1448,7 +1448,7 @@ class LLMService {
    * Get survey for editing
    */
   async getSurveyForEditing(surveyId, userId) {
-    const { Survey, Question, QuestionOption } = require('../../../src/models');
+    const { Survey, Question, QuestionOption } = require('../../../models');
     try {
       console.log(`Getting survey ${surveyId} for editing by user ${userId}`);
 
@@ -1492,7 +1492,7 @@ class LLMService {
 
   // Generate PDF HTML for survey
   async generateSurveyPDF(surveyId, userId) {
-    const { Survey, Question, QuestionOption } = require('../../../src/models');
+    const { Survey, Question, QuestionOption } = require('../../../models');
     try {
       // Get survey with questions - remove user restriction for PDF export
       const survey = await Survey.findOne({
@@ -1777,3 +1777,4 @@ class LLMService {
 }
 
 module.exports = new LLMService();
+
