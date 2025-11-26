@@ -1,5 +1,5 @@
 const logger = require('../../../../src/utils/logger');
-const { User, Survey, Question, QuestionOption, SurveyResponse, ResponseAnswer, SurveyLink } = require('../../../../src/models');
+const { User, Survey, Question, QuestionOption, SurveyResponse, ResponseAnswer, SurveyLink, SurveyTemplate } = require('../../../../src/models');
 const axios = require('axios');
 
 // LLM Service using your trained model
@@ -692,7 +692,16 @@ class LLMService {
       const now = new Date();
       const defaultEndDate = new Date(now.getTime() + (30 * 24 * 60 * 60 * 1000)); // 30 days from now
       
+      // Create a default template for AI-generated surveys
+      const template = await SurveyTemplate.create({
+        title: `Template for ${surveyData.title}`,
+        description: 'Auto-generated template from AI survey creation',
+        created_by: userId,
+        status: 'draft'
+      });
+      
       const survey = await Survey.create({
+        template_id: template.id,
         title: surveyData.title,
         description: surveyData.description || '',
         target_audience: surveyData.targetAudience || 'all_users',

@@ -16,7 +16,7 @@ const AnalyticsService = {
    * (Total Users, Total Surveys, Total Responses, Active Surveys, role stats, charts)
    */
   async getAdminDashboard() {
-    const response = await http.get('/analytics/admin/dashboard');
+    const response = await http.get('/analytics/dashboard');
     // Trả thẳng object stats để FE dùng cho tiện
     return response.data.data || response.data;
   },
