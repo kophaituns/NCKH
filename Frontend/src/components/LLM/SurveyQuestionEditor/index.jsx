@@ -1,0 +1,527 @@
+import React, { useState, useEffect } from 'react';
+import { useToast } from '../../../contexts/ToastContext';
+import LLMService from '../../../api/services/llm.service';
+import Button from '../../UI/Button';
+import Input from '../../UI/Input';
+import Select from '../../UI/Select';
+import TextArea from '../../UI/TextArea';
+import Modal from '../../UI/Modal';
+import styles from './SurveyQuestionEditor.module.scss';
+
+const QUESTION_TYPES = [
+  { value: 'text', label: 'Văn bản' },
+  { value: 'multiple_choice', label: 'Lựa chọn đơn' },
+  { value: 'multiple_select', label: 'Lựa chọn nhiều' },
+  { value: 'rating', label: 'Đánh giá' },
+  { value: 'yes_no', label: 'Có/Không' }
+];
+
+const SurveyQuestionEditor = ({ surveyId, onClose, onSurveyUpdated }) => {
+  const { showToast } = useToast();
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [survey, setSurvey] = useState(null);
+  const [editingQuestion, setEditingQuestion] = useState(null);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [showSettingsModal, setShowSettingsModal] = useState(false);
+
+  const [newQuestion, setNewQuestion] = useState({
+    question_text: '',
+    question_type: 'text',
+    is_required: false,
+    description: '',
+    options: ['']
+  });
+
+  const [surveySettings, setSurveySettings] = useState({
+    title: '',
+    description: '',
+    status: 'draft'
+  });
+
+  useEffect(() => {
+    if (surveyId) {
+      loadSurveyForEditing();
+    }
+  }, [surveyId]);
+
+  const loadSurveyForEditing = async () => {
+    try {
+      setLoading(true);
+      const response = await LLMService.getSurveyForEditing(surveyId);
+      setSurvey(response.data);
+      setSurveySettings({
+        title: response.data.title,
+        description: response.data.description || '',
+        status: response.data.status
+      });
+    } catch (error) {
+      showToast('Không thể tải survey để chỉnh sửa', 'error');
+      console.error('Load survey error:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleUpdateSurveySettings = async () => {
+    try {
+      setSaving(true);
+      await LLMService.updateSurveySettings(surveyId, surveySettings);
+      setSurvey(prev => ({ ...prev, ...surveySettings }));
+      setShowSettingsModal(false);
+      showToast('Cập nhật cài đặt survey thành công', 'success');
+      onSurveyUpdated?.(); // Notify parent component
+    } catch (error) {
+      showToast('Lỗi khi cập nhật cài đặt survey', 'error');
+      console.error('Update survey settings error:', error);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleAddQuestion = async () => {
+    try {
+      setSaving(true);
+      const questionData = {
+        ...newQuestion,
+        options: newQuestion.question_type === 'multiple_choice' || newQuestion.question_type === 'multiple_select'
+          ? newQuestion.options.filter(opt => opt.trim())
+          : undefined
+      };
+      
+      await LLMService.addSurveyQuestion(surveyId, questionData);
+      
+      // Reload survey data to get updated information
+      const updatedSurvey = await LLMService.getSurveyForEditing(surveyId);
+      setSurvey(updatedSurvey.data);
+      
+      setNewQuestion({
+        question_text: '',
+        question_type: 'text',
+        is_required: false,
+        description: '',
+        options: ['']
+      });
+      setShowAddModal(false);
+      showToast('Thêm câu hỏi thành công', 'success');
+      onSurveyUpdated?.(); // Notify parent component
+    } catch (error) {
+      showToast('Lỗi khi thêm câu hỏi', 'error');
+      console.error('Add question error:', error);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleUpdateQuestion = async () => {
+    try {
+      setSaving(true);
+      const questionData = {
+        ...editingQuestion,
+        options: editingQuestion.question_type === 'multiple_choice' || editingQuestion.question_type === 'multiple_select'
+          ? editingQuestion.options?.filter(opt => opt.trim()) || []
+          : undefined
+      };
+
+      await LLMService.updateSurveyQuestion(surveyId, editingQuestion.id, questionData);
+      
+      // Reload survey data to get updated information
+      const updatedSurvey = await LLMService.getSurveyForEditing(surveyId);
+      setSurvey(updatedSurvey.data);
+      
+      setEditingQuestion(null);
+      setShowEditModal(false);
+      showToast('Cập nhật câu hỏi thành công', 'success');
+      onSurveyUpdated?.(); // Notify parent component
+    } catch (error) {
+      showToast('Lỗi khi cập nhật câu hỏi', 'error');
+      console.error('Update question error:', error);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDeleteQuestion = async (questionId) => {
+    if (!window.confirm('Bạn có chắc chắn muốn xóa câu hỏi này không?')) return;
+
+    try {
+      setSaving(true);
+      await LLMService.deleteSurveyQuestion(surveyId, questionId);
+      setSurvey(prev => ({
+        ...prev,
+        questions: prev.questions.filter(q => q.id !== questionId)
+      }));
+      showToast('Xóa câu hỏi thành công', 'success');
+      onSurveyUpdated?.(); // Notify parent component
+    } catch (error) {
+      showToast('Lỗi khi xóa câu hỏi', 'error');
+      console.error('Delete question error:', error);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleOptionChange = (index, value, isEditing = false) => {
+    if (isEditing) {
+      setEditingQuestion(prev => ({
+        ...prev,
+        options: prev.options.map((opt, i) => i === index ? value : opt)
+      }));
+    } else {
+      setNewQuestion(prev => ({
+        ...prev,
+        options: prev.options.map((opt, i) => i === index ? value : opt)
+      }));
+    }
+  };
+
+  const addOption = (isEditing = false) => {
+    if (isEditing) {
+      setEditingQuestion(prev => ({
+        ...prev,
+        options: [...prev.options, '']
+      }));
+    } else {
+      setNewQuestion(prev => ({
+        ...prev,
+        options: [...prev.options, '']
+      }));
+    }
+  };
+
+  const removeOption = (index, isEditing = false) => {
+    if (isEditing) {
+      setEditingQuestion(prev => ({
+        ...prev,
+        options: prev.options.filter((_, i) => i !== index)
+      }));
+    } else {
+      setNewQuestion(prev => ({
+        ...prev,
+        options: prev.options.filter((_, i) => i !== index)
+      }));
+    }
+  };
+
+  const openEditModal = (question) => {
+    setEditingQuestion({
+      ...question,
+      options: question.options?.map(opt => opt.option_text) || ['']
+    });
+    setShowEditModal(true);
+  };
+
+  if (loading) {
+    return (
+      <div className={styles.loading}>
+        <div className={styles.spinner}></div>
+        <p>Đang tải survey...</p>
+      </div>
+    );
+  }
+
+  if (!survey) {
+    return (
+      <div className={styles.error}>
+        <p>Không thể tải survey</p>
+        <Button onClick={onClose}>Quay lại</Button>
+      </div>
+    );
+  }
+
+  return (
+    <div className={styles.surveyEditor}>
+      <div className={styles.header}>
+        <div className={styles.headerLeft}>
+          <h2>Chỉnh sửa Survey: {survey.title}</h2>
+          <p>Tổng số câu hỏi: {survey.questions?.length || 0}</p>
+        </div>
+        <div className={styles.headerRight}>
+          <Button 
+            variant="outline" 
+            onClick={() => setShowSettingsModal(true)}
+            icon="⚙️"
+          >
+            Cài đặt Survey
+          </Button>
+          <Button onClick={onClose} variant="primary">
+            Hoàn thành chỉnh sửa
+          </Button>
+        </div>
+      </div>
+
+      <div className={styles.content}>
+        <div className={styles.questionsSection}>
+          <div className={styles.sectionHeader}>
+            <h3>Danh sách câu hỏi</h3>
+            <Button onClick={() => setShowAddModal(true)} icon="➕">
+              Thêm câu hỏi
+            </Button>
+          </div>
+
+          <div className={styles.questionsList}>
+            {survey.questions?.map((question, index) => (
+              <div key={question.id} className={styles.questionCard}>
+                <div className={styles.questionHeader}>
+                  <span className={styles.questionNumber}>#{index + 1}</span>
+                  <span className={styles.questionType}>
+                    {QUESTION_TYPES.find(t => t.value === question.question_type)?.label || question.question_type}
+                  </span>
+                  {question.is_required && <span className={styles.required}>Bắt buộc</span>}
+                </div>
+                
+                <div className={styles.questionContent}>
+                  <h4>{question.question_text}</h4>
+                  {question.description && <p className={styles.description}>{question.description}</p>}
+                  
+                  {question.options?.length > 0 && (
+                    <div className={styles.options}>
+                      <strong>Các lựa chọn:</strong>
+                      <ul>
+                        {question.options.map(option => (
+                          <li key={option.id}>{option.option_text}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+
+                <div className={styles.questionActions}>
+                  <Button 
+                    variant="outline" 
+                    size="small" 
+                    onClick={() => openEditModal(question)}
+                  >
+                    ✏️ Sửa
+                  </Button>
+                  <Button 
+                    variant="danger" 
+                    size="small" 
+                    onClick={() => handleDeleteQuestion(question.id)}
+                    disabled={saving}
+                  >
+                    🗑️ Xóa
+                  </Button>
+                </div>
+              </div>
+            ))}
+
+            {(!survey.questions || survey.questions.length === 0) && (
+              <div className={styles.empty}>
+                <p>Chưa có câu hỏi nào</p>
+                <Button onClick={() => setShowAddModal(true)}>Thêm câu hỏi đầu tiên</Button>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Modal Cài đặt Survey */}
+      {showSettingsModal && (
+        <Modal
+          isOpen={showSettingsModal}
+          onClose={() => setShowSettingsModal(false)}
+          title="Cài đặt Survey"
+        >
+          <div className={styles.modalContent}>
+            <Input
+              label="Tiêu đề Survey"
+              value={surveySettings.title}
+              onChange={(e) => setSurveySettings(prev => ({ ...prev, title: e.target.value }))}
+              required
+            />
+            
+            <TextArea
+              label="Mô tả"
+              value={surveySettings.description}
+              onChange={(e) => setSurveySettings(prev => ({ ...prev, description: e.target.value }))}
+              rows={4}
+            />
+            
+            <Select
+              label="Trạng thái"
+              value={surveySettings.status}
+              onChange={(e) => setSurveySettings(prev => ({ ...prev, status: e.target.value }))}
+              options={[
+                { value: 'draft', label: 'Nháp' },
+                { value: 'active', label: 'Hoạt động' },
+                { value: 'inactive', label: 'Tạm dừng' },
+                { value: 'completed', label: 'Hoàn thành' }
+              ]}
+            />
+            
+            <div className={styles.modalActions}>
+              <Button variant="outline" onClick={() => setShowSettingsModal(false)}>
+                Hủy
+              </Button>
+              <Button onClick={handleUpdateSurveySettings} disabled={saving}>
+                {saving ? 'Đang lưu...' : 'Lưu thay đổi'}
+              </Button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {/* Modal Thêm câu hỏi */}
+      {showAddModal && (
+        <Modal
+          isOpen={showAddModal}
+          onClose={() => setShowAddModal(false)}
+          title="Thêm câu hỏi mới"
+        >
+          <div className={styles.modalContent}>
+            <Input
+              label="Nội dung câu hỏi"
+              value={newQuestion.question_text}
+              onChange={(e) => setNewQuestion(prev => ({ ...prev, question_text: e.target.value }))}
+              required
+            />
+            
+            <Select
+              label="Loại câu hỏi"
+              value={newQuestion.question_type}
+              onChange={(e) => setNewQuestion(prev => ({ ...prev, question_type: e.target.value }))}
+              options={QUESTION_TYPES}
+            />
+            
+            <TextArea
+              label="Mô tả (tùy chọn)"
+              value={newQuestion.description}
+              onChange={(e) => setNewQuestion(prev => ({ ...prev, description: e.target.value }))}
+              rows={3}
+            />
+            
+            <div className={styles.checkboxGroup}>
+              <label>
+                <input
+                  type="checkbox"
+                  checked={newQuestion.is_required}
+                  onChange={(e) => setNewQuestion(prev => ({ ...prev, is_required: e.target.checked }))}
+                />
+                Câu hỏi bắt buộc
+              </label>
+            </div>
+
+            {(newQuestion.question_type === 'multiple_choice' || newQuestion.question_type === 'multiple_select') && (
+              <div className={styles.optionsSection}>
+                <label>Các lựa chọn</label>
+                {newQuestion.options.map((option, index) => (
+                  <div key={index} className={styles.optionInput}>
+                    <Input
+                      value={option}
+                      onChange={(e) => handleOptionChange(index, e.target.value)}
+                      placeholder={`Lựa chọn ${index + 1}`}
+                    />
+                    {newQuestion.options.length > 1 && (
+                      <Button 
+                        variant="danger" 
+                        size="small" 
+                        onClick={() => removeOption(index)}
+                      >
+                        ✕
+                      </Button>
+                    )}
+                  </div>
+                ))}
+                <Button variant="outline" onClick={() => addOption()}>
+                  + Thêm lựa chọn
+                </Button>
+              </div>
+            )}
+            
+            <div className={styles.modalActions}>
+              <Button variant="outline" onClick={() => setShowAddModal(false)}>
+                Hủy
+              </Button>
+              <Button onClick={handleAddQuestion} disabled={saving || !newQuestion.question_text}>
+                {saving ? 'Đang thêm...' : 'Thêm câu hỏi'}
+              </Button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {/* Modal Chỉnh sửa câu hỏi */}
+      {showEditModal && editingQuestion && (
+        <Modal
+          isOpen={showEditModal}
+          onClose={() => setShowEditModal(false)}
+          title="Chỉnh sửa câu hỏi"
+        >
+          <div className={styles.modalContent}>
+            <Input
+              label="Nội dung câu hỏi"
+              value={editingQuestion.question_text}
+              onChange={(e) => setEditingQuestion(prev => ({ ...prev, question_text: e.target.value }))}
+              required
+            />
+            
+            <Select
+              label="Loại câu hỏi"
+              value={editingQuestion.question_type}
+              onChange={(e) => setEditingQuestion(prev => ({ ...prev, question_type: e.target.value }))}
+              options={QUESTION_TYPES}
+            />
+            
+            <TextArea
+              label="Mô tả (tùy chọn)"
+              value={editingQuestion.description || ''}
+              onChange={(e) => setEditingQuestion(prev => ({ ...prev, description: e.target.value }))}
+              rows={3}
+            />
+            
+            <div className={styles.checkboxGroup}>
+              <label>
+                <input
+                  type="checkbox"
+                  checked={editingQuestion.is_required}
+                  onChange={(e) => setEditingQuestion(prev => ({ ...prev, is_required: e.target.checked }))}
+                />
+                Câu hỏi bắt buộc
+              </label>
+            </div>
+
+            {(editingQuestion.question_type === 'multiple_choice' || editingQuestion.question_type === 'multiple_select') && (
+              <div className={styles.optionsSection}>
+                <label>Các lựa chọn</label>
+                {editingQuestion.options?.map((option, index) => (
+                  <div key={index} className={styles.optionInput}>
+                    <Input
+                      value={option}
+                      onChange={(e) => handleOptionChange(index, e.target.value, true)}
+                      placeholder={`Lựa chọn ${index + 1}`}
+                    />
+                    {editingQuestion.options.length > 1 && (
+                      <Button 
+                        variant="danger" 
+                        size="small" 
+                        onClick={() => removeOption(index, true)}
+                      >
+                        ✕
+                      </Button>
+                    )}
+                  </div>
+                ))}
+                <Button variant="outline" onClick={() => addOption(true)}>
+                  + Thêm lựa chọn
+                </Button>
+              </div>
+            )}
+            
+            <div className={styles.modalActions}>
+              <Button variant="outline" onClick={() => setShowEditModal(false)}>
+                Hủy
+              </Button>
+              <Button onClick={handleUpdateQuestion} disabled={saving || !editingQuestion.question_text}>
+                {saving ? 'Đang cập nhật...' : 'Cập nhật câu hỏi'}
+              </Button>
+            </div>
+          </div>
+        </Modal>
+      )}
+    </div>
+  );
+};
+
+export default SurveyQuestionEditor;
