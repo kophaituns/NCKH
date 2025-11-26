@@ -1,5 +1,5 @@
 const axios = require('axios');
-const logger = require('../../../src/utils/logger');
+const logger = require('../../../../src/utils/logger');
 
 class TrainedModelService {
     constructor() {
@@ -126,3 +126,4 @@ class TrainedModelService {
 }
 
 module.exports = TrainedModelService;
+
