@@ -24,6 +24,8 @@ import Workspaces from '../pages/Workspaces/index.jsx';
 import WorkspaceDetail from '../pages/Workspaces/WorkspaceDetail/index.jsx';
 import ManageInvitations from '../pages/Workspaces/ManageInvitations/index.jsx';
 import Notifications from '../pages/User/Notifications/index.jsx';
+import Chat from '../pages/Chat/index.jsx';
+import LLM from '../pages/LLM/index.jsx';
 import PublicResponseForm from '../pages/Public/ResponseForm/index.jsx';
 import WorkspaceInvitationAccept from '../pages/Public/WorkspaceInvitationAccept/index.jsx';
 
@@ -295,7 +297,19 @@ const AppRoutes = () => {
         element={
           <ProtectedRoute allowedRoles={['admin', 'creator']}>
             <DefaultLayout>
-              <ComingSoon title="AI Generation" />
+              <LLM />
+            </DefaultLayout>
+          </ProtectedRoute>
+        } 
+      />
+
+      {/* Chat Routes - All authenticated users */}
+      <Route 
+        path="/chat" 
+        element={
+          <ProtectedRoute>
+            <DefaultLayout>
+              <Chat />
             </DefaultLayout>
           </ProtectedRoute>
         } 
