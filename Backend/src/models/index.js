@@ -19,6 +19,8 @@ const Workspace = require('./workspace.model')(sequelize, DataTypes);
 const WorkspaceMember = require('./workspaceMember.model')(sequelize, DataTypes);
 const WorkspaceInvitation = require('./workspaceInvitation.model')(sequelize, DataTypes);
 const WorkspaceActivity = require('./workspaceActivity.model')(sequelize, DataTypes);
+const ChatConversation = require('./chatConversation.model')(sequelize, DataTypes);
+const ChatMessage = require('./chatMessage.model')(sequelize, DataTypes);
 
 // Define associations
 User.hasMany(SurveyTemplate, { foreignKey: 'created_by' });
@@ -99,6 +101,13 @@ WorkspaceActivity.belongsTo(User, { foreignKey: 'user_id', as: 'user' });
 Workspace.hasMany(Survey, { foreignKey: 'workspace_id', as: 'surveys' });
 Survey.belongsTo(Workspace, { foreignKey: 'workspace_id' });
 
+// Chat associations
+User.hasMany(ChatConversation, { foreignKey: 'user_id', as: 'chatConversations' });
+ChatConversation.belongsTo(User, { foreignKey: 'user_id', as: 'user' });
+
+ChatConversation.hasMany(ChatMessage, { foreignKey: 'conversation_id', as: 'messages' });
+ChatMessage.belongsTo(ChatConversation, { foreignKey: 'conversation_id', as: 'conversation' });
+
 module.exports = {
   sequelize,
   User,
@@ -116,5 +125,7 @@ module.exports = {
   Workspace,
   WorkspaceMember,
   WorkspaceInvitation,
-  WorkspaceActivity
+  WorkspaceActivity,
+  ChatConversation,
+  ChatMessage
 };
