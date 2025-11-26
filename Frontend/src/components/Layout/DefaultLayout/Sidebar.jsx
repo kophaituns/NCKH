@@ -11,6 +11,7 @@ const Sidebar = ({ isOpen, onClose }) => {
   const getMenuItems = () => {
     const baseItems = [
       { path: '/notifications', label: 'Notifications', icon: 'notifications' },
+      { path: '/chat', label: 'Chat', icon: 'chat' },
     ];
 
     if (userRole === 'admin') {
@@ -21,6 +22,7 @@ const Sidebar = ({ isOpen, onClose }) => {
         { path: '/surveys', label: 'Surveys', icon: 'surveys' },
         { path: '/analytics', label: 'Analytics', icon: 'analytics' },
         { path: '/llm', label: 'AI Generation', icon: 'llm' },
+        { path: '/chat', label: 'Chat', icon: 'chat' },
       ];
     }
 
@@ -32,6 +34,8 @@ const Sidebar = ({ isOpen, onClose }) => {
         { path: '/surveys', label: 'Surveys', icon: 'surveys' },
         { path: '/collectors', label: 'Collectors', icon: 'collectors' },
         { path: '/analytics', label: 'Analytics', icon: 'analytics' },
+        { path: '/llm', label: 'AI Generation', icon: 'llm' },
+        { path: '/chat', label: 'Chat', icon: 'chat' },
       ];
     }
 
@@ -111,6 +115,11 @@ const Sidebar = ({ isOpen, onClose }) => {
           <path d="M15 17H5a1 1 0 01-1-1v-5a4 4 0 014-4h4a4 4 0 014 4v5a1 1 0 01-1 1z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
           <path d="M9 2a1 1 0 012 0" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
           <circle cx="16" cy="6" r="2.5" fill="currentColor"/>
+        </svg>
+      ),
+      chat: (
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+          <path d="M18 11c0 4.97-4.03 9-9 9H5l-3.5 2.5V11c0-4.97 4.03-9 9-9s9 4.03 9 9z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
         </svg>
       ),
     };
