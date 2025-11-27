@@ -9,14 +9,14 @@ const { authenticate, isTeacherOrAdmin } = require('../../../middleware/auth.mid
  * @desc    Get collectors for a survey
  * @access  Private (Creator/Admin only)
  */
-router.get('/survey/:survey_id', authenticate, isTeacherOrAdmin, collectorController.getCollectorsBySurvey);
+router.get('/survey/:survey_id', authenticate, collectorController.getCollectorsBySurvey);
 
 /**
  * @route   POST /api/collectors/survey/:survey_id
  * @desc    Create collector for survey
  * @access  Private (Creator/Admin only)
  */
-router.post('/survey/:survey_id', authenticate, isTeacherOrAdmin, collectorController.createCollector);
+router.post('/survey/:survey_id', authenticate, collectorController.createCollector);
 
 /**
  * @route   GET /api/collectors/token/:token
@@ -30,13 +30,13 @@ router.get('/token/:token', collectorController.getCollectorByToken);
  * @desc    Update collector
  * @access  Private (Creator/Admin only)
  */
-router.put('/:id', authenticate, isTeacherOrAdmin, collectorController.updateCollector);
+router.put('/:id', authenticate, collectorController.updateCollector);
 
 /**
  * @route   DELETE /api/collectors/:id
  * @desc    Delete collector
  * @access  Private (Creator/Admin only)
  */
-router.delete('/:id', authenticate, isTeacherOrAdmin, collectorController.deleteCollector);
+router.delete('/:id', authenticate, collectorController.deleteCollector);
 
 module.exports = router;

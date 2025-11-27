@@ -16,7 +16,7 @@ const http = axios.create({
 // Request interceptor - Add JWT token
 http.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem('authToken');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -30,9 +30,14 @@ http.interceptors.request.use(
 // Response interceptor - Handle 401 and refresh token
 http.interceptors.response.use(
   (response) => {
+    // Don't process text/html responses (like PDF exports)
+    const contentType = response.headers['content-type'] || '';
+    if (contentType.includes('text/html') || response.config.responseType === 'text') {
+      return response;
+    }
     // Safely extract data, handle cases where response might not have expected structure
     const data = response.data;
-    
+
     // Handle empty or undefined responses
     if (!data || typeof data !== 'object') {
       return {
@@ -43,7 +48,7 @@ http.interceptors.response.use(
         }
       };
     }
-    
+
     // Ensure we always return an object with ok/success flag
     if (!('ok' in data) && 'success' in data) {
       data.ok = data.success;
@@ -51,12 +56,12 @@ http.interceptors.response.use(
     if (!('success' in data) && 'ok' in data) {
       data.success = data.ok;
     }
-    
+
     return response;
   },
   async (error) => {
     console.error('[HTTP] Response error:', error.response?.status, error.response?.data || error.message);
-    
+
     const originalRequest = error.config;
 
     // If 401 and not already retrying
@@ -65,7 +70,7 @@ http.interceptors.response.use(
 
       try {
         const refreshToken = localStorage.getItem('refreshToken');
-        
+
         if (!refreshToken) {
           // No refresh token, redirect to login
           console.warn('[HTTP] No refresh token, redirecting to login');
@@ -82,7 +87,7 @@ http.interceptors.response.use(
         const { token: newToken, refreshToken: newRefreshToken } = response.data.data;
 
         // Store new tokens
-        localStorage.setItem('token', newToken);
+        localStorage.setItem('authToken', newToken);
         if (newRefreshToken) {
           localStorage.setItem('refreshToken', newRefreshToken);
         }
@@ -117,18 +122,18 @@ http.interceptors.response.use(
 export const setAuthToken = (token) => {
   if (token) {
     http.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-    sessionStorage.setItem('token', token);
+    localStorage.setItem('authToken', token);
   } else {
     delete http.defaults.headers.common['Authorization'];
-    sessionStorage.removeItem('token');
+    localStorage.removeItem('authToken');
   }
 };
 
 export const clearAuth = () => {
   delete http.defaults.headers.common['Authorization'];
-  sessionStorage.removeItem('token');
-  sessionStorage.removeItem('refreshToken');
-  sessionStorage.removeItem('user');
+  localStorage.removeItem('authToken');
+  localStorage.removeItem('refreshToken');
+  localStorage.removeItem('user');
 };
 
 

@@ -6,8 +6,8 @@ const USER_KEY = 'user';
 export const TokenService = {
   getStoredTokensSync() {
     try {
-      const accessToken = sessionStorage.getItem(TOKEN_KEY);
-      const refreshToken = sessionStorage.getItem(REFRESH_TOKEN_KEY);
+      const accessToken = localStorage.getItem(TOKEN_KEY);
+      const refreshToken = localStorage.getItem(REFRESH_TOKEN_KEY);
       if (accessToken && refreshToken) {
         return { accessToken, refreshToken };
       }
@@ -19,26 +19,26 @@ export const TokenService = {
   },
 
   saveTokens(accessToken, refreshToken) {
-    sessionStorage.setItem(TOKEN_KEY, accessToken);
-    sessionStorage.setItem(REFRESH_TOKEN_KEY, refreshToken);
+    localStorage.setItem(TOKEN_KEY, accessToken);
+    localStorage.setItem(REFRESH_TOKEN_KEY, refreshToken);
   },
 
   removeTokens() {
-    sessionStorage.removeItem(TOKEN_KEY);
-    sessionStorage.removeItem(REFRESH_TOKEN_KEY);
+    localStorage.removeItem(TOKEN_KEY);
+    localStorage.removeItem(REFRESH_TOKEN_KEY);
   },
 
   saveUser(user) {
-    sessionStorage.setItem(USER_KEY, JSON.stringify(user));
+    localStorage.setItem(USER_KEY, JSON.stringify(user));
   },
 
   getUserSync() {
-    const userStr = sessionStorage.getItem(USER_KEY);
+    const userStr = localStorage.getItem(USER_KEY);
     return userStr ? JSON.parse(userStr) : null;
   },
 
   removeUser() {
-    sessionStorage.removeItem(USER_KEY);
+    localStorage.removeItem(USER_KEY);
   },
 
   clearAll() {

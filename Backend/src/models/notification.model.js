@@ -22,6 +22,7 @@ module.exports = (sequelize, DataTypes) => {
           'workspace_member_added',
           'survey_response',
           'survey_shared',
+          'survey_invitation',
           'collector_created',
           'response_completed'
         ),

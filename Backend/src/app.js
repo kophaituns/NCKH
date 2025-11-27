@@ -41,18 +41,6 @@ app.get('/health', (req, res) => {
 const moduleRoutes = require('./routes/modules.routes');
 app.use('/api/modules', moduleRoutes);
 
-// LEGACY ROUTES - DEPRECATED
-// These routes are placeholders and should be removed after full migration to modular architecture
-// Questions functionality is now handled by /api/modules/templates/:id/questions
-// Test account creation is now handled by seed-demo-data.js script
-// Uncomment only if needed for backward compatibility during transition period
-/*
-const questionRoutes = require('./routes/question.routes');
-const testRoutes = require('./routes/test.routes');
-app.use('/api/v1/questions', questionRoutes);
-app.use('/api/v1/test', testRoutes);
-*/
-
 // Root route for compatibility
 app.get('/', (req, res) => {
   res.json({

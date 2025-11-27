@@ -26,7 +26,7 @@ const SurveyActions = ({ survey, onClose, onEditSurvey }) => {
     setLoading(true);
     try {
       const result = await LLMService.exportSurveyPDF(survey.survey.id);
-      
+
       if (result.success) {
         showToast(result.message, 'success');
       } else {
@@ -44,7 +44,7 @@ const SurveyActions = ({ survey, onClose, onEditSurvey }) => {
     setLoading(true);
     try {
       const response = await LLMService.generatePublicLink(
-        survey.survey.id, 
+        survey.survey.id,
         linkSettings.expiryDays
       );
       setGeneratedLink(response.data);
@@ -122,7 +122,7 @@ const SurveyActions = ({ survey, onClose, onEditSurvey }) => {
           <div className={styles.actionIcon}>📄</div>
           <h4>Xuất PDF</h4>
           <p>Tải xuống survey dưới dạng file PDF để in hoặc chia sẻ offline</p>
-          <Button 
+          <Button
             onClick={handleExportPDF}
             loading={loading}
             variant="outline"
@@ -136,7 +136,7 @@ const SurveyActions = ({ survey, onClose, onEditSurvey }) => {
           <div className={styles.actionIcon}>🔗</div>
           <h4>Tạo Link Chia Sẻ</h4>
           <p>Tạo link công khai để chia sẻ survey với người dùng</p>
-          <Button 
+          <Button
             onClick={() => setShowLinkModal(true)}
             variant="outline"
             className={styles.actionButton}
@@ -149,7 +149,7 @@ const SurveyActions = ({ survey, onClose, onEditSurvey }) => {
           <div className={styles.actionIcon}>📊</div>
           <h4>Xem Kết Quả</h4>
           <p>Xem và phân tích kết quả khảo sát từ những người đã trả lời</p>
-          <Button 
+          <Button
             onClick={handleViewResults}
             loading={resultsLoading}
             variant="outline"
@@ -163,7 +163,7 @@ const SurveyActions = ({ survey, onClose, onEditSurvey }) => {
           <div className={styles.actionIcon}>⚙️</div>
           <h4>Chỉnh Sửa</h4>
           <p>Chỉnh sửa câu hỏi và cài đặt survey</p>
-          <Button 
+          <Button
             onClick={handleEditSurvey}
             variant="outline"
             className={styles.actionButton}
@@ -175,30 +175,36 @@ const SurveyActions = ({ survey, onClose, onEditSurvey }) => {
 
       {/* Questions Preview */}
       <Card className={styles.questionsPreview}>
-        <h4>Câu Hỏi Trong Survey ({survey.totalQuestions})</h4>
+        <h4>Câu Hỏi Trong Survey ({survey.totalQuestions || survey.questions?.length || 0})</h4>
         <div className={styles.questionsList}>
-          {survey.questions.map((question, index) => (
-            <div key={question.id} className={styles.questionPreview}>
-              <div className={styles.questionNumber}>{index + 1}</div>
-              <div className={styles.questionContent}>
-                <p className={styles.questionText}>{question.question_text}</p>
-                <div className={styles.questionMeta}>
-                  <Badge variant="outline">{question.question_type}</Badge>
-                  {question.is_required && <Badge variant="warning">Bắt buộc</Badge>}
+          {(survey.questions || []).map((question, index) => {
+            const questionText = question.question_text || question.text || String(question);
+            const questionType = question.question_type || question.type || question.QuestionType?.type_name || 'text';
+            const isRequired = question.is_required || question.required || false;
+
+            return (
+              <div key={question.id || index} className={styles.questionPreview}>
+                <div className={styles.questionNumber}>{index + 1}</div>
+                <div className={styles.questionContent}>
+                  <p className={styles.questionText}>{questionText}</p>
+                  <div className={styles.questionMeta}>
+                    <Badge variant="outline">{questionType}</Badge>
+                    {isRequired && <Badge variant="warning">Bắt buộc</Badge>}
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </Card>
 
       {/* Actions */}
       <div className={styles.bottomActions}>
         <Button onClick={onClose} variant="outline">
-          Đóng
+          Tiếp Tục Chỉnh Sửa
         </Button>
-        <Button onClick={() => window.open(`/surveys/${survey.survey.id}`, '_blank')}>
-          Xem Survey
+        <Button onClick={() => window.location.href = '/surveys'}>
+          Hoàn Tất & Xem Danh Sách
         </Button>
       </div>
 
@@ -216,7 +222,7 @@ const SurveyActions = ({ survey, onClose, onEditSurvey }) => {
                 <label>Thời hạn link (ngày)</label>
                 <Select
                   value={linkSettings.expiryDays}
-                  onChange={(value) => setLinkSettings({...linkSettings, expiryDays: parseInt(value)})}
+                  onChange={(value) => setLinkSettings({ ...linkSettings, expiryDays: parseInt(value) })}
                 >
                   <option value={7}>1 tuần</option>
                   <option value={30}>1 tháng</option>
@@ -227,13 +233,13 @@ const SurveyActions = ({ survey, onClose, onEditSurvey }) => {
               </div>
 
               <div className={styles.modalActions}>
-                <Button 
+                <Button
                   onClick={() => setShowLinkModal(false)}
                   variant="outline"
                 >
                   Hủy
                 </Button>
-                <Button 
+                <Button
                   onClick={handleGenerateLink}
                   loading={loading}
                 >
@@ -253,7 +259,7 @@ const SurveyActions = ({ survey, onClose, onEditSurvey }) => {
                       readOnly
                       className={styles.linkInput}
                     />
-                    <Button 
+                    <Button
                       onClick={() => copyToClipboard(generatedLink.link)}
                       variant="outline"
                       size="small"
@@ -261,7 +267,7 @@ const SurveyActions = ({ survey, onClose, onEditSurvey }) => {
                       Copy
                     </Button>
                   </div>
-                  
+
                   <div className={styles.linkMeta}>
                     <p><strong>Hết hạn:</strong> {formatExpiryDate(generatedLink.expiresAt)}</p>
                     <p><strong>Token:</strong> {generatedLink.token}</p>
@@ -270,7 +276,7 @@ const SurveyActions = ({ survey, onClose, onEditSurvey }) => {
               </div>
 
               <div className={styles.modalActions}>
-                <Button 
+                <Button
                   onClick={() => {
                     setShowLinkModal(false);
                     setGeneratedLink(null);
@@ -278,7 +284,7 @@ const SurveyActions = ({ survey, onClose, onEditSurvey }) => {
                 >
                   Đóng
                 </Button>
-                <Button 
+                <Button
                   onClick={() => window.open(generatedLink.link, '_blank')}
                   variant="outline"
                 >
@@ -336,12 +342,12 @@ const SurveyActions = ({ survey, onClose, onEditSurvey }) => {
                               <div key={option} className={styles.optionResult}>
                                 <div className={styles.optionText}>{option}</div>
                                 <div className={styles.optionBar}>
-                                  <div 
+                                  <div
                                     className={styles.optionFill}
-                                    style={{ 
-                                      width: question.totalAnswers > 0 
-                                        ? `${(count / question.totalAnswers) * 100}%` 
-                                        : '0%' 
+                                    style={{
+                                      width: question.totalAnswers > 0
+                                        ? `${(count / question.totalAnswers) * 100}%`
+                                        : '0%'
                                     }}
                                   ></div>
                                 </div>
@@ -406,7 +412,7 @@ const SurveyActions = ({ survey, onClose, onEditSurvey }) => {
                   Đóng
                 </Button>
                 {surveyResults.summary.totalResponses > 0 && (
-                  <Button 
+                  <Button
                     variant="outline"
                     onClick={() => window.print()}
                   >

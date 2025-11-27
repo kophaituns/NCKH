@@ -5,38 +5,63 @@ import Loader from '../../../components/common/Loader/Loader';
 import Pagination from '../../../components/common/Pagination/Pagination';
 import ConfirmModal from '../../../components/UI/ConfirmModal';
 import { useToast } from '../../../contexts/ToastContext';
+import { useAuth } from '../../../contexts/AuthContext';
 import styles from './TemplateList.module.scss';
 
 const TemplateList = () => {
   const navigate = useNavigate();
   const { showToast } = useToast();
-  
+  const { state: { user } } = useAuth();
+
   const [templates, setTemplates] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [templateToDelete, setTemplateToDelete] = useState(null);
+  const [selectedIds, setSelectedIds] = useState([]);
+  const [showBulkDeleteModal, setShowBulkDeleteModal] = useState(false);
+
   const itemsPerPage = 10;
 
   const fetchTemplates = useCallback(async () => {
     try {
       setLoading(true);
-      const data = await TemplateService.getAll();
-      // Ensure data is always an array
+      const { templates: data, pagination } = await TemplateService.getAll({
+        page: currentPage,
+        limit: itemsPerPage,
+        search: searchTerm
+      });
+
       setTemplates(Array.isArray(data) ? data : []);
+
+      if (pagination) {
+        setTotalPages(pagination.totalPages);
+        setTotalItems(pagination.total);
+      } else {
+        // Fallback if no pagination data
+        setTotalPages(1);
+        setTotalItems(data.length);
+      }
     } catch (error) {
       console.error('Error fetching templates:', error);
-      setTemplates([]); // Set empty array on error
+      setTemplates([]);
       showToast(error.response?.data?.message || 'Failed to fetch templates', 'error');
     } finally {
       setLoading(false);
     }
-  }, [showToast]);
+  }, [currentPage, searchTerm, showToast]);
 
   useEffect(() => {
     fetchTemplates();
   }, [fetchTemplates]);
+
+  // Reset selection when page or search changes
+  useEffect(() => {
+    setSelectedIds([]);
+  }, [currentPage, searchTerm]);
 
   const handleDelete = async () => {
     if (!templateToDelete) return;
@@ -52,22 +77,47 @@ const TemplateList = () => {
     }
   };
 
+  const handleBulkDelete = async () => {
+    try {
+      await TemplateService.deleteMany(selectedIds);
+      showToast(`${selectedIds.length} templates deleted successfully`, 'success');
+      setShowBulkDeleteModal(false);
+      setSelectedIds([]);
+      fetchTemplates();
+    } catch (error) {
+      showToast(error.response?.data?.message || 'Failed to delete templates', 'error');
+    }
+  };
+
   const openDeleteModal = (template) => {
     setTemplateToDelete(template);
     setShowDeleteModal(true);
   };
 
-  const filteredTemplates = templates.filter(
-    (template) =>
-      template.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      template.description?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const canDelete = (template) => {
+    if (!user) return false;
+    return user.role === 'admin' || template.created_by === parseInt(user.id);
+  };
 
-  const totalPages = Math.ceil(filteredTemplates.length / itemsPerPage);
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const currentTemplates = filteredTemplates.slice(startIndex, startIndex + itemsPerPage);
+  const handleSelectAll = (e) => {
+    if (e.target.checked) {
+      // Only select templates the user can delete
+      const deletableTemplates = templates.filter(t => canDelete(t));
+      setSelectedIds(deletableTemplates.map(t => t.id));
+    } else {
+      setSelectedIds([]);
+    }
+  };
 
-  if (loading) return <Loader />;
+  const handleSelectOne = (id) => {
+    if (selectedIds.includes(id)) {
+      setSelectedIds(selectedIds.filter(itemId => itemId !== id));
+    } else {
+      setSelectedIds([...selectedIds, id]);
+    }
+  };
+
+  if (loading && templates.length === 0) return <Loader />;
 
   return (
     <div className={styles.templateList}>
@@ -76,7 +126,7 @@ const TemplateList = () => {
           <h1 className={styles.title}>Survey Templates</h1>
           <p className={styles.subtitle}>Create and manage reusable survey templates</p>
         </div>
-        <button 
+        <button
           className={styles.createButton}
           onClick={() => navigate('/templates/new')}
         >
@@ -106,17 +156,65 @@ const TemplateList = () => {
             style={{ paddingLeft: '4rem' }}
           />
         </div>
-        <span className={styles.resultCount}>
-          {filteredTemplates.length} {filteredTemplates.length === 1 ? 'template' : 'templates'} found
+
+        <div className={styles.actions}>
+          {selectedIds.length > 0 && (
+            <button
+              className={styles.bulkDeleteButton}
+              onClick={() => setShowBulkDeleteModal(true)}
+              style={{
+                backgroundColor: '#fee2e2',
+                color: '#dc2626',
+                border: '1px solid #fecaca',
+                padding: '0.5rem 1rem',
+                borderRadius: '0.375rem',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                marginRight: '1rem',
+                cursor: 'pointer'
+              }}
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+              </svg>
+              Delete Selected ({selectedIds.length})
+            </button>
+          )}
+
+          <span className={styles.resultCount}>
+            {totalItems} {totalItems === 1 ? 'template' : 'templates'} found
+          </span>
+        </div>
+      </div>
+
+      {/* Selection Toolbar */}
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        padding: '0.5rem 1rem',
+        marginBottom: '1rem',
+        backgroundColor: '#f9fafb',
+        borderRadius: '0.375rem',
+        border: '1px solid #e5e7eb'
+      }}>
+        <input
+          type="checkbox"
+          checked={templates.length > 0 && templates.filter(t => canDelete(t)).every(t => selectedIds.includes(t.id)) && selectedIds.length > 0}
+          onChange={handleSelectAll}
+          style={{ width: '1.25rem', height: '1.25rem', cursor: 'pointer', marginRight: '0.75rem' }}
+        />
+        <span style={{ fontSize: '0.875rem', color: '#374151', fontWeight: 500 }}>
+          Select All (My Templates)
         </span>
       </div>
 
-      {currentTemplates.length === 0 ? (
+      {templates.length === 0 ? (
         <div className={styles.emptyState}>
           <div className={styles.emptyIcon}>📋</div>
           <h3>No templates found</h3>
           <p>Create your first survey template to get started</p>
-          <button 
+          <button
             className={styles.emptyButton}
             onClick={() => navigate('/templates/new')}
           >
@@ -126,47 +224,63 @@ const TemplateList = () => {
       ) : (
         <>
           <div className={styles.grid}>
-            {currentTemplates.map((template) => (
-              <div key={template.id} className={styles.templateCard}>
-                <div className={styles.cardHeader}>
-                  <h3 className={styles.cardTitle}>{template.title}</h3>
-                  <div className={styles.cardActions}>
-                    <button
-                      onClick={() => navigate(`/templates/${template.id}/edit`)}
-                      className={styles.editButton}
-                      title="Edit template"
-                    >
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-                      </svg>
-                    </button>
-                    <button
-                      onClick={() => openDeleteModal(template)}
-                      className={styles.deleteButton}
-                      title="Delete template"
-                    >
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-                      </svg>
-                    </button>
+            {templates.map((template) => {
+              const isDeletable = canDelete(template);
+              return (
+                <div key={template.id} className={styles.templateCard} style={{ position: 'relative' }}>
+                  {isDeletable && (
+                    <div style={{ position: 'absolute', top: '1rem', left: '1rem', zIndex: 10 }}>
+                      <input
+                        type="checkbox"
+                        checked={selectedIds.includes(template.id)}
+                        onChange={() => handleSelectOne(template.id)}
+                        style={{ width: '1.25rem', height: '1.25rem', cursor: 'pointer' }}
+                      />
+                    </div>
+                  )}
+
+                  <div className={styles.cardHeader} style={{ paddingLeft: isDeletable ? '2rem' : '0' }}>
+                    <h3 className={styles.cardTitle}>{template.title}</h3>
+                    <div className={styles.cardActions}>
+                      <button
+                        onClick={() => navigate(`/templates/${template.id}/edit`)}
+                        className={styles.editButton}
+                        title="Edit template"
+                      >
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                          <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                        </svg>
+                      </button>
+                      {isDeletable && (
+                        <button
+                          onClick={() => openDeleteModal(template)}
+                          className={styles.deleteButton}
+                          title="Delete template"
+                        >
+                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                          </svg>
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  <p className={styles.cardDescription} style={{ paddingLeft: isDeletable ? '2rem' : '0' }}>
+                    {template.description || 'No description provided'}
+                  </p>
+
+                  <div className={styles.cardFooter}>
+                    <span className={styles.questionCount}>
+                      📝 {template.question_count || 0} questions
+                    </span>
+                    <span className={styles.createdDate}>
+                      {new Date(template.created_at).toLocaleDateString()}
+                    </span>
                   </div>
                 </div>
-                
-                <p className={styles.cardDescription}>
-                  {template.description || 'No description provided'}
-                </p>
-                
-                <div className={styles.cardFooter}>
-                  <span className={styles.questionCount}>
-                    📝 {template.question_count || 0} questions
-                  </span>
-                  <span className={styles.createdDate}>
-                    {new Date(template.created_at).toLocaleDateString()}
-                  </span>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
 
           {totalPages > 1 && (
@@ -191,6 +305,20 @@ const TemplateList = () => {
         title="Delete Template"
         message={`Are you sure you want to delete "${templateToDelete?.title}"? This action cannot be undone and will delete all associated questions.`}
         confirmText="Delete"
+        confirmColor="danger"
+      />
+
+      <ConfirmModal
+        isOpen={showBulkDeleteModal}
+        onClose={() => setShowBulkDeleteModal(false)}
+        onConfirm={handleBulkDelete}
+        title={user?.role === 'admin' ? "Delete Selected Templates (Admin)" : "Delete Selected Templates"}
+        message={
+          user?.role === 'admin'
+            ? `WARNING: You are about to delete ${selectedIds.length} templates. As an admin, you can delete templates created by other users. This action cannot be undone.`
+            : `Are you sure you want to delete ${selectedIds.length} selected templates? This action cannot be undone.`
+        }
+        confirmText={`Delete ${selectedIds.length} Templates`}
         confirmColor="danger"
       />
     </div>

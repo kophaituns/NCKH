@@ -25,7 +25,21 @@ const SurveyDistribute = () => {
         CollectorService.getBySurvey(id)
       ]);
       setSurvey(surveyData);
-      setCollectors(collectorsData || []);
+      
+      // Map backend collector fields to frontend expected fields
+      const mappedCollectors = (collectorsData || []).map(collector => ({
+        id: collector.id,
+        name: collector.name,
+        type: collector.type,
+        token: collector.token,
+        publicUrl: collector.url, // Map 'url' to 'publicUrl'
+        createdAt: collector.created_at, // Map 'created_at' to 'createdAt'
+        responsesCount: collector.response_count || 0, // Map 'response_count' to 'responsesCount'
+        is_active: collector.is_active,
+        allow_multiple_responses: collector.allow_multiple_responses
+      }));
+      
+      setCollectors(mappedCollectors);
     } catch (error) {
       showToast(error.response?.data?.message || 'Failed to load survey', 'error');
     } finally {
@@ -40,15 +54,29 @@ const SurveyDistribute = () => {
   const handleCreateCollector = async () => {
     try {
       setCreating(true);
-      const newCollector = await CollectorService.create({
+      const response = await CollectorService.create({
         surveyId: parseInt(id),
         type: 'web_link',
         name: `Web Link - ${new Date().toLocaleDateString()}`
       });
       
+      // Map backend fields to frontend expected fields
+      const newCollector = {
+        id: response.id,
+        name: response.name,
+        type: response.type,
+        token: response.token,
+        publicUrl: response.url, // Map 'url' to 'publicUrl'
+        createdAt: response.created_at, // Map 'created_at' to 'createdAt'
+        responsesCount: 0, // New collectors have 0 responses
+        is_active: response.is_active,
+        allow_multiple_responses: response.allow_multiple_responses
+      };
+      
       setCollectors([newCollector, ...collectors]);
       showToast('Distribution link created successfully!', 'success');
     } catch (error) {
+      console.error('Create collector error:', error);
       showToast(error.response?.data?.message || 'Failed to create collector', 'error');
     } finally {
       setCreating(false);

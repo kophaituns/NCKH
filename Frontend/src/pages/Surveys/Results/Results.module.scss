@@ -339,7 +339,8 @@
 }
 
 .actionCard,
-.infoCard {
+.infoCard,
+.accessCard {
   background: white;
   border-radius: 12px;
   padding: 1.5rem;
@@ -350,6 +351,11 @@
     color: #1a1a1a;
     margin: 0 0 1rem 0;
   }
+}
+
+.accessCard {
+  margin-top: 2rem;
+  padding: 0; // Let SurveyAccess component handle its own padding
 }
 
 .actionButton {

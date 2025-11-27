@@ -18,6 +18,35 @@
   }
 }
 
+.headerActions {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+}
+
+.searchBox {
+  position: relative;
+}
+
+.searchInput {
+  padding: 0.75rem 1rem;
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  font-size: 1rem;
+  width: 250px;
+  transition: all 0.2s;
+
+  &:focus {
+    outline: none;
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+  }
+
+  &::placeholder {
+    color: #999;
+  }
+}
+
 .createButton {
   padding: 0.75rem 1.5rem;
   background: #667eea;
@@ -77,6 +106,72 @@
   gap: 1.5rem;
 }
 
+.bulkActions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  background: rgba(102, 126, 234, 0.1);
+  border-radius: 6px;
+  margin-bottom: 1rem;
+  border-left: 4px solid #667eea;
+
+  .selectActions {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+
+    .selectAllLabel {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      color: #333;
+      font-size: 0.9rem;
+      cursor: pointer;
+
+      input[type="checkbox"] {
+        width: 16px;
+        height: 16px;
+        accent-color: #667eea;
+      }
+    }
+
+    .selectedInfo {
+      font-size: 0.9rem;
+      color: #667eea;
+      font-weight: 500;
+    }
+  }
+
+  .bulkActionButtons {
+    display: flex;
+    gap: 0.5rem;
+  }
+
+  .deleteButton {
+    background: #f56565;
+    color: white;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: background 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+
+    &:hover {
+      background: #e53e3e;
+    }
+
+    &:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+  }
+}
+
 .workspaceCard {
   background: white;
   border: 1px solid #e0e0e0;
@@ -84,11 +179,34 @@
   padding: 1.5rem;
   transition: all 0.2s;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  position: relative;
+
+  &.selected {
+    border-color: #667eea;
+    background: rgba(102, 126, 234, 0.05);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15);
+  }
 
   &:hover {
     border-color: #667eea;
     box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15);
     transform: translateY(-2px);
+  }
+
+  .workspaceCardHeader {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .workspaceCheckbox {
+    width: 18px;
+    height: 18px;
+    accent-color: #667eea;
+    cursor: pointer;
+    margin-top: 0.1rem;
   }
 }
 
@@ -110,21 +228,18 @@
 .workspaceMetadata {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 0.25rem;
   margin-bottom: 1rem;
-  padding-bottom: 0.75rem;
-  border-bottom: 1px solid #f0f0f0;
-}
-
-.ownerInfo {
   font-size: 0.8rem;
-  color: #999;
-  font-weight: 500;
-}
 
-.workspaceDate {
-  font-size: 0.8rem;
-  color: #bbb;
+  .ownerInfo {
+    color: #999;
+    font-weight: 500;
+  }
+
+  .workspaceDate {
+    color: #bbb;
+  }
 }
 
 .openButton {
@@ -264,4 +379,84 @@
   &:hover {
     background: #e0e0e0;
   }
+}
+
+// Pagination Styles
+.pagination {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 2rem;
+
+  .paginationInfo {
+    color: #666;
+    font-size: 0.9rem;
+  }
+
+  .paginationControls {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+
+    .pageButton {
+      padding: 0.5rem 0.75rem;
+      border: 1px solid #e0e0e0;
+      background: white;
+      border-radius: 4px;
+      cursor: pointer;
+      color: #333;
+      transition: all 0.2s;
+      min-width: 40px;
+      text-align: center;
+      font-size: 0.9rem;
+
+      &:hover {
+        border-color: #667eea;
+        background: rgba(102, 126, 234, 0.05);
+      }
+
+      &.active {
+        background: #667eea;
+        color: white;
+        border-color: #667eea;
+      }
+
+      &:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        
+        &:hover {
+          border-color: #e0e0e0;
+          background: white;
+        }
+      }
+    }
+
+    .pageDots {
+      color: #999;
+      padding: 0 0.25rem;
+    }
+  }
+}
+
+.loadingSpinner {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 2rem;
+  
+  .spinner {
+    width: 24px;
+    height: 24px;
+    border: 3px solid #f3f3f3;
+    border-top: 3px solid #667eea;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+  }
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }

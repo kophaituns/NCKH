@@ -9,7 +9,7 @@ exports.authenticate = async (req, res, next) => {
   try {
     // Get token from header
     const token = req.headers.authorization?.split(' ')[1];
-    
+
     if (!token) {
       return res.status(401).json({
         success: false,
@@ -19,10 +19,10 @@ exports.authenticate = async (req, res, next) => {
 
     // Verify token
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    
+
     // Find user by id
     const user = await User.findByPk(decoded.id);
-    
+
     if (!user) {
       return res.status(401).json({
         success: false,
@@ -74,3 +74,33 @@ exports.isCreatorOrAdmin = (req, res, next) => {
  * Will be removed in v2.0
  */
 exports.isTeacherOrAdmin = exports.isCreatorOrAdmin;
+
+/**
+ * Middleware to optionally verify JWT token
+ * Does not block request if token is missing or invalid, just leaves req.user as null
+ */
+exports.optionalAuthenticate = async (req, res, next) => {
+  try {
+    // Get token from header
+    const token = req.headers.authorization?.split(' ')[1];
+
+    if (!token) {
+      req.user = null;
+      return next();
+    }
+
+    // Verify token
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+    // Find user by id
+    const user = await User.findByPk(decoded.id);
+
+    // Add user to request object if found
+    req.user = user || null;
+    next();
+  } catch (error) {
+    // If token is invalid, just proceed as anonymous
+    req.user = null;
+    next();
+  }
+};

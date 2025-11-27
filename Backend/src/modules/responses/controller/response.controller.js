@@ -206,7 +206,10 @@ class ResponseController {
       // Get user identifier (IP address or custom ID)
       const userIdentifier = req.body.identifier || req.ip || req.headers['x-forwarded-for'];
 
-      const response = await responseService.submitPublicResponse(token, req.body, userIdentifier);
+      // Pass user object if authenticated
+      const user = req.user;
+
+      const response = await responseService.submitPublicResponse(token, req.body, userIdentifier, user);
 
       res.status(201).json({
         success: true,

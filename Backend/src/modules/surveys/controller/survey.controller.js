@@ -104,7 +104,7 @@ class SurveyController {
       });
     } catch (error) {
       logger.error('Update survey error:', error);
-      
+
       if (error.message.includes('not found')) {
         return res.status(404).json({
           success: false,
@@ -159,6 +159,43 @@ class SurveyController {
       res.status(500).json({
         success: false,
         message: error.message || 'Error deleting survey'
+      });
+    }
+  }
+
+  /**
+   * Bulk delete surveys
+   */
+  async deleteSurveys(req, res) {
+    try {
+      const { ids } = req.body;
+
+      if (!ids || !Array.isArray(ids) || ids.length === 0) {
+        return res.status(400).json({
+          success: false,
+          message: 'Survey IDs are required'
+        });
+      }
+
+      const result = await surveyService.deleteSurveys(ids, req.user);
+
+      res.status(200).json({
+        success: true,
+        message: result.message
+      });
+    } catch (error) {
+      logger.error('Bulk delete surveys error:', error);
+
+      if (error.message.includes('not found')) {
+        return res.status(404).json({
+          success: false,
+          message: error.message
+        });
+      }
+
+      res.status(500).json({
+        success: false,
+        message: error.message || 'Error deleting surveys'
       });
     }
   }

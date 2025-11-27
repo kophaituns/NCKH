@@ -45,314 +45,324 @@ const AppRoutes = () => {
     <Routes>
       {/* Public Routes */}
       <Route path="/" element={<Landing />} />
-      <Route 
-        path="/login" 
+      <Route
+        path="/login"
         element={
           <PublicRoute>
             <Login />
           </PublicRoute>
-        } 
+        }
       />
-      <Route 
-        path="/register" 
+      <Route
+        path="/register"
         element={
           <PublicRoute>
             <Register />
           </PublicRoute>
-        } 
+        }
       />
 
       {/* Protected Routes with Layout */}
-      
+
       {/* Role-Specific Dashboards */}
-      <Route 
-        path="/admin/dashboard" 
+      <Route
+        path="/admin/dashboard"
         element={
           <ProtectedRoute allowedRoles={['admin']}>
             <DefaultLayout>
               <AdminDashboard />
             </DefaultLayout>
           </ProtectedRoute>
-        } 
+        }
       />
-      
-      <Route 
-        path="/creator/dashboard" 
+
+      <Route
+        path="/creator/dashboard"
         element={
           <ProtectedRoute allowedRoles={['creator']}>
             <DefaultLayout>
               <CreatorDashboard />
             </DefaultLayout>
           </ProtectedRoute>
-        } 
+        }
       />
-      
+
       {/* Generic Dashboard - redirects to role-specific dashboard */}
-      <Route 
-        path="/dashboard" 
+      <Route
+        path="/dashboard"
         element={
           <ProtectedRoute allowedRoles={['admin', 'creator']}>
             <DefaultLayout>
               <Dashboard />
             </DefaultLayout>
           </ProtectedRoute>
-        } 
+        }
       />
 
       {/* User Management - Admin Only */}
-      <Route 
-        path="/admin/users" 
+      <Route
+        path="/admin/users"
         element={
           <ProtectedRoute allowedRoles={['admin']}>
             <DefaultLayout>
               <UserManagement />
             </DefaultLayout>
           </ProtectedRoute>
-        } 
+        }
       />
-      
+
       {/* Legacy User Management Route */}
-      <Route 
-        path="/users" 
+      <Route
+        path="/users"
         element={
           <ProtectedRoute allowedRoles={['admin']}>
             <DefaultLayout>
               <UserManagement />
             </DefaultLayout>
           </ProtectedRoute>
-        } 
+        }
       />
 
       {/* Templates Routes */}
-      <Route 
-        path="/templates" 
+      <Route
+        path="/templates"
         element={
           <ProtectedRoute allowedRoles={['admin', 'creator']}>
             <DefaultLayout>
               <TemplateList />
             </DefaultLayout>
           </ProtectedRoute>
-        } 
+        }
       />
-      <Route 
-        path="/templates/new" 
+      <Route
+        path="/templates/new"
         element={
           <ProtectedRoute allowedRoles={['admin', 'creator']}>
             <DefaultLayout>
               <TemplateEditor />
             </DefaultLayout>
           </ProtectedRoute>
-        } 
+        }
       />
-      <Route 
-        path="/templates/:id/edit" 
+      <Route
+        path="/templates/:id/edit"
         element={
           <ProtectedRoute allowedRoles={['admin', 'creator']}>
             <DefaultLayout>
               <TemplateEditor />
             </DefaultLayout>
           </ProtectedRoute>
-        } 
+        }
       />
 
       {/* Surveys Routes */}
-      <Route 
-        path="/surveys" 
+      <Route
+        path="/surveys"
         element={
           <ProtectedRoute>
             <DefaultLayout>
               <SurveyList />
             </DefaultLayout>
           </ProtectedRoute>
-        } 
+        }
       />
-      <Route 
-        path="/surveys/new" 
+      <Route
+        path="/surveys/new"
         element={
           <ProtectedRoute allowedRoles={['admin', 'creator']}>
             <DefaultLayout>
               <SurveyEditor />
             </DefaultLayout>
           </ProtectedRoute>
-        } 
+        }
       />
-      <Route 
-        path="/surveys/:id/edit" 
+      <Route
+        path="/surveys/:id/edit"
         element={
           <ProtectedRoute allowedRoles={['admin', 'creator']}>
             <DefaultLayout>
               <SurveyEditor />
             </DefaultLayout>
           </ProtectedRoute>
-        } 
+        }
       />
-      <Route 
-        path="/surveys/:id/distribute" 
+      <Route
+        path="/surveys/:id/distribute"
         element={
           <ProtectedRoute allowedRoles={['admin', 'creator']}>
             <DefaultLayout>
               <SurveyDistribute />
             </DefaultLayout>
           </ProtectedRoute>
-        } 
+        }
       />
-      <Route 
-        path="/surveys/:id/results" 
+      <Route
+        path="/surveys/:id/results"
         element={
           <ProtectedRoute allowedRoles={['admin', 'creator']}>
             <DefaultLayout>
               <SurveyResults />
             </DefaultLayout>
           </ProtectedRoute>
-        } 
+        }
       />
 
       {/* Collectors Routes - Creator/Admin */}
-      <Route 
-        path="/collectors" 
+      <Route
+        path="/collectors"
         element={
           <ProtectedRoute allowedRoles={['admin', 'creator']}>
             <DefaultLayout>
               <CollectorList />
             </DefaultLayout>
           </ProtectedRoute>
-        } 
+        }
       />
 
       {/* Workspaces Routes - Creator/Admin */}
-      <Route 
-        path="/workspaces" 
+      <Route
+        path="/workspaces"
         element={
           <ProtectedRoute allowedRoles={['admin', 'creator']}>
             <DefaultLayout>
               <Workspaces />
             </DefaultLayout>
           </ProtectedRoute>
-        } 
+        }
       />
-      
+
       {/* Workspace Detail Route */}
-      <Route 
-        path="/workspaces/:id" 
+      <Route
+        path="/workspaces/:id"
         element={
           <ProtectedRoute allowedRoles={['admin', 'creator']}>
             <DefaultLayout>
               <WorkspaceDetail />
             </DefaultLayout>
           </ProtectedRoute>
-        } 
+        }
       />
 
       {/* Manage Workspace Invitations Route */}
-      <Route 
-        path="/workspaces/:id/invitations" 
+      <Route
+        path="/workspaces/:id/invitations"
         element={
           <ProtectedRoute allowedRoles={['admin', 'creator']}>
             <DefaultLayout>
               <ManageInvitations />
             </DefaultLayout>
           </ProtectedRoute>
-        } 
+        }
       />
 
       {/* Notifications Routes - All authenticated users */}
-      <Route 
-        path="/notifications" 
+      <Route
+        path="/notifications"
         element={
           <ProtectedRoute>
             <DefaultLayout>
               <Notifications />
             </DefaultLayout>
           </ProtectedRoute>
-        } 
+        }
       />
 
       {/* Responses Routes - User */}
-      <Route 
-        path="/responses" 
+      <Route
+        path="/responses"
         element={
           <ProtectedRoute allowedRoles={['user']}>
             <DefaultLayout>
               <ComingSoon title="My Responses" />
             </DefaultLayout>
           </ProtectedRoute>
-        } 
+        }
       />
 
       {/* Analytics Routes */}
-      <Route 
-        path="/analytics" 
+      <Route
+        path="/analytics"
         element={
           <ProtectedRoute allowedRoles={['admin', 'creator']}>
             <DefaultLayout>
               <ComingSoon title="Analytics" />
             </DefaultLayout>
           </ProtectedRoute>
-        } 
+        }
       />
 
       {/* LLM/AI Routes - Admin/Creator */}
-      <Route 
-        path="/llm" 
+      <Route
+        path="/llm"
         element={
           <ProtectedRoute allowedRoles={['admin', 'creator']}>
             <DefaultLayout>
               <LLM />
             </DefaultLayout>
           </ProtectedRoute>
-        } 
+        }
       />
 
       {/* Chat Routes - All authenticated users */}
-      <Route 
-        path="/chat" 
+      <Route
+        path="/chat"
         element={
           <ProtectedRoute>
             <DefaultLayout>
               <Chat />
             </DefaultLayout>
           </ProtectedRoute>
-        } 
+        }
       />
 
       {/* Public Response Collection Route (no auth required) */}
-      <Route 
-        path="/public/:token" 
-        element={<PublicResponseForm />} 
+      <Route
+        path="/public/response/:token"
+        element={<PublicResponseForm />}
+      />
+      <Route
+        path="/public/:token"
+        element={<PublicResponseForm />}
       />
 
       {/* Legacy route for backward compatibility */}
-      <Route 
-        path="/collect/:token" 
-        element={<PublicResponseForm />} 
+      <Route
+        path="/collect/:token"
+        element={<PublicResponseForm />}
+      />
+
+      {/* Collector Distribution Route (public, no auth required) */}
+      <Route
+        path="/collector/:token"
+        element={<PublicResponseForm />}
       />
 
       {/* Workspace Invitation Acceptance Route (public, no auth required) */}
-      <Route 
-        path="/workspace/invitation/:inviteToken/accept" 
-        element={<WorkspaceInvitationAccept />} 
+      <Route
+        path="/workspace/invitation/:inviteToken/accept"
+        element={<WorkspaceInvitationAccept />}
       />
 
       {/* Profile & Settings (All authenticated users) */}
-      <Route 
-        path="/profile" 
+      <Route
+        path="/profile"
         element={
           <ProtectedRoute>
             <DefaultLayout>
               <ComingSoon title="Profile" />
             </DefaultLayout>
           </ProtectedRoute>
-        } 
+        }
       />
-      <Route 
-        path="/settings" 
+      <Route
+        path="/settings"
         element={
           <ProtectedRoute>
             <DefaultLayout>
               <ComingSoon title="Settings" />
             </DefaultLayout>
           </ProtectedRoute>
-        } 
+        }
       />
 
       {/* Catch-all redirect */}

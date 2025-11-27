@@ -13,6 +13,14 @@ module.exports = (sequelize, DataTypes) => {
         allowNull: false,
         field: 'template_id',
       },
+      survey_id: {
+        type: DataTypes.INTEGER,
+        allowNull: true, // Assuming it can be null based on previous errors not mentioning it, but safer to include
+      },
+      label: {
+        type: DataTypes.TEXT,
+        allowNull: false,
+      },
       question_text: {
         type: DataTypes.TEXT,
         allowNull: false,
@@ -20,6 +28,7 @@ module.exports = (sequelize, DataTypes) => {
       question_type_id: {
         type: DataTypes.INTEGER,
         allowNull: false,
+        field: 'type_id',
       },
       required: {
         type: DataTypes.BOOLEAN,

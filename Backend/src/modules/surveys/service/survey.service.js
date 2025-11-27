@@ -1,6 +1,7 @@
 // src/modules/surveys/service/survey.service.js
-const { Survey, User, SurveyTemplate, SurveyResponse, Question } = require('../../../models');
+const { Survey, User, SurveyTemplate, SurveyResponse, Question, QuestionOption, SurveyAccess, SurveyInvite, Workspace, WorkspaceMember } = require('../../../models');
 const { Op } = require('sequelize');
+const surveyAccessService = require('./surveyAccess.service');
 
 class SurveyService {
   /**
@@ -62,16 +63,23 @@ class SurveyService {
               attributes: ['id']
             }
           ]
+        },
+        {
+          model: SurveyResponse,
+          attributes: ['id']
         }
       ],
-      order: [['created_at', 'DESC']]
+      order: [['created_at', 'DESC']],
+      distinct: true // Important for correct count with includes
     });
 
-    // Map surveys to include questionCount
+    // Map surveys to include questionCount and responseCount
     const surveysWithCount = rows.map(survey => {
       const surveyData = survey.toJSON();
       const templateQuestions = surveyData.template?.Questions || [];
       surveyData.questionCount = templateQuestions.length;
+      surveyData.responseCount = surveyData.SurveyResponses ? surveyData.SurveyResponses.length : 0;
+      delete surveyData.SurveyResponses; // Clean up
       return surveyData;
     });
 
@@ -87,33 +95,32 @@ class SurveyService {
   }
 
   /**
-   * Get survey by ID
+   * Get survey by ID with access control
    */
   async getSurveyById(surveyId, user) {
-    const where = { id: surveyId };
-
-    // Non-admin users can only see their own surveys
-    if (user.role !== 'admin') {
-      where.created_by = user.id;
-    }
-
-    const survey = await Survey.findOne({
-      where,
+    const survey = await Survey.findByPk(surveyId, {
       include: [
         {
           model: User,
           as: 'creator',
-          attributes: ['id', 'username', 'full_name', 'email']
+          attributes: ['id', 'username', 'full_name']
         },
         {
           model: SurveyTemplate,
           as: 'template',
-          attributes: ['id', 'title', 'description'],
+          attributes: ['id', 'title'],
           include: [
             {
               model: Question,
               as: 'Questions',
-              attributes: ['id']
+              attributes: ['id', 'question_text', 'question_type_id', 'display_order', 'required', 'label'],
+              include: [
+                {
+                  model: QuestionOption,
+                  as: 'QuestionOptions', // Ensure alias matches model definition if any
+                  attributes: ['id', 'option_text', 'display_order']
+                }
+              ]
             }
           ]
         }
@@ -121,15 +128,24 @@ class SurveyService {
     });
 
     if (!survey) {
-      return null;
+      throw new Error('Survey not found');
     }
 
-    // Add questionCount to the survey
-    const surveyData = survey.toJSON();
-    const templateQuestions = surveyData.template?.Questions || [];
-    surveyData.questionCount = templateQuestions.length;
-
-    return surveyData;
+    // Check access permissions
+    if (user.role === 'admin') {
+      // Admin has access to all surveys
+      return survey;
+    } else if (survey.created_by === user.id) {
+      // Creator has full access
+      return survey;
+    } else {
+      // Check if user has been granted access
+      const hasAccess = await surveyAccessService.hasAccess(surveyId, user.id, 'view');
+      if (!hasAccess) {
+        throw new Error('Access denied to this survey');
+      }
+      return survey;
+    }
   }
 
   /**
@@ -143,13 +159,34 @@ class SurveyService {
       start_date,
       end_date,
       target_audience,
-      target_value
+      target_value,
+      // Simple Access Control fields
+      access_type = 'public',
+      require_login = false,
+      allow_anonymous = true,
+      workspace_id = null
     } = surveyData;
 
     // Verify template exists
     const template = await SurveyTemplate.findByPk(template_id);
     if (!template) {
       throw new Error('Survey template not found');
+    }
+
+    // Validate workspace access if internal type
+    if (access_type === 'internal' && workspace_id) {
+      const workspace = await Workspace.findByPk(workspace_id);
+      if (!workspace) {
+        throw new Error('Workspace not found');
+      }
+
+      // Check if user is member of the workspace
+      const membership = await WorkspaceMember.findOne({
+        where: { workspace_id, user_id: user.id }
+      });
+      if (!membership) {
+        throw new Error('You are not a member of this workspace');
+      }
     }
 
     const survey = await Survey.create({
@@ -161,7 +198,12 @@ class SurveyService {
       target_audience: target_audience || 'all_users',
       target_value,
       created_by: user.id,
-      status: 'draft'
+      status: 'draft',
+      // Simple Access Control
+      access_type,
+      require_login,
+      allow_anonymous,
+      workspace_id: access_type === 'internal' ? workspace_id : null
     });
 
     return this.getSurveyById(survey.id, user);
@@ -190,7 +232,12 @@ class SurveyService {
       'end_date',
       'target_audience',
       'target_value',
-      'status'
+      'status',
+      // Simple Access Control
+      'access_type',
+      'require_login',
+      'allow_anonymous',
+      'workspace_id'
     ];
 
     allowedFields.forEach(field => {
@@ -222,6 +269,34 @@ class SurveyService {
     await survey.destroy();
 
     return { message: 'Survey deleted successfully' };
+  }
+
+  /**
+   * Bulk delete surveys
+   */
+  async deleteSurveys(surveyIds, user) {
+    if (!Array.isArray(surveyIds) || surveyIds.length === 0) {
+      throw new Error('No survey IDs provided');
+    }
+
+    const where = {
+      id: { [Op.in]: surveyIds }
+    };
+
+    // If not admin, restrict to own surveys
+    if (user.role !== 'admin') {
+      where.created_by = user.id;
+    }
+
+    const count = await Survey.count({ where });
+
+    if (count === 0) {
+      throw new Error('No surveys found or access denied');
+    }
+
+    await Survey.destroy({ where });
+
+    return { message: `${count} surveys deleted successfully` };
   }
 
   /**
@@ -363,7 +438,7 @@ class SurveyService {
    */
   async autoCloseExpiredSurveys() {
     const now = new Date();
-    
+
     // Find all active surveys past their end_date
     const expiredSurveys = await Survey.findAll({
       where: {

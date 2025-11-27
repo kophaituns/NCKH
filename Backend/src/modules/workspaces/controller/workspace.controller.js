@@ -5,16 +5,37 @@ const logger = require('../../../utils/logger');
 class WorkspaceController {
   /**
    * GET /api/modules/workspaces/my
-   * Get all workspaces where user is owner or member
+   * Get all workspaces where user is owner or member (admin sees all) with optional pagination
    */
   async getMyWorkspaces(req, res) {
     try {
-      const workspaces = await workspaceService.getMyWorkspaces(req.user.id);
+      const { page, limit, search } = req.query;
+      const pagination = page && limit;
 
-      res.status(200).json({
-        ok: true,
-        workspaces
-      });
+      if (pagination) {
+        const result = await workspaceService.getMyWorkspacesPaginated(
+          req.user.id, 
+          req.user,
+          {
+            page: parseInt(page),
+            limit: parseInt(limit),
+            search
+          }
+        );
+
+        res.status(200).json({
+          ok: true,
+          workspaces: result.workspaces,
+          pagination: result.pagination
+        });
+      } else {
+        const workspaces = await workspaceService.getMyWorkspaces(req.user.id, req.user);
+
+        res.status(200).json({
+          ok: true,
+          workspaces
+        });
+      }
     } catch (error) {
       logger.error('Get my workspaces error:', error);
       res.status(500).json({
@@ -621,6 +642,54 @@ class WorkspaceController {
       res.status(statusCode).json({
         ok: false,
         message: error.message || 'Error resending invitation'
+      });
+    }
+  }
+
+  /**
+   * DELETE /api/modules/workspaces/bulk
+   * Delete multiple workspaces
+   */
+  async deleteMultipleWorkspaces(req, res) {
+    try {
+      const { workspaceIds } = req.body;
+
+      if (!Array.isArray(workspaceIds) || workspaceIds.length === 0) {
+        return res.status(400).json({
+          ok: false,
+          message: 'workspaceIds array is required'
+        });
+      }
+
+      let deletedCount = 0;
+      const errors = [];
+
+      for (const workspaceId of workspaceIds) {
+        try {
+          await workspaceService.deleteWorkspace(workspaceId, req.user.id, req.user);
+          deletedCount++;
+        } catch (error) {
+          logger.error(`Error deleting workspace ${workspaceId}:`, error);
+          errors.push({
+            workspaceId,
+            error: error.message
+          });
+        }
+      }
+
+      res.status(200).json({
+        ok: true,
+        success: true,
+        deletedCount,
+        totalRequested: workspaceIds.length,
+        errors: errors.length > 0 ? errors : undefined,
+        message: `Successfully deleted ${deletedCount} of ${workspaceIds.length} workspaces`
+      });
+    } catch (error) {
+      logger.error('Delete multiple workspaces error:', error);
+      res.status(500).json({
+        ok: false,
+        message: error.message || 'Error deleting workspaces'
       });
     }
   }

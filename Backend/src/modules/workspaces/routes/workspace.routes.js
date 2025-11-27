@@ -47,6 +47,13 @@ router.post('/invitations/:invitationId/resend', authenticate, workspaceControll
 router.post('/', authenticate, isCreatorOrAdmin, workspaceController.createWorkspace);
 
 /**
+ * @route   DELETE /api/modules/workspaces/bulk
+ * @desc    Delete multiple workspaces
+ * @access  Private (creator/admin)
+ */
+router.delete('/bulk', authenticate, isCreatorOrAdmin, workspaceController.deleteMultipleWorkspaces);
+
+/**
  * @route   GET /api/modules/workspaces/:workspaceId/invitations/pending
  * @desc    Get pending invitations for a workspace
  * @access  Private (owner only)

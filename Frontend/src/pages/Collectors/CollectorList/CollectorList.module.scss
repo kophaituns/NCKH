@@ -18,14 +18,14 @@
 }
 
 .title {
-  font-size: 2rem;
-  font-weight: 700;
-  color: #111827;
+  font-size: 1.75rem;
+  font-weight: 600;
+  color: #1f2937;
   margin: 0 0 0.5rem 0;
 }
 
 .subtitle {
-  font-size: 0.9375rem;
+  font-size: 0.875rem;
   color: #6b7280;
   margin: 0;
 }
@@ -34,20 +34,19 @@
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  padding: 0.75rem 1.5rem;
-  background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+  padding: 0.625rem 1.25rem;
+  background: #6366f1;
   color: white;
   border: none;
-  border-radius: 8px;
+  border-radius: 6px;
   font-size: 0.875rem;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: background 0.2s;
   white-space: nowrap;
 
   &:hover {
-    background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%);
-    box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
+    background: #4f46e5;
   }
 
   svg {
@@ -57,8 +56,8 @@
 
 .tableContainer {
   background: white;
-  border-radius: 12px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
   overflow: hidden;
   margin-bottom: 1.5rem;
 
@@ -70,16 +69,16 @@
 .table {
   width: 100%;
   border-collapse: collapse;
-  min-width: 900px;
+  min-width: 1000px;
 
   thead {
     background: #f9fafb;
-    border-bottom: 1px solid #e5e7eb;
+    border-bottom: 2px solid #e5e7eb;
 
     th {
-      padding: 1rem;
+      padding: 0.875rem 1rem;
       text-align: left;
-      font-size: var(--font-size-sm);
+      font-size: 0.75rem;
       font-weight: 600;
       text-transform: uppercase;
       letter-spacing: 0.05em;
@@ -90,11 +89,10 @@
 
   tbody {
     tr {
-      border-bottom: 1px solid #e5e7eb;
-      transition: background 0.2s;
+      border-bottom: 1px solid #f3f4f6;
 
       &:hover {
-        background: #f9fafb;
+        background: #fafafa;
       }
 
       &:last-child {
@@ -106,6 +104,7 @@
       padding: 1rem;
       font-size: 0.875rem;
       color: #374151;
+      vertical-align: middle;
     }
   }
 }
@@ -113,34 +112,51 @@
 .surveyName {
   font-weight: 500;
   color: #111827;
+  display: block;
+  max-width: 250px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .token {
   font-family: 'Courier New', monospace;
   padding: 0.25rem 0.5rem;
   background: #f3f4f6;
+  border: 1px solid #e5e7eb;
   border-radius: 4px;
-  font-size: var(--font-size-sm);
-  color: #6b7280;
+  font-size: 0.75rem;
+  color: #4b5563;
+  display: inline-block;
+  cursor: help;
+  max-width: 150px;
 }
 
 .statusBadge {
-  display: inline-block;
-  padding: 0.25rem 0.75rem;
-  border-radius: 12px;
-  font-size: var(--font-size-sm);
-  font-weight: 600;
-  text-transform: capitalize;
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.625rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  border: 1px solid;
 
   &.active {
-    background: #d1fae5;
-    color: #065f46;
+    background: #ecfdf5;
+    color: #059669;
+    border-color: #a7f3d0;
   }
 
   &.expired {
-    background: #fee2e2;
-    color: #991b1b;
+    background: #fef2f2;
+    color: #dc2626;
+    border-color: #fecaca;
   }
+}
+
+.responseCount {
+  font-weight: 500;
+  color: #6366f1;
 }
 
 .actions {
@@ -153,7 +169,7 @@
 .deleteButton {
   padding: 0.5rem;
   border: 1px solid #d1d5db;
-  border-radius: 6px;
+  border-radius: 4px;
   background: white;
   cursor: pointer;
   transition: all 0.2s;
@@ -162,7 +178,8 @@
   justify-content: center;
 
   &:hover {
-    background: #f3f4f6;
+    background: #f9fafb;
+    border-color: #9ca3af;
   }
 }
 
@@ -171,6 +188,7 @@
 
   &:hover {
     border-color: #3b82f6;
+    background: #eff6ff;
   }
 }
 
@@ -179,6 +197,7 @@
 
   &:hover {
     border-color: #8b5cf6;
+    background: #f5f3ff;
   }
 }
 
@@ -187,6 +206,7 @@
 
   &:hover {
     border-color: #ef4444;
+    background: #fef2f2;
   }
 }
 
@@ -194,42 +214,42 @@
   text-align: center;
   padding: 4rem 2rem;
   background: white;
-  border-radius: 12px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
 
   h3 {
-    font-size: 1.25rem;
+    font-size: 1.125rem;
     font-weight: 600;
     color: #111827;
     margin: 0 0 0.5rem 0;
   }
 
   p {
-    font-size: 0.9375rem;
+    font-size: 0.875rem;
     color: #6b7280;
     margin: 0 0 1.5rem 0;
   }
 }
 
 .emptyIcon {
-  font-size: 4rem;
+  font-size: 3rem;
   margin-bottom: 1rem;
+  opacity: 0.5;
 }
 
 .emptyButton {
-  padding: 0.75rem 1.5rem;
-  background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+  padding: 0.625rem 1.25rem;
+  background: #6366f1;
   color: white;
   border: none;
-  border-radius: 8px;
+  border-radius: 6px;
   font-size: 0.875rem;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: background 0.2s;
 
   &:hover {
-    background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%);
-    box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
+    background: #4f46e5;
   }
 }
 
@@ -252,22 +272,22 @@
   input,
   select {
     width: 100%;
-    padding: 0.75rem;
+    padding: 0.625rem 0.75rem;
     border: 1px solid #d1d5db;
-    border-radius: 8px;
+    border-radius: 6px;
     font-size: 0.875rem;
     transition: all 0.2s;
 
     &:focus {
       outline: none;
-      border-color: #8b5cf6;
-      box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1);
+      border-color: #6366f1;
+      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
     }
   }
 }
 
 .hint {
-  font-size: var(--font-size-sm);
+  font-size: 0.75rem;
   color: #6b7280;
   margin-top: 0.5rem;
 }
@@ -283,8 +303,8 @@
 
 .cancelButton,
 .submitButton {
-  padding: 0.75rem 1.5rem;
-  border-radius: 8px;
+  padding: 0.625rem 1.25rem;
+  border-radius: 6px;
   font-size: 0.875rem;
   font-weight: 500;
   cursor: pointer;
@@ -295,6 +315,7 @@
 .cancelButton {
   background: #f3f4f6;
   color: #374151;
+  border: 1px solid #d1d5db;
 
   &:hover {
     background: #e5e7eb;
@@ -302,12 +323,11 @@
 }
 
 .submitButton {
-  background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+  background: #6366f1;
   color: white;
 
   &:hover {
-    background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%);
-    box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
+    background: #4f46e5;
   }
 }
 
@@ -335,28 +355,28 @@
 
 .linkInput {
   flex: 1;
-  padding: 0.75rem;
+  padding: 0.625rem 0.75rem;
   border: 1px solid #d1d5db;
-  border-radius: 8px;
+  border-radius: 6px;
   font-size: 0.875rem;
   font-family: 'Courier New', monospace;
   background: #f9fafb;
+  color: #4b5563;
 }
 
 .copyLinkButton {
-  padding: 0.75rem 1.5rem;
-  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  padding: 0.625rem 1.25rem;
+  background: #3b82f6;
   color: white;
   border: none;
-  border-radius: 8px;
+  border-radius: 6px;
   font-size: 0.875rem;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: background 0.2s;
 
   &:hover {
-    background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
-    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+    background: #2563eb;
   }
 }
 

@@ -15,7 +15,7 @@ ChartJS.register(ArcElement, Tooltip, Legend);
 const CreatorDashboard = () => {
   const navigate = useNavigate();
   const { showError } = useToast();
-  
+
   const [loading, setLoading] = useState(true);
   const [summary, setSummary] = useState({
     totalSurveys: 0,
@@ -34,28 +34,27 @@ const CreatorDashboard = () => {
     try {
       // Fetch creator's surveys
       const surveysResponse = await SurveyService.getMySurveys();
-      
-      if (surveysResponse.data) {
-        const surveys = surveysResponse.data;
-        
-        // Calculate summary
-        const draft = surveys.filter(s => s.status === 'draft').length;
-        const active = surveys.filter(s => s.status === 'active').length;
-        const closed = surveys.filter(s => s.status === 'closed').length;
-        
-        setSummary({
-          totalSurveys: surveys.length,
-          activeSurveys: active,
-          closedSurveys: closed,
-          draftSurveys: draft
-        });
 
-        setStatusDistribution({
-          draft,
-          active,
-          closed
-        });
-      }
+      // getMySurveys returns { surveys: [...], pagination: {...} }
+      const surveys = surveysResponse.surveys || [];
+
+      // Calculate summary
+      const draft = surveys.filter(s => s.status === 'draft').length;
+      const active = surveys.filter(s => s.status === 'active').length;
+      const closed = surveys.filter(s => s.status === 'closed').length;
+
+      setSummary({
+        totalSurveys: surveys.length,
+        activeSurveys: active,
+        closedSurveys: closed,
+        draftSurveys: draft
+      });
+
+      setStatusDistribution({
+        draft,
+        active,
+        closed
+      });
 
     } catch (error) {
       console.error('Error fetching creator data:', error);
@@ -119,39 +118,39 @@ const CreatorDashboard = () => {
           <p className={styles.subtitle}>Manage your surveys and view analytics</p>
         </div>
         <div className={styles.actions}>
-          <button 
+          <button
             className={styles.actionButton}
             onClick={() => navigate('/workspaces')}
           >
             <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-              <path d="M3 3h5v5H3V3zm9 0h5v5h-5V3zm-9 9h5v5H3v-5zm9 0h5v5h-5v-5z" stroke="currentColor" strokeWidth="1.5" fill="none"/>
+              <path d="M3 3h5v5H3V3zm9 0h5v5h-5V3zm-9 9h5v5H3v-5zm9 0h5v5h-5v-5z" stroke="currentColor" strokeWidth="1.5" fill="none" />
             </svg>
             My Workspaces
           </button>
-          <button 
+          <button
             className={styles.actionButton}
             onClick={() => navigate('/analytics')}
           >
             <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-              <path d="M3 17V10M10 17V3M17 17v-7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+              <path d="M3 17V10M10 17V3M17 17v-7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
             </svg>
             View Analytics
           </button>
-          <button 
+          <button
             className={styles.actionButton}
             onClick={() => navigate('/surveys')}
           >
             <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-              <path d="M5 3h10a2 2 0 012 2v10a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2z" stroke="currentColor" strokeWidth="1.5"/>
+              <path d="M5 3h10a2 2 0 012 2v10a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2z" stroke="currentColor" strokeWidth="1.5" />
             </svg>
             View Responses
           </button>
-          <button 
+          <button
             className={styles.primaryButton}
             onClick={() => navigate('/templates')}
           >
             <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-              <path d="M10 5v10M5 10h10" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+              <path d="M10 5v10M5 10h10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
             </svg>
             Create Survey
           </button>
@@ -199,14 +198,14 @@ const CreatorDashboard = () => {
         <div className={styles.quickActions}>
           <h3 className={styles.quickActionsTitle}>Quick Actions</h3>
           <div className={styles.actionsList}>
-            <button 
+            <button
               className={styles.quickActionItem}
               onClick={() => navigate('/templates')}
             >
               <div className={styles.quickActionIcon}>
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-                  <rect x="4" y="4" width="16" height="16" rx="2" stroke="currentColor" strokeWidth="2"/>
-                  <path d="M8 8h8M8 12h8M8 16h5" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                  <rect x="4" y="4" width="16" height="16" rx="2" stroke="currentColor" strokeWidth="2" />
+                  <path d="M8 8h8M8 12h8M8 16h5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
                 </svg>
               </div>
               <div className={styles.quickActionContent}>
@@ -214,17 +213,17 @@ const CreatorDashboard = () => {
                 <p>Start with a new survey template</p>
               </div>
               <svg className={styles.quickActionArrow} width="20" height="20" viewBox="0 0 20 20" fill="none">
-                <path d="M7 4l6 6-6 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M7 4l6 6-6 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
             </button>
 
-            <button 
+            <button
               className={styles.quickActionItem}
               onClick={() => navigate('/surveys')}
             >
               <div className={styles.quickActionIcon}>
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-                  <path d="M6 4h12a2 2 0 012 2v12a2 2 0 01-2 2H6a2 2 0 01-2-2V6a2 2 0 012-2z" stroke="currentColor" strokeWidth="2"/>
+                  <path d="M6 4h12a2 2 0 012 2v12a2 2 0 01-2 2H6a2 2 0 01-2-2V6a2 2 0 012-2z" stroke="currentColor" strokeWidth="2" />
                 </svg>
               </div>
               <div className={styles.quickActionContent}>
@@ -232,18 +231,18 @@ const CreatorDashboard = () => {
                 <p>View and edit your surveys</p>
               </div>
               <svg className={styles.quickActionArrow} width="20" height="20" viewBox="0 0 20 20" fill="none">
-                <path d="M7 4l6 6-6 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M7 4l6 6-6 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
             </button>
 
-            <button 
+            <button
               className={styles.quickActionItem}
               onClick={() => navigate('/collectors')}
             >
               <div className={styles.quickActionIcon}>
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-                  <path d="M6 4h12a2 2 0 012 2v12a2 2 0 01-2 2H6a2 2 0 01-2-2V6a2 2 0 012-2z" stroke="currentColor" strokeWidth="2"/>
-                  <rect x="9" y="9" width="6" height="6" stroke="currentColor" strokeWidth="2"/>
+                  <path d="M6 4h12a2 2 0 012 2v12a2 2 0 01-2 2H6a2 2 0 01-2-2V6a2 2 0 012-2z" stroke="currentColor" strokeWidth="2" />
+                  <rect x="9" y="9" width="6" height="6" stroke="currentColor" strokeWidth="2" />
                 </svg>
               </div>
               <div className={styles.quickActionContent}>
@@ -251,17 +250,17 @@ const CreatorDashboard = () => {
                 <p>Create QR codes and links</p>
               </div>
               <svg className={styles.quickActionArrow} width="20" height="20" viewBox="0 0 20 20" fill="none">
-                <path d="M7 4l6 6-6 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M7 4l6 6-6 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
             </button>
 
-            <button 
+            <button
               className={styles.quickActionItem}
               onClick={() => navigate('/analytics')}
             >
               <div className={styles.quickActionIcon}>
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-                  <path d="M4 20V12M12 20V4M20 20v-8" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                  <path d="M4 20V12M12 20V4M20 20v-8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
                 </svg>
               </div>
               <div className={styles.quickActionContent}>
@@ -269,7 +268,7 @@ const CreatorDashboard = () => {
                 <p>Analyze survey results</p>
               </div>
               <svg className={styles.quickActionArrow} width="20" height="20" viewBox="0 0 20 20" fill="none">
-                <path d="M7 4l6 6-6 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M7 4l6 6-6 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
             </button>
           </div>

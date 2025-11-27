@@ -14,7 +14,7 @@ module.exports = (sequelize, DataTypes) => {
       },
       respondent_id: {
         type: DataTypes.INTEGER,
-        allowNull: false,
+        allowNull: true,
       },
       collector_id: {
         type: DataTypes.INTEGER,
@@ -31,6 +31,23 @@ module.exports = (sequelize, DataTypes) => {
       status: {
         type: DataTypes.ENUM('started', 'completed', 'abandoned'),
         defaultValue: 'started',
+      },
+      // Identity tracking fields for Survey Access Control
+      is_anonymous: {
+        type: DataTypes.BOOLEAN,
+        allowNull: false,
+        defaultValue: true,
+        comment: 'Whether this response is anonymous'
+      },
+      respondent_email: {
+        type: DataTypes.STRING(255),
+        allowNull: true,
+        comment: 'Email of identified respondent'
+      },
+      respondent_name: {
+        type: DataTypes.STRING(100),
+        allowNull: true,
+        comment: 'Name of identified respondent'
       },
       created_at: {
         type: DataTypes.DATE,

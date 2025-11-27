@@ -8,7 +8,6 @@ const { sequelize } = require('./models');
 const logger = require('./utils/logger');
 
 // Import routes
-const questionRoutes = require('./routes/question.routes');
 
 // Initialize Express app
 const app = express();
@@ -34,15 +33,12 @@ app.use(express.urlencoded({ extended: true })); // Parse URL-encoded bodies
 app.use(morgan('dev')); // HTTP request logger
 
 // API Routes
-const testRoutes = require('./routes/test.routes');
 const moduleRoutes = require('./routes/modules.routes'); // Modular architecture routes
 
 // Modular architecture routes (primary endpoints)
 app.use('/api/modules', moduleRoutes);
 
-// Legacy routes (kept for backward compatibility)
-app.use('/api/questions', questionRoutes);
-app.use('/api/test', testRoutes); // Test routes for development
+// Only modular architecture routes are used
 
 // Root route
 app.get('/', (req, res) => {

@@ -8,14 +8,15 @@ const TemplateService = {
   async getAll(params = {}) {
     try {
       const response = await http.get('/templates', { params });
-      console.log('Template API response:', response.data);
       // Backend returns { success: true, data: { templates: [...], pagination: {...} } }
-      const templates = response.data.data?.templates || response.data?.templates || [];
-      console.log('Extracted templates:', templates);
-      return Array.isArray(templates) ? templates : [];
+      const data = response.data.data || response.data || {};
+      return {
+        templates: data.templates || [],
+        pagination: data.pagination || null
+      };
     } catch (error) {
       console.error('Error in TemplateService.getAll:', error);
-      return [];
+      return { templates: [], pagination: null };
     }
   },
 
@@ -108,6 +109,14 @@ const TemplateService = {
    */
   async delete(id) {
     const response = await http.delete(`/templates/${id}`);
+    return response.data;
+  },
+
+  /**
+   * Bulk delete templates
+   */
+  async deleteMany(ids) {
+    const response = await http.delete('/templates/bulk', { data: { ids } });
     return response.data;
   },
 

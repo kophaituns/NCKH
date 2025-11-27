@@ -14,8 +14,12 @@ const CollectorService = {
    * Create new collector
    */
   async create(collectorData) {
-    const response = await http.post('/collectors', collectorData);
-    return response.data.collector || response.data.data?.collector;
+    const { surveyId, ...data } = collectorData;
+    if (!surveyId) {
+      throw new Error('surveyId is required to create a collector');
+    }
+    const response = await http.post(`/collectors/survey/${surveyId}`, data);
+    return response.data.collector || response.data.data?.collector || response.data.data;
   },
 
   // Legacy aliases for backward compatibility
@@ -31,7 +35,7 @@ const CollectorService = {
    * Get collector by token (public access - no auth needed)
    */
   async getCollectorByToken(token) {
-    const response = await http.get(`/collectors/public/${token}`);
+    const response = await http.get(`/collectors/token/${token}`);
     return response.data;
   },
 
@@ -72,6 +76,14 @@ const CollectorService = {
    */
   getPublicURL(token) {
     return `${window.location.origin}/collector/${token}`;
+  },
+
+  /**
+   * Create workspace collector for a survey
+   */
+  async createWorkspaceCollector(surveyId, collectorData) {
+    const response = await http.post(`/collectors/survey/${surveyId}`, collectorData);
+    return response.data;
   },
 };
 

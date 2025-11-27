@@ -8,14 +8,15 @@ const SurveyService = {
   async getAll(params = {}) {
     try {
       const response = await http.get('/surveys', { params });
-      console.log('Survey API response:', response.data);
       // Backend returns { success: true, data: { surveys: [...], pagination: {...} } }
-      const surveys = response.data.data?.surveys || response.data?.surveys || [];
-      console.log('Extracted surveys:', surveys);
-      return Array.isArray(surveys) ? surveys : [];
+      const data = response.data.data || response.data || {};
+      return {
+        surveys: data.surveys || [],
+        pagination: data.pagination || null
+      };
     } catch (error) {
       console.error('Error in SurveyService.getAll:', error);
-      return [];
+      return { surveys: [], pagination: null };
     }
   },
 
@@ -41,7 +42,8 @@ const SurveyService = {
    */
   async create(surveyData) {
     const response = await http.post('/surveys', surveyData);
-    return response.data.data;
+    // Backend returns { success: true, data: { survey } }
+    return response.data.data?.survey || response.data.data;
   },
 
   async createSurvey(surveyData) {
@@ -53,7 +55,8 @@ const SurveyService = {
    */
   async update(id, surveyData) {
     const response = await http.put(`/surveys/${id}`, surveyData);
-    return response.data.data;
+    // Backend returns { success: true, data: { survey } }  
+    return response.data.data?.survey || response.data.data;
   },
 
   async updateSurvey(id, surveyData) {
@@ -65,6 +68,14 @@ const SurveyService = {
    */
   async delete(id) {
     const response = await http.delete(`/surveys/${id}`);
+    return response.data;
+  },
+
+  /**
+   * Bulk delete surveys
+   */
+  async deleteMany(ids) {
+    const response = await http.delete('/surveys/bulk', { data: { ids } });
     return response.data;
   },
 

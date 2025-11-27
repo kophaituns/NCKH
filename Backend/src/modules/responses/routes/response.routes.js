@@ -2,7 +2,7 @@
 const express = require('express');
 const router = express.Router();
 const responseController = require('../controller/response.controller');
-const { authenticate, isCreatorOrAdmin } = require('../../../middleware/auth.middleware');
+const { authenticate, isCreatorOrAdmin, optionalAuthenticate } = require('../../../middleware/auth.middleware');
 
 /**
  * @route   POST /api/responses
@@ -44,6 +44,6 @@ router.delete('/:id', authenticate, responseController.deleteResponse);
  * @desc    Submit public/anonymous response via collector token
  * @access  Public (no authentication required)
  */
-router.post('/public/:token', responseController.submitPublicResponse);
+router.post('/public/:token', optionalAuthenticate, responseController.submitPublicResponse);
 
 module.exports = router;

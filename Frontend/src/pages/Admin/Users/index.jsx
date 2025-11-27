@@ -9,26 +9,26 @@ import styles from './UserManagement.module.scss';
 
 const UserManagement = () => {
   const { showSuccess, showError } = useToast();
-  
+
   const [loading, setLoading] = useState(true);
   const [users, setUsers] = useState([]);
   const [filteredUsers, setFilteredUsers] = useState([]);
-  
+
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(10);
-  
+
   // Search and filter
   const [searchTerm, setSearchTerm] = useState('');
   const [roleFilter, setRoleFilter] = useState('all');
-  
+
   // Modals
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  
+
   // Form data
   const [formData, setFormData] = useState({
     username: '',
@@ -42,10 +42,14 @@ const UserManagement = () => {
     setLoading(true);
     try {
       const response = await UserService.getAll();
-      setUsers(response.data || []);
+      // Ensure users is always an array
+      const usersData = Array.isArray(response.data) ? response.data :
+        (response.data?.users && Array.isArray(response.data.users)) ? response.data.users : [];
+      setUsers(usersData);
     } catch (error) {
       console.error('Error fetching users:', error);
       showError('Failed to load users');
+      setUsers([]); // Set empty array on error
     } finally {
       setLoading(false);
     }
@@ -141,7 +145,7 @@ const UserManagement = () => {
         full_name: formData.full_name,
         role: formData.role
       };
-      
+
       // Only include password if it's been changed
       if (formData.password) {
         updateData.password = formData.password;
@@ -200,7 +204,7 @@ const UserManagement = () => {
         </div>
         <button className={styles.addButton} onClick={handleAddUser}>
           <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-            <path d="M10 5v10M5 10h10" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+            <path d="M10 5v10M5 10h10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
           </svg>
           Add User
         </button>
@@ -210,8 +214,8 @@ const UserManagement = () => {
       <div className={styles.filters}>
         <div className={styles.searchBox}>
           <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-            <circle cx="9" cy="9" r="6" stroke="currentColor" strokeWidth="1.5"/>
-            <path d="M14 14l4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+            <circle cx="9" cy="9" r="6" stroke="currentColor" strokeWidth="1.5" />
+            <path d="M14 14l4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
           </svg>
           <input
             type="text"
@@ -219,7 +223,7 @@ const UserManagement = () => {
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className={styles.searchInput}
-            style={{ paddingLeft: '4rem' }} 
+            style={{ paddingLeft: '4rem' }}
           />
         </div>
 
@@ -285,7 +289,7 @@ const UserManagement = () => {
                         title="Edit user"
                       >
                         <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                          <path d="M11 2l3 3-8 8H3v-3l8-8z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round"/>
+                          <path d="M11 2l3 3-8 8H3v-3l8-8z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
                         </svg>
                       </button>
                       <button
@@ -294,7 +298,7 @@ const UserManagement = () => {
                         title="Delete user"
                       >
                         <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                          <path d="M3 4h10M5 4V3a1 1 0 011-1h4a1 1 0 011 1v1M6 7v4M10 7v4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+                          <path d="M3 4h10M5 4V3a1 1 0 011-1h4a1 1 0 011 1v1M6 7v4M10 7v4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
                         </svg>
                       </button>
                     </div>

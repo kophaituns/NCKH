@@ -1,80 +1,36 @@
-// src/modules/responses/service/response.service.js
-const { SurveyResponse, Answer, Survey, User, Question, QuestionOption, SurveyCollector } = require('../../../models');
-const { Op } = require('sequelize');
+const {
+  SurveyResponse,
+  Answer,
+  Survey,
+  Question,
+  QuestionOption,
+  User,
+  SurveyCollector
+} = require('../../../models');
 const collectorService = require('../../collectors/service/collector.service');
 
 class ResponseService {
   /**
-   * Submit survey response
-   */
-  async submitResponse(responseData, user) {
-    const { survey_id, answers } = responseData;
-
-    // Verify survey exists and is active
-    const survey = await Survey.findByPk(survey_id);
-    if (!survey) {
-      throw new Error('Survey not found');
-    }
-
-    if (survey.status !== 'active') {
-      throw new Error('Survey is not active');
-    }
-
-    // Check if user already responded
-    const existingResponse = await SurveyResponse.findOne({
-      where: {
-        survey_id,
-        respondent_id: user.id
-      }
-    });
-
-    if (existingResponse) {
-      throw new Error('You have already responded to this survey');
-    }
-
-    // Create survey response
-    const surveyResponse = await SurveyResponse.create({
-      survey_id,
-      respondent_id: user.id,
-      submitted_at: new Date()
-    });
-
-    // Create answers
-    const answerPromises = answers.map(answer => {
-      return Answer.create({
-        survey_response_id: surveyResponse.id,
-        question_id: answer.question_id,
-        option_id: answer.option_id || null,
-        answer_text: answer.answer_text || null
-      });
-    });
-
-    await Promise.all(answerPromises);
-
-    // Return complete response with answers
-    return this.getResponseById(surveyResponse.id, user);
-  }
-
-  /**
    * Get response by ID
    */
-  async getResponseById(responseId, user) {
-    const response = await SurveyResponse.findByPk(responseId, {
+  async getResponseById(id, user) {
+    const response = await SurveyResponse.findByPk(id, {
       include: [
         {
           model: Survey,
+          as: 'Survey',
           attributes: ['id', 'title', 'created_by']
         },
         {
           model: User,
-          attributes: ['id', 'username', 'full_name']
+          attributes: ['id', 'username', 'full_name', 'email']
         },
         {
           model: Answer,
           include: [
             {
               model: Question,
-              attributes: ['id', 'question_text', 'question_type_id']
+              attributes: ['id', 'question_text', 'label', 'question_type_id']
             },
             {
               model: QuestionOption,
@@ -127,14 +83,14 @@ class ResponseService {
       include: [
         {
           model: User,
-          attributes: ['id', 'username', 'full_name']
+          attributes: ['id', 'username', 'full_name', 'email']
         },
         {
           model: Answer,
           include: [
             {
               model: Question,
-              attributes: ['id', 'question_text', 'question_type_id']
+              attributes: ['id', 'question_text', 'label', 'question_type_id']
             },
             {
               model: QuestionOption,
@@ -143,7 +99,7 @@ class ResponseService {
           ]
         }
       ],
-      order: [['submitted_at', 'DESC']]
+      order: [['created_at', 'DESC']]
     });
 
     return {
@@ -171,6 +127,7 @@ class ResponseService {
       include: [
         {
           model: Survey,
+          as: 'Survey',
           attributes: ['id', 'title', 'description', 'status'],
           include: [
             {
@@ -181,7 +138,7 @@ class ResponseService {
           ]
         }
       ],
-      order: [['submitted_at', 'DESC']]
+      order: [['created_at', 'DESC']]
     });
 
     return {
@@ -216,15 +173,32 @@ class ResponseService {
   }
 
   /**
-   * Submit public response via collector token (no auth required)
+   * Submit public response via collector token
    */
-  async submitPublicResponse(collectorToken, responseData, userIdentifier = null) {
+  async submitPublicResponse(collectorToken, responseData, userIdentifier = null, user = null) {
     const { answers } = responseData;
 
-    // Get collector and validate
+    console.log('[ResponseService] Submitting answers payload:', JSON.stringify(answers, null, 2));
+
+    // Get collector and validate with Questions to map answer types
     const collector = await SurveyCollector.findOne({
       where: { token: collectorToken },
-      include: [Survey]
+      include: [{
+        model: Survey,
+        as: 'Survey',
+        include: [{
+          model: require('../../../models').SurveyTemplate,
+          as: 'template',
+          include: [{
+            model: Question,
+            as: 'Questions',
+            include: [{
+              model: require('../../../models').QuestionType,
+              as: 'QuestionType'
+            }]
+          }]
+        }]
+      }]
     });
 
     if (!collector) {
@@ -246,41 +220,119 @@ class ResponseService {
       throw new Error('This survey has ended');
     }
 
-    // Check for duplicate responses if not allowed
-    if (!collector.allow_multiple_responses && userIdentifier) {
-      const existingResponse = await SurveyResponse.findOne({
-        where: {
-          survey_id: survey.id,
-          respondent_identifier: userIdentifier
-        }
+    // Create a map of question ID to type for processing answers
+    const questionTypeMap = {};
+    if (survey.template && survey.template.Questions) {
+      survey.template.Questions.forEach(q => {
+        questionTypeMap[q.id] = q.QuestionType ? q.QuestionType.type_name : 'text';
       });
+    }
 
-      if (existingResponse) {
-        throw new Error('You have already responded to this survey');
+    // --- Access Control Checks ---
+    if (survey.access_type === 'public_with_login') {
+      if (!user) {
+        throw new Error('Access denied. You must be logged in to respond to this survey.');
+      }
+    } else if (survey.access_type === 'internal') {
+      if (!user) {
+        throw new Error('Access denied. You must be logged in to respond to this survey.');
+      }
+
+      // Check workspace membership
+      if (survey.workspace_id) {
+        const { WorkspaceMember } = require('../../../models');
+        const member = await WorkspaceMember.findOne({
+          where: {
+            workspace_id: survey.workspace_id,
+            user_id: user.id,
+            is_active: true
+          }
+        });
+
+        if (!member) {
+          throw new Error('Access denied. You must be a member of the workspace to respond.');
+        }
+      }
+    } else if (survey.access_type === 'private') {
+      // Private surveys require valid invite token
+      const inviteToken = responseData.invite_token;
+
+      if (!inviteToken) {
+        throw new Error('Access denied. This is a private survey that requires an invitation.');
+      }
+
+      // Validate invite token
+      const surveyInviteService = require('../../surveys/service/surveyInvite.service');
+      try {
+        const invite = await surveyInviteService.validateInvite(inviteToken);
+
+        // Verify invite is for this survey
+        if (invite.survey_id !== survey.id) {
+          throw new Error('Invalid invite token for this survey.');
+        }
+
+        // Store invite ID to mark as responded later
+        responseData._inviteId = invite.id;
+      } catch (error) {
+        throw new Error(`Access denied. ${error.message}`);
       }
     }
 
-    // Create anonymous survey response
+    // Create survey response
     const surveyResponse = await SurveyResponse.create({
       survey_id: survey.id,
-      respondent_id: null, // Anonymous
-      respondent_identifier: userIdentifier, // Can be IP, email, or other identifier
+      respondent_id: user ? user.id : null, // Link to user if authenticated
       collector_id: collector.id,
-      submitted_at: new Date(),
+      completion_time: new Date(),
       status: 'completed'
     });
 
     // Create answers
     if (answers && Array.isArray(answers)) {
-      const answerPromises = answers.map(answer => {
-        return Answer.create({
-          survey_response_id: surveyResponse.id,
-          question_id: answer.question_id,
-          option_id: answer.option_id || null,
-          answer_text: answer.answer_text || null,
-          numeric_answer: answer.numeric_answer || null
-        });
-      });
+      const answerPromises = [];
+
+      for (const answer of answers) {
+        // Handle both camelCase (frontend) and snake_case
+        const questionId = answer.questionId || answer.question_id;
+        const value = answer.value;
+        const type = questionTypeMap[questionId];
+
+        if (!questionId) continue;
+
+        // Handle array values (e.g. checkboxes)
+        if (Array.isArray(value)) {
+          value.forEach(val => {
+            answerPromises.push(Answer.create({
+              survey_response_id: surveyResponse.id,
+              question_id: questionId,
+              option_id: (type === 'checkbox' || type === 'multiple_choice') ? val : null,
+              text_answer: null,
+              numeric_answer: null
+            }));
+          });
+        } else {
+          // Single value
+          let optionId = null;
+          let textAnswer = null;
+          let numericAnswer = null;
+
+          if (type === 'multiple_choice' || type === 'dropdown' || type === 'checkbox') {
+            optionId = value;
+          } else if (type === 'likert_scale' || type === 'rating') {
+            numericAnswer = value;
+          } else {
+            textAnswer = value;
+          }
+
+          answerPromises.push(Answer.create({
+            survey_response_id: surveyResponse.id,
+            question_id: questionId,
+            option_id: optionId,
+            text_answer: textAnswer,
+            numeric_answer: numericAnswer
+          }));
+        }
+      }
 
       await Promise.all(answerPromises);
     }
@@ -288,10 +340,21 @@ class ResponseService {
     // Increment collector response count
     await collectorService.incrementResponseCount(collector.id);
 
+    // Mark invite as responded if this was a private survey with invite
+    if (responseData._inviteId) {
+      const surveyInviteService = require('../../surveys/service/surveyInvite.service');
+      try {
+        await surveyInviteService.markInviteResponded(responseData.invite_token);
+      } catch (error) {
+        // Log but don't fail the response submission
+        console.error('Failed to mark invite as responded:', error);
+      }
+    }
+
     return {
       response_id: surveyResponse.id,
       survey_id: survey.id,
-      submitted_at: surveyResponse.submitted_at,
+      submitted_at: surveyResponse.completion_time,
       message: 'Response submitted successfully'
     };
   }

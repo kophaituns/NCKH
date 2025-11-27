@@ -55,13 +55,16 @@ class TemplateService {
         },
         {
           model: Question,
+          as: 'Questions',
           include: [
             {
               model: QuestionType,
+              as: 'QuestionType',
               attributes: ['id', 'type_name']
             },
             {
               model: QuestionOption,
+              as: 'QuestionOptions',
               attributes: ['id', 'option_text', 'display_order']
             }
           ],
@@ -165,42 +168,123 @@ class TemplateService {
   }
 
   /**
+   * Bulk delete templates
+   */
+  async deleteTemplates(templateIds, user) {
+    if (!Array.isArray(templateIds) || templateIds.length === 0) {
+      throw new Error('No template IDs provided');
+    }
+
+    const where = {
+      id: { [Op.in]: templateIds }
+    };
+
+    // If not admin, restrict to own templates
+    if (user.role !== 'admin') {
+      where.created_by = user.id;
+    }
+
+    const count = await SurveyTemplate.count({ where });
+
+    if (count === 0) {
+      throw new Error('No templates found or access denied');
+    }
+
+    await SurveyTemplate.destroy({ where });
+
+    return { message: `${count} templates deleted successfully` };
+  }
+
+  /**
    * Add question to template
    */
   async addQuestion(templateId, questionData, user) {
-    const template = await SurveyTemplate.findByPk(templateId);
+    const sequelize = require('../../../models').sequelize;
+    
+    // Use a transaction to ensure atomicity
+    const transaction = await sequelize.transaction();
+    
+    try {
+      const template = await SurveyTemplate.findByPk(templateId, { transaction });
 
-    if (!template) {
-      throw new Error('Template not found');
-    }
+      if (!template) {
+        await transaction.rollback();
+        throw new Error('Template not found');
+      }
 
-    // Check ownership
-    if (user.role !== 'admin' && template.created_by !== user.id) {
-      throw new Error('Access denied. You do not own this template.');
-    }
+      // Check ownership
+      if (user.role !== 'admin' && template.created_by !== user.id) {
+        await transaction.rollback();
+        throw new Error('Access denied. You do not own this template.');
+      }
 
-    const question = await Question.create({
-      survey_template_id: templateId,
-      question_type_id: questionData.question_type_id,
-      question_text: questionData.question_text,
-      is_required: questionData.is_required || false,
-      display_order: questionData.display_order || 1
-    });
+      // Create the question
+      const question = await Question.create({
+        template_id: templateId,
+        label: questionData.label || questionData.question_text, // Use label if provided, otherwise use question_text
+        question_text: questionData.question_text,
+        question_type_id: questionData.question_type_id,
+        required: questionData.required || questionData.is_required || false,
+        display_order: questionData.display_order || 1
+      }, { transaction });
 
-    // Create options if provided
-    if (questionData.options && Array.isArray(questionData.options)) {
-      const optionPromises = questionData.options.map((opt, index) => {
-        return QuestionOption.create({
-          question_id: question.id,
-          option_text: opt.option_text,
-          display_order: opt.display_order !== undefined ? opt.display_order : index + 1
+      // Create options if provided - with strict validation
+      if (questionData.options && Array.isArray(questionData.options) && questionData.options.length > 0) {
+        // Filter and process options - support both string arrays and object arrays
+        const validOptions = questionData.options.filter(opt => {
+          // Handle string options (from frontend)
+          if (typeof opt === 'string') {
+            return opt.trim().length > 0;
+          }
+          
+          // Handle object options
+          if (opt && typeof opt === 'object') {
+            const optionText = opt.option_text || opt.text || opt.label || opt.value;
+            return optionText && 
+                   typeof optionText === 'string' && 
+                   optionText.trim().length > 0;
+          }
+          
+          return false;
         });
-      });
 
-      await Promise.all(optionPromises);
+        // Only create options if we have valid ones
+        if (validOptions.length > 0) {
+          for (let i = 0; i < validOptions.length; i++) {
+            const opt = validOptions[i];
+            
+            let optionText;
+            let displayOrder = i + 1;
+            
+            // Handle string options (from frontend filter)
+            if (typeof opt === 'string') {
+              optionText = opt.trim();
+            } else {
+              // Handle object options
+              optionText = (opt.option_text || opt.text || opt.label || opt.value).trim();
+              displayOrder = opt.display_order !== undefined ? opt.display_order : i + 1;
+            }
+            
+            // Create each option individually with proper error handling
+            await QuestionOption.create({
+              question_id: question.id,
+              option_text: optionText,
+              display_order: displayOrder
+            }, { transaction });
+          }
+        }
+      }
+
+      // Commit the transaction
+      await transaction.commit();
+      
+      return this.getTemplateById(templateId);
+      
+    } catch (error) {
+      // Rollback the transaction in case of error
+      await transaction.rollback();
+      throw error;
     }
-
-    return this.getTemplateById(templateId);
   }
 
   /**

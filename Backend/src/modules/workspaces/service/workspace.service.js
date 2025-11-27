@@ -8,53 +8,200 @@ const notificationService = require('../../../utils/notification.service');
 
 class WorkspaceService {
   /**
-   * Get workspaces where user is owner or member
+   * Get workspaces where user is owner or member (admin sees all)
    */
-  async getMyWorkspaces(userId) {
-    const workspaces = await Workspace.findAll({
-      include: [
-        {
-          model: User,
-          as: 'owner',
-          attributes: ['id', 'username', 'email']
-        },
-        {
-          model: WorkspaceMember,
-          as: 'members',
-          attributes: ['id', 'user_id', 'role'],
-          where: { user_id: userId },
-          required: false
-        },
-        {
-          model: Survey,
-          as: 'surveys',
-          attributes: ['id']
-        }
-      ],
-      where: {
+  async getMyWorkspaces(userId, user = null) {
+    const includeConfig = [
+      {
+        model: User,
+        as: 'owner',
+        attributes: ['id', 'username', 'email']
+      },
+      {
+        model: WorkspaceMember,
+        as: 'members',
+        attributes: ['id', 'user_id', 'role'],
+        required: false
+      },
+      {
+        model: Survey,
+        as: 'surveys',
+        attributes: ['id']
+      }
+    ];
+
+    let whereCondition = {};
+    
+    // Admin can see all workspaces
+    if (user && user.role === 'admin') {
+      // No where condition - admin sees all workspaces
+      includeConfig[1].required = false;
+    } else {
+      // Regular users see only their workspaces
+      // Use subquery approach to avoid column reference issues
+      const memberWorkspaceIds = await WorkspaceMember.findAll({
+        where: { user_id: userId },
+        attributes: ['workspace_id']
+      }).then(results => results.map(r => r.workspace_id));
+      
+      whereCondition = {
         [Op.or]: [
           { owner_id: userId },
-          { '$members.user_id$': userId }
+          { id: { [Op.in]: memberWorkspaceIds } }
         ]
-      }
+      };
+      
+      includeConfig[1].required = false;
+    }
+
+    const workspaces = await Workspace.findAll({
+      include: includeConfig,
+      where: whereCondition
     });
 
     // Map workspaces to include role and surveyCount
     return workspaces.map(ws => {
       const wsData = ws.toJSON();
-      const userMembership = wsData.members && wsData.members.length > 0 ? wsData.members[0] : null;
+      let userRole = 'member';
+      
+      // Determine user role
+      if (user && user.role === 'admin') {
+        userRole = 'admin';
+      } else if (wsData.owner_id === userId) {
+        userRole = 'owner';
+      } else {
+        const userMembership = wsData.members && wsData.members.find(m => m.user_id === userId);
+        userRole = userMembership?.role || 'member';
+      }
+      
       return {
         id: wsData.id,
         name: wsData.name,
         description: wsData.description,
         owner_id: wsData.owner_id,
         owner: wsData.owner,
-        role: wsData.owner_id === userId ? 'owner' : (userMembership?.role || 'member'),
+        role: userRole,
         surveyCount: (wsData.surveys || []).length,
         createdAt: wsData.created_at,
-        members: wsData.members
+        members: wsData.members || []
       };
     });
+  }
+
+  /**
+   * Get workspaces with pagination
+   */
+  async getMyWorkspacesPaginated(userId, user = null, options = {}) {
+    const { page = 1, limit = 10, search = '' } = options;
+    const offset = (page - 1) * limit;
+
+    const includeConfig = [
+      {
+        model: User,
+        as: 'owner',
+        attributes: ['id', 'username', 'email']
+      },
+      {
+        model: WorkspaceMember,
+        as: 'members',
+        attributes: ['id', 'user_id', 'role'],
+        required: false
+      },
+      {
+        model: Survey,
+        as: 'surveys',
+        attributes: ['id']
+      }
+    ];
+
+    let whereCondition = {};
+    
+    // Admin can see all workspaces
+    if (user && user.role === 'admin') {
+      // No where condition - admin sees all workspaces
+      // But still need to include all members
+      includeConfig[1].required = false;
+    } else {
+      // Regular users see only their workspaces
+      // Use subquery approach to avoid column reference issues
+      const memberWorkspaceIds = await WorkspaceMember.findAll({
+        where: { user_id: userId },
+        attributes: ['workspace_id']
+      }).then(results => results.map(r => r.workspace_id));
+      
+      whereCondition = {
+        [Op.or]: [
+          { owner_id: userId },
+          { id: { [Op.in]: memberWorkspaceIds } }
+        ]
+      };
+      
+      // Remove user filter from include since we're filtering at workspace level
+      includeConfig[1].required = false;
+    }
+
+    // Add search condition
+    if (search) {
+      whereCondition = {
+        ...whereCondition,
+        [Op.and]: [
+          whereCondition,
+          {
+            [Op.or]: [
+              { name: { [Op.like]: `%${search}%` } },
+              { description: { [Op.like]: `%${search}%` } }
+            ]
+          }
+        ]
+      };
+    }
+
+    const { count, rows } = await Workspace.findAndCountAll({
+      include: includeConfig,
+      where: whereCondition,
+      limit: parseInt(limit),
+      offset: parseInt(offset),
+      order: [['created_at', 'DESC']],
+      distinct: true
+    });
+
+    // Map workspaces to include role and surveyCount
+    const workspaces = rows.map(ws => {
+      const wsData = ws.toJSON();
+      let userRole = 'member';
+      
+      // Determine user role
+      if (user && user.role === 'admin') {
+        userRole = 'admin';
+      } else if (wsData.owner_id === userId) {
+        userRole = 'owner';
+      } else {
+        const userMembership = wsData.members && wsData.members.find(m => m.user_id === userId);
+        userRole = userMembership?.role || 'member';
+      }
+      
+      return {
+        id: wsData.id,
+        name: wsData.name,
+        description: wsData.description,
+        owner_id: wsData.owner_id,
+        owner: wsData.owner,
+        role: userRole,
+        surveyCount: (wsData.surveys || []).length,
+        createdAt: wsData.created_at,
+        members: wsData.members || []
+      };
+    });
+
+    return {
+      workspaces,
+      pagination: {
+        page: parseInt(page),
+        limit: parseInt(limit),
+        total: count,
+        totalPages: Math.ceil(count / limit)
+      }
+    };
   }
 
   /**

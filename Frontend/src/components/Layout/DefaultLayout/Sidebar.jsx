@@ -18,8 +18,10 @@ const Sidebar = ({ isOpen, onClose }) => {
       return [
         { path: '/dashboard', label: 'Dashboard', icon: 'dashboard' },
         { path: '/users', label: 'Users', icon: 'users' },
+        { path: '/workspaces', label: 'Workspaces', icon: 'workspaces' },
         { path: '/templates', label: 'Templates', icon: 'templates' },
         { path: '/surveys', label: 'Surveys', icon: 'surveys' },
+        { path: '/collectors', label: 'Collectors', icon: 'collectors' },
         { path: '/analytics', label: 'Analytics', icon: 'analytics' },
         { path: '/llm', label: 'AI Generation', icon: 'llm' },
         { path: '/chat', label: 'Chat', icon: 'chat' },

@@ -14,7 +14,7 @@ class SurveyAccessService {
       // Get collector
       const collector = await SurveyCollector.findOne({
         where: { token: collectorToken },
-        include: [{ model: Survey, as: 'survey' }]
+        include: [{ model: Survey, as: 'Survey' }]
       });
 
       if (!collector) {

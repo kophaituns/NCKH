@@ -5,14 +5,8 @@ const router = Router();
 
 // Import modular routes
 const moduleRoutes = require('./modules.routes');
-const questionRoutes = require('./question.routes');
-const testRoutes = require('./test.routes');
 
 // Mount modular architecture routes
 router.use('/modules', moduleRoutes);
-
-// Mount remaining legacy routes
-router.use('/questions', questionRoutes);
-router.use('/test', testRoutes);
 
 module.exports = router;

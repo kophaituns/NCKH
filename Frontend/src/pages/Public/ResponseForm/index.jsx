@@ -1,12 +1,15 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useSearchParams } from 'react-router-dom';
 import ResponseService from '../../../api/services/response.service';
+import InviteService from '../../../api/services/invite.service';
 import Loader from '../../../components/common/Loader/Loader';
 import styles from './ResponseForm.module.scss';
 
 const PublicResponseForm = () => {
   const { token } = useParams();
-  
+  const [searchParams] = useSearchParams();
+  const inviteToken = searchParams.get('invite_token');
+
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [survey, setSurvey] = useState(null);
@@ -20,18 +23,54 @@ const PublicResponseForm = () => {
     try {
       setLoading(true);
       const response = await ResponseService.getSurveyByToken(token);
-      
+
       if (!response.ok) {
         setError(response.message || 'Invalid or inactive survey link');
         return;
       }
 
-      setSurvey(response.data.survey);
+      const surveyData = response.data.survey;
+
+      // Check if this is a private survey
+      if (surveyData.access_type === 'private') {
+        // Private surveys REQUIRE invite token
+        if (!inviteToken) {
+          setError('This is a private survey. You need an invitation to access it. Please use the invitation link sent to your email.');
+          setLoading(false);
+          return;
+        }
+
+        // Validate the invite token
+        try {
+          const inviteValidation = await InviteService.validateToken(inviteToken);
+          if (!inviteValidation || !inviteValidation.valid) {
+            setError('Invalid or expired invitation. Please request a new invitation from the survey creator.');
+            setLoading(false);
+            return;
+          }
+
+          // Verify invite is for this survey
+          if (inviteValidation.survey && inviteValidation.survey.id !== surveyData.id) {
+            setError('This invitation is not valid for this survey.');
+            setLoading(false);
+            return;
+          }
+        } catch (err) {
+          console.error('Token validation error:', err);
+          setError(err.response?.data?.message || 'Invalid or expired invitation.');
+          setLoading(false);
+          return;
+        }
+
+
+      }
+
+      setSurvey(surveyData);
       setCollectorId(response.data.collector_id);
 
       // Initialize answers based on question type
       const initialAnswers = {};
-      response.data.survey.questions.forEach(q => {
+      surveyData.questions.forEach(q => {
         // Checkbox needs array, others need empty string or null
         if (q.type === 'checkbox') {
           initialAnswers[q.id] = [];
@@ -46,7 +85,7 @@ const PublicResponseForm = () => {
     } finally {
       setLoading(false);
     }
-  }, [token]);
+  }, [token, inviteToken]);
 
   useEffect(() => {
     fetchSurvey();
@@ -54,7 +93,7 @@ const PublicResponseForm = () => {
 
   const validateAnswers = () => {
     const newErrors = {};
-    
+
     survey.questions.forEach(question => {
       if (question.required) {
         const answer = answers[question.id];
@@ -103,9 +142,16 @@ const PublicResponseForm = () => {
         value: Array.isArray(value) ? value : String(value)
       }));
 
-      const response = await ResponseService.submitPublicResponse(token, {
+      const submissionData = {
         answers: formattedAnswers
-      });
+      };
+
+      // Include invite token if this is a private survey
+      if (survey.access_type === 'private' && inviteToken) {
+        submissionData.invite_token = inviteToken;
+      }
+
+      const response = await ResponseService.submitPublicResponse(token, submissionData);
 
       if (response.ok) {
         setSubmitted(true);

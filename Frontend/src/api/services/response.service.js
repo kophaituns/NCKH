@@ -23,7 +23,7 @@ const ResponseService = {
    * Get survey by public token (anonymous - no auth)
    */
   async getSurveyByToken(token) {
-    const response = await http.get(`/responses/public/${token}`);
+    const response = await http.get(`/collectors/token/${token}`);
     return response.data;
   },
 

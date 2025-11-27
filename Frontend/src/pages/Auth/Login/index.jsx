@@ -10,7 +10,7 @@ function Login() {
   const location = useLocation();
   const { login, state } = useAuth();
   const { showSuccess, showError } = useToast();
-  
+
   const [formData, setFormData] = useState({
     identifier: '', // Can be email or username
     password: ''
@@ -26,14 +26,14 @@ function Login() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!formData.identifier || !formData.password) {
       showError('Please fill in all fields');
       return;
     }
 
     setIsLoading(true);
-    
+
     try {
       // Login via AuthContext (which uses auth.service.js)
       await login({
@@ -42,13 +42,16 @@ function Login() {
       });
 
       showSuccess('Login successful!');
-      
-      // Get redirect path from location state or default to role-based route
+
+      // Get redirect path from location state or query param or default to role-based route
       const from = location.state?.from?.pathname;
+      const redirectParam = new URLSearchParams(location.search).get('redirect');
       const userRole = state.user?.role;
-      
+
       let redirectPath = '/dashboard';
-      if (from && from !== '/login') {
+      if (redirectParam) {
+        redirectPath = decodeURIComponent(redirectParam);
+      } else if (from && from !== '/login') {
         redirectPath = from;
       } else if (userRole === 'user') {
         redirectPath = '/surveys';
@@ -82,8 +85,8 @@ function Login() {
           <div className={styles.header}>
             <div className={styles.logo}>
               <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
-                <rect width="48" height="48" rx="12" fill="#10b981"/>
-                <path d="M12 18h24M12 24h24M12 30h16" stroke="white" strokeWidth="3" strokeLinecap="round"/>
+                <rect width="48" height="48" rx="12" fill="#10b981" />
+                <path d="M12 18h24M12 24h24M12 30h16" stroke="white" strokeWidth="3" strokeLinecap="round" />
               </svg>
             </div>
             <h1 className={styles.title}>Welcome Back</h1>

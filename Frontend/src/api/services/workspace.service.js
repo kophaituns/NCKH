@@ -504,6 +504,82 @@ const WorkspaceService = {
   // Alias for getWorkspaceById for backward compatibility
   getWorkspace(id) {
     return this.getWorkspaceById(id);
+  },
+
+  /**
+   * Get workspaces with pagination
+   * @param {Object} params - Query parameters { page, limit, search }
+   * @returns {Promise<{ok: boolean, items: Array, total: number, pagination: Object}>}
+   */
+  async getMyWorkspacesPaginated(params = {}) {
+    try {
+      const queryParams = new URLSearchParams();
+      if (params.page) queryParams.append('page', params.page);
+      if (params.limit) queryParams.append('limit', params.limit);
+      if (params.search) queryParams.append('search', params.search);
+
+      const response = await http.get(`/workspaces/my?${queryParams.toString()}`);
+      console.log('[WorkspaceService.getMyWorkspacesPaginated] Response:', response.data);
+
+      const responseData = response.data || {};
+      const { ok, success, data } = responseData;
+      
+      const workspaces = data?.workspaces || data?.items || responseData.workspaces || responseData.items || [];
+      const pagination = data?.pagination || responseData.pagination || {};
+      const total = pagination.total || data?.total || responseData.total || workspaces.length;
+
+      return {
+        ok: ok !== false && success !== false,
+        items: Array.isArray(workspaces) ? workspaces : [],
+        total: total,
+        pagination: pagination
+      };
+    } catch (error) {
+      console.error('[WorkspaceService.getMyWorkspacesPaginated] ERROR:', error);
+      
+      return {
+        ok: false,
+        items: [],
+        total: 0,
+        pagination: {},
+        error: error.response?.data?.message || error.message || 'Failed to fetch workspaces'
+      };
+    }
+  },
+
+  /**
+   * Delete multiple workspaces
+   * @param {Array} workspaceIds - Array of workspace IDs to delete
+   * @returns {Promise<{ok: boolean, deletedCount?: number, error?: string}>}
+   */
+  async deleteMultipleWorkspaces(workspaceIds) {
+    try {
+      if (!Array.isArray(workspaceIds) || workspaceIds.length === 0) {
+        throw new Error('Workspace IDs array is required');
+      }
+
+      const response = await http.delete('/workspaces/bulk', {
+        data: { workspaceIds }
+      });
+      console.log('[WorkspaceService.deleteMultipleWorkspaces] Response:', response.data);
+
+      const responseData = response.data || {};
+      const { ok, success, deletedCount } = responseData;
+
+      return {
+        ok: ok !== false && success !== false,
+        deletedCount: deletedCount || 0,
+        message: `Successfully deleted ${deletedCount || 0} workspace(s)`
+      };
+    } catch (error) {
+      console.error('[WorkspaceService.deleteMultipleWorkspaces] ERROR:', error);
+
+      return {
+        ok: false,
+        deletedCount: 0,
+        error: error.response?.data?.message || error.message || 'Failed to delete workspaces'
+      };
+    }
   }
 };
 

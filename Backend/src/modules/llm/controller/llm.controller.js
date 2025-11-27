@@ -28,7 +28,7 @@ class LLMController {
   async generateQuestions(req, res) {
     try {
       const { topic, count = 5, category = 'general' } = req.body;
-      
+
       if (!topic) {
         return res.status(400).json({
           success: false,
@@ -160,17 +160,17 @@ class LLMController {
    */
   async generateQuestions(req, res) {
     const user = req.user;
-    
+
     try {
       console.log('🔍 Generate Questions Request Body:', JSON.stringify(req.body, null, 2));
       console.log('🔍 Request Headers:', req.headers['content-type']);
-      
+
       // Validate request body
       const { topic, keyword, count = 5, category = 'general' } = req.body;
-      
+
       // Accept both 'topic' and 'keyword' (frontend uses 'keyword')
       const questionTopic = topic || keyword;
-      
+
       if (!questionTopic || typeof questionTopic !== 'string' || !questionTopic.trim()) {
         console.log('❌ Topic/keyword validation failed:', { topic, keyword, count, category });
         return res.status(400).json({
@@ -191,11 +191,11 @@ class LLMController {
       }
 
       logger.info(`🤖 User ${user.username} generating ${questionCount} questions for topic: ${questionTopic}`);
-      
+
       // Call LLM service to generate questions using trained model
       const result = await llmService.generateQuestionsFromTrainedModel(
-        questionTopic.trim(), 
-        questionCount, 
+        questionTopic.trim(),
+        questionCount,
         category,
         user?.id
       );
@@ -208,7 +208,7 @@ class LLMController {
           username: user.username
         }
       });
-      
+
     } catch (error) {
       logger.error(`❌ Error in generateQuestions: ${error.message}`);
       res.status(500).json({
@@ -282,15 +282,15 @@ class LLMController {
    */
   async createSurveyFromQuestions(req, res) {
     try {
-      const { 
-        title, 
-        description, 
-        selectedQuestions, 
-        customQuestions, 
+      const {
+        title,
+        description,
+        selectedQuestions,
+        customQuestions,
         shareSettings,
         targetAudience,
         startDate,
-        endDate 
+        endDate
       } = req.body;
 
       if (!title || !selectedQuestions || selectedQuestions.length === 0) {
@@ -327,79 +327,26 @@ class LLMController {
       });
     }
   }
-
   /**
-   * Export survey as PDF
+   * Export survey as PDF (HTML preview)
    */
   async exportSurveyPDF(req, res) {
     try {
       const { surveyId } = req.params;
-      
-      const result = await llmService.exportSurveyToPDF(surveyId, req.user.id);
-      
-      // Return HTML content that can be printed as PDF by browser
-      const htmlContent = `
-        <!DOCTYPE html>
-        <html>
-        <head>
-          <meta charset="UTF-8">
-          <meta name="viewport" content="width=device-width, initial-scale=1.0">
-          <title>${result.survey.title} - PDF Export</title>
-          <style>
-            body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 20px; background: #f5f5f5; }
-            .container { max-width: 800px; margin: 0 auto; background: white; padding: 40px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
-            .header { text-align: center; margin-bottom: 40px; border-bottom: 3px solid #007bff; padding-bottom: 20px; }
-            .title { font-size: 28px; font-weight: bold; color: #333; margin-bottom: 10px; }
-            .description { font-size: 16px; color: #666; margin-bottom: 15px; line-height: 1.5; }
-            .meta { font-size: 14px; color: #999; }
-            .question { margin: 30px 0; padding: 20px; border-left: 4px solid #007bff; background: #f8f9fa; page-break-inside: avoid; }
-            .question-number { font-weight: bold; color: #007bff; font-size: 18px; margin-bottom: 10px; }
-            .question-type { font-size: 12px; color: #6c757d; text-transform: uppercase; font-weight: 500; margin-bottom: 10px; }
-            .options { margin: 20px 0; }
-            .option { margin: 10px 0; padding: 8px 12px; background: white; border: 1px solid #dee2e6; border-radius: 4px; }
-            .checkbox { display: inline-block; width: 16px; height: 16px; border: 2px solid #007bff; margin-right: 10px; vertical-align: middle; }
-            .text-answer { margin: 15px 0; border: 1px solid #dee2e6; height: 40px; background: white; border-radius: 4px; }
-            .rating { margin: 15px 0; display: flex; gap: 10px; align-items: center; }
-            .rating-box { width: 30px; height: 30px; border: 2px solid #007bff; display: inline-flex; align-items: center; justify-content: center; font-weight: bold; border-radius: 4px; }
-            .no-questions { padding: 40px 20px; text-align: center; background: #fff3cd; border: 1px solid #ffeaa7; border-radius: 8px; margin: 20px 0; }
-            .footer { margin-top: 40px; padding-top: 20px; border-top: 2px solid #dee2e6; text-align: center; color: #6c757d; font-size: 12px; }
-            @media print { 
-              body { background: white; } 
-              .container { box-shadow: none; } 
-              .question { page-break-inside: avoid; }
-            }
-          </style>
-        </head>
-        <body>
-          <div class="container">
-            ${result.htmlContent}
-          </div>
-          <div class="footer">
-            <p>Khảo sát được tạo bằng Survey System - ${new Date().toLocaleDateString('vi-VN')}</p>
-            <p>Tổng số câu hỏi: ${result.survey.questionCount}</p>
-          </div>
-          <script>
-            // Auto print when page loads
-            window.onload = function() {
-              setTimeout(() => {
-                window.print();
-              }, 1000);
-            }
-          </script>
-        </body>
-        </html>
-      `;
-
+      const userId = req.user.userId;
+      const pdfHtml = await llmService.generateSurveyPDF(surveyId, userId); // ← ĐÚNG!
+      // Return HTML for PDF conversion
       res.setHeader('Content-Type', 'text/html');
-      res.send(htmlContent);
+      res.send(pdfHtml);
     } catch (error) {
       logger.error('Export survey PDF error:', error);
       res.status(500).json({
         success: false,
-        message: error.message || 'Error exporting PDF'
+        message: error.message || 'Error exporting survey PDF'
       });
     }
   }
+
 
   /**
    * Generate public link for survey
@@ -408,9 +355,9 @@ class LLMController {
     try {
       const { surveyId } = req.params;
       const { expiryDays } = req.body;
-      
+
       const linkData = await llmService.generatePublicLink(surveyId, req.user.id, expiryDays);
-      
+
       res.status(200).json({
         success: true,
         data: linkData

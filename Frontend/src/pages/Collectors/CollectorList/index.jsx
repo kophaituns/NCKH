@@ -14,7 +14,7 @@ const CollectorList = () => {
   const [searchParams] = useSearchParams();
   const preselectedSurvey = searchParams.get('survey');
   const { showToast } = useToast();
-  
+
   const [collectors, setCollectors] = useState([]);
   const [surveys, setSurveys] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -56,9 +56,10 @@ const CollectorList = () => {
       // Fetch surveys first
       try {
         const surveyData = await SurveyService.getAll();
-        const activeSurveys = surveyData.filter(s => s.status === 'active');
+        const surveys = surveyData.surveys || [];
+        const activeSurveys = surveys.filter(s => s.status === 'active');
         setSurveys(activeSurveys);
-        
+
         // Then fetch collectors for all surveys
         await fetchCollectors(activeSurveys);
       } catch (error) {
@@ -68,12 +69,13 @@ const CollectorList = () => {
     };
 
     init();
-    
+
     // Auto-refresh every 30 seconds - fetch latest surveys each time
     const interval = setInterval(async () => {
       try {
         const surveyData = await SurveyService.getAll();
-        const activeSurveys = surveyData.filter(s => s.status === 'active');
+        const surveys = surveyData.surveys || [];
+        const activeSurveys = surveys.filter(s => s.status === 'active');
         setSurveys(activeSurveys);
         await fetchCollectors(activeSurveys);
       } catch (error) {
@@ -85,7 +87,7 @@ const CollectorList = () => {
 
   const handleGenerate = async (e) => {
     e.preventDefault();
-    
+
     if (!formData.survey_id) {
       showToast('Please select a survey', 'error');
       return;
@@ -135,9 +137,10 @@ const CollectorList = () => {
     showToast('Link copied to clipboard', 'success');
   };
 
-  const isExpired = (expiresAt) => {
-    if (!expiresAt) return false;
-    return new Date(expiresAt) < new Date();
+  const isExpired = (collector) => {
+    // Check if survey has ended
+    if (!collector.survey?.end_date) return false;
+    return new Date(collector.survey.end_date) < new Date();
   };
 
   const totalPages = Math.ceil(collectors.length / itemsPerPage);
@@ -153,7 +156,7 @@ const CollectorList = () => {
           <h1 className={styles.title}>Survey Collectors</h1>
           <p className={styles.subtitle}>Generate and manage public survey links</p>
         </div>
-        <button 
+        <button
           className={styles.generateButton}
           onClick={() => setShowGenerateModal(true)}
         >
@@ -170,7 +173,7 @@ const CollectorList = () => {
           <div className={styles.emptyIcon}>🔗</div>
           <h3>No collectors found</h3>
           <p>Generate a collector to create a public survey link</p>
-          <button 
+          <button
             className={styles.emptyButton}
             onClick={() => setShowGenerateModal(true)}
           >
@@ -188,6 +191,7 @@ const CollectorList = () => {
                   <th>Status</th>
                   <th>Created</th>
                   <th>Expires</th>
+                  <th>Responses</th>
                   <th>Actions</th>
                 </tr>
               </thead>
@@ -195,18 +199,25 @@ const CollectorList = () => {
                 {currentCollectors.map((collector) => (
                   <tr key={collector.id}>
                     <td>
-                      <span className={styles.surveyName}>{collector.survey_title || `Survey #${collector.survey_id}`}</span>
+                      <span className={styles.surveyName}>
+                        {collector.survey?.title || `Survey #${collector.survey_id}`}
+                      </span>
                     </td>
                     <td>
-                      <code className={styles.token}>{collector.token}</code>
+                      <code className={styles.token} title={collector.token}>
+                        {collector.token.substring(0, 12)}...
+                      </code>
                     </td>
                     <td>
-                      <span className={`${styles.statusBadge} ${isExpired(collector.expires_at) ? styles.expired : styles.active}`}>
-                        {isExpired(collector.expires_at) ? 'Expired' : 'Active'}
+                      <span className={`${styles.statusBadge} ${isExpired(collector) ? styles.expired : styles.active}`}>
+                        {isExpired(collector) ? 'Expired' : 'Active'}
                       </span>
                     </td>
                     <td>{new Date(collector.created_at).toLocaleDateString()}</td>
-                    <td>{collector.expires_at ? new Date(collector.expires_at).toLocaleDateString() : 'Never'}</td>
+                    <td>{collector.survey?.end_date ? new Date(collector.survey.end_date).toLocaleDateString() : 'Never'}</td>
+                    <td>
+                      <span className={styles.responseCount}>{collector.response_count || 0}</span>
+                    </td>
                     <td>
                       <div className={styles.actions}>
                         <button
@@ -317,7 +328,7 @@ const CollectorList = () => {
         {selectedCollector && (
           <div className={styles.qrContainer}>
             <div className={styles.qrCode}>
-              <QRCodeSVG 
+              <QRCodeSVG
                 value={getPublicLink(selectedCollector.token)}
                 size={256}
                 level="H"
@@ -325,8 +336,8 @@ const CollectorList = () => {
               />
             </div>
             <div className={styles.linkBox}>
-              <input 
-                type="text" 
+              <input
+                type="text"
                 value={getPublicLink(selectedCollector.token)}
                 readOnly
                 className={styles.linkInput}

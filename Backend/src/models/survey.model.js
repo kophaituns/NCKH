@@ -44,6 +44,34 @@ module.exports = (sequelize, DataTypes) => {
         type: DataTypes.ENUM('draft', 'active', 'closed', 'analyzed'),
         defaultValue: 'draft',
       },
+      // Simple Survey Access Control - 4 main types
+      access_type: {
+        type: DataTypes.ENUM('public', 'public_with_login', 'private', 'internal'),
+        allowNull: false,
+        defaultValue: 'public',
+        comment: 'Access control: public (anonymous), public_with_login, private (invite only), internal (workspace members)'
+      },
+      require_login: {
+        type: DataTypes.BOOLEAN,
+        allowNull: false,
+        defaultValue: false,
+        comment: 'Whether login is required to respond'
+      },
+      allow_anonymous: {
+        type: DataTypes.BOOLEAN,
+        allowNull: false,
+        defaultValue: true,
+        comment: 'Whether anonymous responses are allowed'
+      },
+      workspace_id: {
+        type: DataTypes.INTEGER,
+        allowNull: true,
+        references: {
+          model: 'workspaces',
+          key: 'id'
+        },
+        comment: 'Workspace ID for internal access'
+      },
       created_at: {
         type: DataTypes.DATE,
         defaultValue: DataTypes.NOW,

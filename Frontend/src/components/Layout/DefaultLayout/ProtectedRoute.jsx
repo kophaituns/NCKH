@@ -65,6 +65,10 @@ export const PublicRoute = ({ children }) => {
 
   // If authenticated, redirect to role-based dashboard
   if (state.isAuthenticated && state.user) {
+    const redirectParam = new URLSearchParams(window.location.search).get('redirect');
+    if (redirectParam) {
+      return <Navigate to={decodeURIComponent(redirectParam)} replace />;
+    }
     const redirectPath = getRoleBasedRedirect(state.user.role);
     return <Navigate to={redirectPath} replace />;
   }

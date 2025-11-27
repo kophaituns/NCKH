@@ -154,3 +154,66 @@
     box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
   }
 }
+
+.accessPreview {
+  background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+  border: 2px solid #0ea5e9;
+  border-radius: 12px;
+  padding: 20px;
+  margin-top: 20px;
+
+  h4 {
+    margin: 0 0 10px 0;
+    color: #0c4a6e;
+    font-size: 16px;
+    font-weight: 600;
+  }
+
+  p {
+    margin: 0 0 15px 0;
+    color: #0f172a;
+    font-size: 14px;
+    line-height: 1.5;
+  }
+}
+
+.previewFeatures {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 10px;
+}
+
+.feature {
+  display: flex;
+  align-items: center;
+  padding: 8px 12px;
+  background: white;
+  border: 1px solid #bae6fd;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #0c4a6e;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+// Access Control Section
+.accessControlSection {
+  margin: 2rem 0;
+  padding: 1.5rem;
+  background: #f8f9fa;
+  border-radius: 12px;
+  border: 1px solid #e9ecef;
+
+  h3 {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #2c3e50;
+    margin: 0 0 0.5rem 0;
+  }
+
+  p {
+    color: #6c757d;
+    margin: 0 0 1rem 0;
+    font-size: 0.875rem;
+  }
+}

@@ -40,6 +40,13 @@ router.post('/', authenticate, isTeacherOrAdmin, templateController.createTempla
 router.put('/:id', authenticate, isTeacherOrAdmin, templateController.updateTemplate);
 
 /**
+ * @route   DELETE /api/templates/bulk
+ * @desc    Bulk delete templates
+ * @access  Private (Owner/Admin only)
+ */
+router.delete('/bulk', authenticate, isTeacherOrAdmin, templateController.deleteTemplates);
+
+/**
  * @route   DELETE /api/templates/:id
  * @desc    Delete template
  * @access  Private (Owner/Admin only)

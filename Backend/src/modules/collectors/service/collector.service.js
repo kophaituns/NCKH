@@ -1,7 +1,5 @@
-// modules/collectors/service/collector.service.js
-// Survey collectors - distribution methods: email, link, QR code
 // src/modules/collectors/service/collector.service.js
-const { Survey, SurveyCollector, SurveyResponse } = require('../../../models');
+const { Survey, SurveyCollector, SurveyResponse, WorkspaceMember } = require('../../../models');
 const { Op } = require('sequelize');
 const crypto = require('crypto');
 
@@ -14,17 +12,38 @@ class CollectorService {
   }
 
   /**
+   * Check if user has access to survey (Owner, Admin, or Workspace Member)
+   */
+  async checkAccess(survey, user) {
+    if (user.role === 'admin') return true;
+    if (survey.created_by === user.id) return true;
+
+    if (survey.workspace_id) {
+      const member = await WorkspaceMember.findOne({
+        where: {
+          workspace_id: survey.workspace_id,
+          user_id: user.id
+        }
+      });
+      if (member) return true;
+    }
+
+    return false;
+  }
+
+  /**
    * Get collectors for a survey
    */
   async getCollectorsBySurvey(surveyId, user) {
     const survey = await Survey.findByPk(surveyId);
-    
+
     if (!survey) {
       throw new Error('Survey not found');
     }
 
-    // Check ownership
-    if (survey.created_by !== user.id && user.role !== 'admin') {
+    // Check access
+    const hasAccess = await this.checkAccess(survey, user);
+    if (!hasAccess) {
       throw new Error('Access denied');
     }
 
@@ -54,12 +73,14 @@ class CollectorService {
    */
   async createCollector(surveyId, collectorData, user) {
     const survey = await Survey.findByPk(surveyId);
-    
+
     if (!survey) {
       throw new Error('Survey not found');
     }
 
-    if (survey.created_by !== user.id && user.role !== 'admin') {
+    // Check access
+    const hasAccess = await this.checkAccess(survey, user);
+    if (!hasAccess) {
       throw new Error('Access denied');
     }
 
@@ -105,19 +126,23 @@ class CollectorService {
       include: [
         {
           model: Survey,
+          as: 'Survey',
           include: [
             {
-              model: require('../../../src/models').SurveyTemplate,
+              model: require('../../../models').SurveyTemplate,
               as: 'template',
               include: [
                 {
                   model: require('../../../models').Question,
+                  as: 'Questions',
                   include: [
                     {
-                      model: require('../../../models').QuestionOption
+                      model: require('../../../models').QuestionOption,
+                      as: 'QuestionOptions'
                     },
                     {
-                      model: require('../../../models').QuestionType
+                      model: require('../../../models').QuestionType,
+                      as: 'QuestionType'
                     }
                   ]
                 }
@@ -153,15 +178,18 @@ class CollectorService {
         id: survey.id,
         title: survey.title,
         description: survey.description,
+        access_type: survey.access_type,
+        require_login: survey.access_type === 'public_with_login' || survey.access_type === 'internal',
+        workspace_id: survey.access_type === 'internal' ? survey.workspace_id : null,
         questions: survey.template.Questions.map(q => ({
           id: q.id,
-          question_text: q.question_text,
-          question_type: q.QuestionType.type_name,
-          is_required: q.required,
+          label: q.question_text,
+          type: q.QuestionType.type_name,
+          required: q.required,
           display_order: q.display_order,
           options: q.QuestionOptions.map(opt => ({
             id: opt.id,
-            option_text: opt.option_text,
+            text: opt.option_text,
             display_order: opt.display_order
           }))
         }))
@@ -182,7 +210,10 @@ class CollectorService {
     }
 
     const survey = collector.Survey;
-    if (survey.created_by !== user.id && user.role !== 'admin') {
+
+    // Check access
+    const hasAccess = await this.checkAccess(survey, user);
+    if (!hasAccess) {
       throw new Error('Access denied');
     }
 
@@ -220,7 +251,10 @@ class CollectorService {
     }
 
     const survey = collector.Survey;
-    if (survey.created_by !== user.id && user.role !== 'admin') {
+
+    // Check access
+    const hasAccess = await this.checkAccess(survey, user);
+    if (!hasAccess) {
       throw new Error('Access denied');
     }
 

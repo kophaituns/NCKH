@@ -11,23 +11,26 @@ const QuestionOption = require('./questionOption.model')(sequelize, DataTypes);
 const Survey = require('./survey.model')(sequelize, DataTypes);
 const SurveyCollector = require('./surveyCollector.model')(sequelize, DataTypes);
 const SurveyResponse = require('./surveyResponse.model')(sequelize, DataTypes);
+const SurveyInvite = require('./surveyInvite.model')(sequelize, DataTypes);
 const Answer = require('./answer.model')(sequelize, DataTypes);
 const AnalysisResult = require('./analysisResult.model')(sequelize, DataTypes);
 const Visualization = require('./visualization.model')(sequelize, DataTypes);
 const Notification = require('./notification.model')(sequelize, DataTypes);
 const Workspace = require('./workspace.model')(sequelize, DataTypes);
 const WorkspaceMember = require('./workspaceMember.model')(sequelize, DataTypes);
+const WorkspaceUser = require('./workspaceUser.model')(sequelize, DataTypes);
 const WorkspaceInvitation = require('./workspaceInvitation.model')(sequelize, DataTypes);
 const WorkspaceActivity = require('./workspaceActivity.model')(sequelize, DataTypes);
 const ChatConversation = require('./chatConversation.model')(sequelize, DataTypes);
 const ChatMessage = require('./chatMessage.model')(sequelize, DataTypes);
+const SurveyAccess = require('./surveyAccess.model')(sequelize, DataTypes);
 
 // Define associations
 User.hasMany(SurveyTemplate, { foreignKey: 'created_by' });
 SurveyTemplate.belongsTo(User, { foreignKey: 'created_by' });
 
 SurveyTemplate.hasMany(Question, { foreignKey: 'template_id', as: 'Questions' });
-Question.belongsTo(SurveyTemplate, { foreignKey: 'template_id' });
+Question.belongsTo(SurveyTemplate, { foreignKey: 'template_id', as: 'template' });
 
 QuestionType.hasMany(Question, { foreignKey: 'question_type_id' });
 Question.belongsTo(QuestionType, { foreignKey: 'question_type_id', as: 'QuestionType' });
@@ -98,8 +101,15 @@ WorkspaceActivity.belongsTo(Workspace, { foreignKey: 'workspace_id' });
 User.hasMany(WorkspaceActivity, { foreignKey: 'user_id' });
 WorkspaceActivity.belongsTo(User, { foreignKey: 'user_id', as: 'user' });
 
+// WorkspaceUser associations (new access control model)
+Workspace.hasMany(WorkspaceUser, { foreignKey: 'workspace_id', as: 'workspaceUsers' });
+WorkspaceUser.belongsTo(Workspace, { foreignKey: 'workspace_id', as: 'workspace' });
+
+User.hasMany(WorkspaceUser, { foreignKey: 'user_id', as: 'workspaceUsers' });
+WorkspaceUser.belongsTo(User, { foreignKey: 'user_id', as: 'user' });
+
 Workspace.hasMany(Survey, { foreignKey: 'workspace_id', as: 'surveys' });
-Survey.belongsTo(Workspace, { foreignKey: 'workspace_id' });
+Survey.belongsTo(Workspace, { foreignKey: 'workspace_id', as: 'workspace' });
 
 // Chat associations
 User.hasMany(ChatConversation, { foreignKey: 'user_id', as: 'chatConversations' });
@@ -107,6 +117,23 @@ ChatConversation.belongsTo(User, { foreignKey: 'user_id', as: 'user' });
 
 ChatConversation.hasMany(ChatMessage, { foreignKey: 'conversation_id', as: 'messages' });
 ChatMessage.belongsTo(ChatConversation, { foreignKey: 'conversation_id', as: 'conversation' });
+
+// Survey Access associations (simplified)
+Survey.hasMany(SurveyInvite, { foreignKey: 'survey_id', as: 'invites' });
+SurveyInvite.belongsTo(Survey, { foreignKey: 'survey_id', as: 'survey' });
+
+User.hasMany(SurveyInvite, { foreignKey: 'created_by', as: 'sentInvites' });
+SurveyInvite.belongsTo(User, { foreignKey: 'created_by', as: 'creator' });
+
+// Survey Access associations (old system)
+Survey.hasMany(SurveyAccess, { foreignKey: 'survey_id', as: 'accessGrants' });
+SurveyAccess.belongsTo(Survey, { foreignKey: 'survey_id', as: 'survey' });
+
+User.hasMany(SurveyAccess, { foreignKey: 'user_id', as: 'surveyAccess' });
+SurveyAccess.belongsTo(User, { foreignKey: 'user_id', as: 'user' });
+
+User.hasMany(SurveyAccess, { foreignKey: 'granted_by', as: 'grantedAccess' });
+SurveyAccess.belongsTo(User, { foreignKey: 'granted_by', as: 'grantor' });
 
 module.exports = {
   sequelize,
@@ -118,14 +145,17 @@ module.exports = {
   Survey,
   SurveyCollector,
   SurveyResponse,
+  SurveyInvite,
   Answer,
   AnalysisResult,
   Visualization,
   Notification,
   Workspace,
   WorkspaceMember,
+  WorkspaceUser,
   WorkspaceInvitation,
   WorkspaceActivity,
   ChatConversation,
-  ChatMessage
+  ChatMessage,
+  SurveyAccess
 };

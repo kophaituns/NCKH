@@ -9,10 +9,10 @@ const NotificationPanel = ({ onClose, onNotificationRead }) => {
 
   useEffect(() => {
     fetchNotifications();
-    
+
     // Also set up a polling interval to refresh notifications while panel is open
     const pollInterval = setInterval(fetchNotifications, 10000); // Every 10 seconds
-    
+
     return () => clearInterval(pollInterval);
   }, []);
 
@@ -29,12 +29,19 @@ const NotificationPanel = ({ onClose, onNotificationRead }) => {
   const handleMarkAsRead = async (notificationId) => {
     const result = await NotificationService.markAsRead(notificationId);
     if (result.ok) {
-      setNotifications(prev => 
-        prev.map(n => 
+      setNotifications(prev =>
+        prev.map(n =>
           n.id === notificationId ? { ...n, is_read: true } : n
         )
       );
       onNotificationRead?.();
+    }
+  };
+
+  const handleNotificationClick = (notification) => {
+    if (notification.data?.action_url) {
+      handleMarkAsRead(notification.id);
+      window.location.href = notification.data.action_url;
     }
   };
 
@@ -75,27 +82,27 @@ const NotificationPanel = ({ onClose, onNotificationRead }) => {
 
   const formatDate = (dateString) => {
     if (!dateString) return 'Unknown date';
-    
+
     try {
       const date = new Date(dateString);
-      
+
       // Check if date is valid
       if (isNaN(date.getTime())) {
         return 'Unknown date';
       }
-      
+
       const now = new Date();
       const diffMinutes = Math.floor((now - date) / 60000);
-      
+
       if (diffMinutes < 1) return 'Just now';
       if (diffMinutes < 60) return `${diffMinutes}m ago`;
-      
+
       const diffHours = Math.floor(diffMinutes / 60);
       if (diffHours < 24) return `${diffHours}h ago`;
-      
+
       const diffDays = Math.floor(diffHours / 24);
       if (diffDays < 7) return `${diffDays}d ago`;
-      
+
       return date.toLocaleDateString();
     } catch (error) {
       console.error('Error formatting date:', error);
@@ -108,7 +115,7 @@ const NotificationPanel = ({ onClose, onNotificationRead }) => {
       <div className={styles.header}>
         <h3>Notifications</h3>
         {notifications.length > 0 && (
-          <button 
+          <button
             className={styles.markAllRead}
             onClick={handleMarkAllAsRead}
           >
@@ -141,9 +148,11 @@ const NotificationPanel = ({ onClose, onNotificationRead }) => {
               console.log(`[${idx}] Full notification object:`, notification);
               console.log(`[${idx}] Should show Accept button:`, notification.type === 'workspace_invitation' && !!notification.data?.token);
               return (
-                <div 
-                  key={notification.id} 
+                <div
+                  key={notification.id}
                   className={`${styles.notification} ${!notification.is_read ? styles.unread : ''}`}
+                  onClick={() => handleNotificationClick(notification)}
+                  style={{ cursor: notification.data?.action_url ? 'pointer' : 'default' }}
                 >
                   <div className={styles.icon}>
                     {getNotificationIcon(notification.type)}
@@ -159,7 +168,10 @@ const NotificationPanel = ({ onClose, onNotificationRead }) => {
                     {notification.type === 'workspace_invitation' && notification.data?.token && !notification.is_read && (
                       <button
                         className={styles.acceptButton}
-                        onClick={() => handleAcceptWorkspaceInvitation(notification.id, notification.data)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleAcceptWorkspaceInvitation(notification.id, notification.data);
+                        }}
                         title="Accept workspace invitation"
                       >
                         Accept
@@ -168,7 +180,10 @@ const NotificationPanel = ({ onClose, onNotificationRead }) => {
                     {!notification.is_read && (
                       <button
                         className={styles.readButton}
-                        onClick={() => handleMarkAsRead(notification.id)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleMarkAsRead(notification.id);
+                        }}
                         title="Mark as read"
                       >
                         ✓

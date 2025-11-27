@@ -33,9 +33,9 @@ class LLMService {
     try {
       this.logger.info(`🔗 Calling ${method} ${url}`);
       if (data) {
-        this.logger.info(`📤 Request data:`, JSON.stringify(data));
+        this.logger.info(`📤 Request data: ${JSON.stringify(data)}`);
       }
-      
+
       const response = await axios(config);
       this.logger.info(`✅ Response status: ${response.status}`);
       return response;
@@ -59,11 +59,11 @@ class LLMService {
       // Gọi API từ trained model để lấy categories
       const url = `${this.trainedModelConfig.baseURL}/api/model/categories`;
       this.logger.info(`🔗 Calling categories API: ${url}`);
-      
+
       const response = await axios.get(url, {
         timeout: 5000
       });
-      
+
       if (response.data && response.data.success) {
         const categories = response.data.categories || ['general', 'it', 'marketing', 'economics'];
         return categories.map(cat => {
@@ -81,10 +81,10 @@ class LLMService {
           };
         });
       }
-      
+
       throw new Error('Invalid response from trained model');
     } catch (error) {
-      this.logger.error('Error getting categories:', error);
+      this.logger.warn(`⚠️ Could not get categories from model (using defaults): ${error.message}`);
       // Return default categories if model is not available
       return [
         { id: 'it', name: 'Information Technology', description: 'IT related surveys' },
@@ -102,7 +102,7 @@ class LLMService {
       // Lấy thông tin từ trained model
       const modelInfo = await this.getTrainedModelInfo();
       const categories = modelInfo.categories || ['general', 'it', 'marketing', 'economics'];
-      
+
       const allPrompts = categories.map((category, index) => ({
         id: index + 1,
         name: `${category.toUpperCase()} AI Question Generator`,
@@ -116,7 +116,7 @@ class LLMService {
       if (type) {
         return allPrompts.filter(prompt => prompt.type === type);
       }
-      
+
       return allPrompts;
     } catch (error) {
       this.logger.error(`❌ Error getting prompts: ${error.message}`);
@@ -140,25 +140,25 @@ class LLMService {
   async generateQuestions(data) {
     const models = require('../../../models');
     const { GeneratedQuestion } = models;
-    
+
     console.log('🔍 generateQuestions called with:', data);
     console.log('🔍 GeneratedQuestion model:', !!GeneratedQuestion);
-    
+
     try {
       const { topic, count = 5, category = 'general', userId } = data;
-      
+
       this.logger.info(`🤖 User ${userId || 'unknown'} generating ${count} questions for topic: ${topic}`);
-      
+
       // Use TrainedModelService
       const TrainedModelService = require('./trained-model.service');
       const trainedModel = new TrainedModelService();
-      
+
       const result = await trainedModel.generateQuestions(topic, count, category);
-      
+
       if (result.success && result.questions) {
         // Save generated questions to database
         const savedQuestions = [];
-        
+
         for (const q of result.questions) {
           const questionData = {
             question_text: q.question || q.text || q,
@@ -175,7 +175,7 @@ class LLMService {
             console.log('🔍 Attempting to save question to database:', questionData);
             const savedQuestion = await GeneratedQuestion.create(questionData);
             console.log('✅ Question saved successfully:', savedQuestion.toJSON());
-            
+
             savedQuestions.push({
               id: savedQuestion.id,
               question: savedQuestion.question_text,
@@ -197,7 +197,7 @@ class LLMService {
             });
           }
         }
-        
+
         this.logger.info(`✅ Generated ${savedQuestions.length} questions successfully`);
         return {
           success: true,
@@ -207,7 +207,7 @@ class LLMService {
         this.logger.warn('⚠️ Trained model failed, using fallback');
         return this._generateSimpleFallbackQuestions(topic, count, category, result.error || 'Model unavailable', userId);
       }
-      
+
     } catch (error) {
       this.logger.error('❌ Error in generateQuestions:', error.message);
       return this._generateSimpleFallbackQuestions(data.topic, data.count, data.category, error.message, data.userId);
@@ -222,20 +222,20 @@ class LLMService {
       if (!data || !data.keyword) {
         throw new Error('Keyword is required for category prediction');
       }
-      
+
       const { keyword } = data;
-      
+
       // Check if trained model service is available
       const TrainedModelService = require('./trained-model.service');
       const trainedModel = new TrainedModelService();
-      
+
       const isAvailable = await trainedModel.isAvailable();
       if (!isAvailable) {
         return this._fallbackPredictCategory(keyword);
       }
 
       const result = await trainedModel.predictCategory(keyword);
-      
+
       if (result.success) {
         return {
           category: result.category,
@@ -258,16 +258,16 @@ class LLMService {
   async generateQuestionsFromTrainedModel(topic, count = 5, category = 'general', userId = null) {
     const models = require('../../../models');
     const { GeneratedQuestion } = models;
-    
+
     try {
       this.logger.info(`🤖 Calling trained model for topic: "${topic}", category: ${category}, count: ${count}`);
-      
+
       const requestData = {
         keyword: topic,
         num_questions: count,
         category: category || 'general'
       };
-      
+
       const response = await this.callTrainedModel('/api/questions/generate', 'POST', requestData);
 
       if (response.data && response.data.success) {
@@ -294,7 +294,7 @@ class LLMService {
                 generated_by: userId,
                 quality_score: 4.0 // High score for trained model questions
               });
-              
+
               savedQuestions.push({
                 id: savedQuestion.id,
                 question: savedQuestion.question_text,
@@ -320,7 +320,7 @@ class LLMService {
         }
 
         this.logger.info(`✅ Generated ${savedQuestions.length} questions successfully`);
-        
+
         return {
           questions: savedQuestions,
           metadata: {
@@ -338,7 +338,7 @@ class LLMService {
       }
     } catch (error) {
       this.logger.error(`❌ Error calling trained model: ${error.message}`);
-      
+
       // Fallback to simple questions if trained model fails
       console.log('🔍 Using fallback, userId:', userId);
       return await this._generateSimpleFallbackQuestions(topic, count, category, error.message, userId);
@@ -414,10 +414,10 @@ class LLMService {
 
   async generateSurvey(data) {
     const { topic, sections = ['Introduction', 'Main Questions', 'Demographics'] } = data;
-    
+
     // Generate questions for each section using your trained model
     const sectionsWithQuestions = [];
-    
+
     for (let i = 0; i < sections.length; i++) {
       const section = sections[i];
       const questionsResult = await this.generateQuestions({
@@ -432,7 +432,7 @@ class LLMService {
         questions: questionsResult.questions
       });
     }
-    
+
     return {
       title: `AI-Generated Survey: ${topic}`,
       description: `This survey was automatically generated using trained AI models to explore various aspects of ${topic}`,
@@ -484,11 +484,11 @@ class LLMService {
       const response = await axios.get(`${this.trainedModelConfig.baseURL}/api/model/info`, {
         timeout: 5000
       });
-      
+
       if (response.data && response.data.success) {
         return response.data;
       }
-      
+
       return { categories: ['general', 'it', 'marketing', 'economics'] };
     } catch (error) {
       this.logger.warn(`⚠️ Could not get model info: ${error.message}`);
@@ -502,7 +502,8 @@ class LLMService {
   }
 
   _getQuestionOptions(questionData, index) {
-    if (typeof questionData === 'object' && questionData.options) {
+    // Check if options exist and are not empty
+    if (typeof questionData === 'object' && questionData.options && Array.isArray(questionData.options) && questionData.options.length > 0) {
       return questionData.options;
     }
 
@@ -516,8 +517,11 @@ class LLMService {
         return ['Daily', 'Weekly', 'Monthly', 'Rarely', 'Never'];
       } else if (questionText.includes('satisfaction') || questionText.includes('opinion')) {
         return ['Very Satisfied', 'Satisfied', 'Neutral', 'Dissatisfied', 'Very Dissatisfied'];
+      } else if (questionText.includes('agreement') || questionText.includes('agree')) {
+        return ['Strongly Agree', 'Agree', 'Neutral', 'Disagree', 'Strongly Disagree'];
       } else {
-        return ['Excellent', 'Good', 'Average', 'Poor', 'Very Poor'];
+        // Generic fallback if no keywords match but type is multiple_choice
+        return ['Option 1', 'Option 2', 'Option 3', 'Option 4'];
       }
     } else if (questionType === 'rating') {
       return null; // Rating questions don't need predefined options
@@ -532,12 +536,12 @@ class LLMService {
   async _generateSimpleFallbackQuestions(topic, count = 5, category = 'general', errorMessage = '', userId = null) {
     const models = require('../../../models');
     const { GeneratedQuestion } = models;
-    
+
     this.logger.warn(`🔄 Using simple fallback for topic: ${topic}`);
-    
+
     const questions = [];
     const savedQuestions = [];
-    
+
     for (let i = 1; i <= count; i++) {
       const questionText = `What is your opinion about ${topic}? (Question ${i})`;
       const questionData = {
@@ -548,32 +552,32 @@ class LLMService {
       };
       questions.push(questionData);
 
-        // Save to database
-        if (userId) {
-          try {
-            console.log('🔍 Attempting to save fallback question:', {
-              question_text: questionText,
-              question_type: 'text',
-              options: null,
-              keyword: topic,
-              category: category,
-              source_model: 'simple_fallback',
-              generated_by: userId,
-              quality_score: 2.5
-            });
-            
-            const savedQuestion = await GeneratedQuestion.create({
-              question_text: questionText,
-              question_type: 'text',
-              options: null,
-              keyword: topic,
-              category: category,
-              source_model: 'simple_fallback',
-              generated_by: userId,
-              quality_score: 2.5 // Average score for fallback questions
-            });
-            
-            console.log('✅ Fallback question saved successfully:', savedQuestion.toJSON());          savedQuestions.push({
+      // Save to database
+      if (userId) {
+        try {
+          console.log('🔍 Attempting to save fallback question:', {
+            question_text: questionText,
+            question_type: 'text',
+            options: null,
+            keyword: topic,
+            category: category,
+            source_model: 'simple_fallback',
+            generated_by: userId,
+            quality_score: 2.5
+          });
+
+          const savedQuestion = await GeneratedQuestion.create({
+            question_text: questionText,
+            question_type: 'text',
+            options: null,
+            keyword: topic,
+            category: category,
+            source_model: 'simple_fallback',
+            generated_by: userId,
+            quality_score: 2.5 // Average score for fallback questions
+          });
+
+          console.log('✅ Fallback question saved successfully:', savedQuestion.toJSON()); savedQuestions.push({
             id: savedQuestion.id,
             question: savedQuestion.question_text,
             type: savedQuestion.question_type,
@@ -620,7 +624,7 @@ class LLMService {
       const response = await this.callTrainedModel('/api/model/info', 'GET');
       return response.data;
     } catch (error) {
-      this.logger.error(`❌ Error getting trained model info: ${error.message}`);
+      this.logger.warn(`⚠️ Could not get trained model info (using defaults): ${error.message}`);
       return {
         name: 'Trained AI Model',
         version: '1.0.0',
@@ -646,10 +650,10 @@ class LLMService {
     if (typeof questionData === 'object' && questionData.type) {
       return questionData.type;
     }
-    
+
     // Smart type assignment based on content
     const questionText = (typeof questionData === 'string' ? questionData : questionData.question || '').toLowerCase();
-    
+
     if (questionText.includes('rate') || questionText.includes('scale') || questionText.includes('how much')) {
       return 'rating';
     } else if (questionText.includes('choose') || questionText.includes('select') || questionText.includes('experience level')) {
@@ -677,7 +681,7 @@ class LLMService {
       'email': 4, // map email to open_ended
       'date': 4 // map date to open_ended
     };
-    
+
     return typeMapping[typeName] || 4; // default to open_ended
   }
 
@@ -685,13 +689,13 @@ class LLMService {
    * Create survey from generated questions
    */
   async createSurveyFromQuestions(userId, surveyData) {
-    const { Survey, Question, QuestionOption } = require('../../../models');
-    
+    const { Survey, Question, QuestionOption, SurveyTemplate } = require('../../../models');
+
     try {
       // Create the survey
       const now = new Date();
       const defaultEndDate = new Date(now.getTime() + (30 * 24 * 60 * 60 * 1000)); // 30 days from now
-      
+
       // Create a default template for AI-generated surveys
       const template = await SurveyTemplate.create({
         title: `Template for ${surveyData.title}`,
@@ -699,7 +703,7 @@ class LLMService {
         created_by: userId,
         status: 'draft'
       });
-      
+
       const survey = await Survey.create({
         template_id: template.id,
         title: surveyData.title,
@@ -725,15 +729,16 @@ class LLMService {
       for (const selectedQ of surveyData.selectedQuestions) {
         const questionType = this._getQuestionType(selectedQ);
         const questionTypeId = this._getQuestionTypeId(questionType);
-        
+
         const question = await Question.create({
+          template_id: template.id,
           survey_id: survey.id,
           question_text: selectedQ.question || selectedQ.text,
+          label: (selectedQ.question || selectedQ.text || '').substring(0, 255), // Use question text as label
           question_type: questionType,
           question_type_id: questionTypeId,
-          question_order: questionOrder++,
-          is_required: selectedQ.required || false,
-          description: selectedQ.description || ''
+          display_order: questionOrder++,
+          required: selectedQ.required || false
         });
 
         // Add options for multiple choice questions
@@ -755,15 +760,16 @@ class LLMService {
         for (const customQ of surveyData.customQuestions) {
           const questionType = customQ.question_type || 'text';
           const questionTypeId = this._getQuestionTypeId(questionType);
-          
+
           const question = await Question.create({
+            template_id: template.id,
             survey_id: survey.id,
             question_text: customQ.question_text,
+            label: (customQ.question_text || '').substring(0, 255), // Use question text as label
             question_type: questionType,
             question_type_id: questionTypeId,
-            question_order: questionOrder++,
-            is_required: customQ.is_required || false,
-            description: customQ.description || ''
+            display_order: questionOrder++,
+            required: customQ.is_required || false
           });
 
           // Add options for multiple choice questions
@@ -798,7 +804,7 @@ class LLMService {
    */
   async exportSurveyToPDF(surveyId, userId) {
     const { Survey, Question, QuestionOption } = require('../../../models');
-    
+
     try {
       // Get survey with questions - use alias 'questions' instead of direct model
       const survey = await Survey.findByPk(surveyId, {
@@ -842,7 +848,7 @@ class LLMService {
 
       // Add questions - use the alias 'questions'
       const questions = survey.questions || [];
-      
+
       if (questions.length === 0) {
         htmlContent += `
           <div class="no-questions">
@@ -859,7 +865,7 @@ class LLMService {
           `;
 
           const options = question.options || [];
-          
+
           if (question.question_type === 'multiple_choice' && options.length > 0) {
             htmlContent += '<div class="options">';
             options.forEach((option) => {
@@ -917,7 +923,7 @@ class LLMService {
   async generatePublicLink(surveyId, userId, expiryDays = 30) {
     const { Survey, SurveyLink } = require('../../../models');
     const crypto = require('crypto');
-    
+
     try {
       // Verify survey ownership
       const survey = await Survey.findOne({
@@ -963,11 +969,11 @@ class LLMService {
    */
   async getSurveyByPublicLink(token) {
     const { Survey, Question, QuestionOption, SurveyLink } = require('../../../models');
-    
+
     try {
       // Find survey link
       const surveyLink = await SurveyLink.findOne({
-        where: { 
+        where: {
           token,
           is_active: true
         }
@@ -1028,21 +1034,21 @@ class LLMService {
   async submitSurveyResponse(token, responseData) {
     const models = require('../../../models');
     const { Survey, Question, SurveyResponse, ResponseAnswer, SurveyLink } = models;
-    
+
     this.logger.info('🔍 Models loaded:', {
       Survey: !!Survey,
-      Question: !!Question, 
+      Question: !!Question,
       SurveyResponse: !!SurveyResponse,
       ResponseAnswer: !!ResponseAnswer,
       SurveyLink: !!SurveyLink
     });
-    
+
     this.logger.info('🔍 Response data received:', responseData);
-    
+
     try {
       // Verify survey link
       const surveyLink = await SurveyLink.findOne({
-        where: { 
+        where: {
           token,
           is_active: true
         }
@@ -1156,7 +1162,7 @@ class LLMService {
 
       // Group responses by question for analytics
       const questionAnalytics = {};
-      
+
       if (survey.questions) {
         survey.questions.forEach(question => {
           questionAnalytics[question.id] = {
@@ -1319,7 +1325,7 @@ class LLMService {
       if (questionData.options && Array.isArray(questionData.options)) {
         // Delete existing options
         await QuestionOption.destroy({ where: { question_id: questionId } });
-        
+
         // Create new options
         for (let i = 0; i < questionData.options.length; i++) {
           await QuestionOption.create({
@@ -1372,7 +1378,7 @@ class LLMService {
 
       // Delete question options first
       await QuestionOption.destroy({ where: { question_id: questionId } });
-      
+
       // Delete question
       await Question.destroy({ where: { id: questionId, survey_id: surveyId } });
 
@@ -1457,7 +1463,7 @@ class LLMService {
    * Get survey for editing
    */
   async getSurveyForEditing(surveyId, userId) {
-    const { Survey, Question, QuestionOption } = require('../../../models');
+    const { Survey, SurveyTemplate, Question, QuestionOption, QuestionType } = require('../../../models');
     try {
       console.log(`Getting survey ${surveyId} for editing by user ${userId}`);
 
@@ -1469,14 +1475,19 @@ class LLMService {
         where: { id: surveyId },
         include: [
           {
-            model: Question,
-            as: 'questions',
-            include: [{ model: QuestionOption, as: 'options' }],
-            order: [['question_order', 'ASC']]
+            model: SurveyTemplate,
+            as: 'template',
+            include: [
+              {
+                model: Question,
+                as: 'Questions',
+                include: [
+                  { model: QuestionOption, as: 'QuestionOptions' },
+                  { model: QuestionType, as: 'QuestionType' }
+                ]
+              }
+            ]
           }
-        ],
-        order: [
-          [{ model: Question, as: 'questions' }, 'question_order', 'ASC']
         ]
       });
 
@@ -1488,9 +1499,15 @@ class LLMService {
         throw new Error('Access denied. Only survey creator can edit.');
       }
 
+      // Flatten questions for easier frontend consumption
+      const formattedSurvey = {
+        ...survey.toJSON(),
+        questions: survey.template?.Questions || []
+      };
+
       return {
         success: true,
-        survey: survey
+        survey: formattedSurvey
       };
 
     } catch (error) {
@@ -1501,11 +1518,11 @@ class LLMService {
 
   // Generate PDF HTML for survey
   async generateSurveyPDF(surveyId, userId) {
-    const { Survey, Question, QuestionOption } = require('../../../models');
+    const { Survey, Question, QuestionOption, QuestionType } = require('../../../models');
     try {
       // Get survey with questions - remove user restriction for PDF export
       const survey = await Survey.findOne({
-        where: { 
+        where: {
           id: surveyId
         }
       });
@@ -1517,11 +1534,17 @@ class LLMService {
       // Get questions for this survey
       const questions = await Question.findAll({
         where: { survey_id: surveyId },
-        include: [{
-          model: QuestionOption,
-          as: 'options'
-        }],
-        order: [['question_order', 'ASC']]
+        include: [
+          {
+            model: QuestionOption,
+            as: 'QuestionOptions'
+          },
+          {
+            model: QuestionType,
+            as: 'QuestionType'
+          }
+        ],
+        order: [['display_order', 'ASC']]
       });
 
       // Generate HTML with proper formatting for each question type
@@ -1683,10 +1706,12 @@ class LLMService {
   // Format question for PDF based on question type
   formatQuestionForPDF(question, questionNumber) {
     const requiredMark = question.required ? '<span style="color: red;">*</span>' : '';
-    
+
     let answerSection = '';
-    
-    switch (question.question_type) {
+
+    const questionType = question.QuestionType ? question.QuestionType.type_name : 'text';
+
+    switch (questionType) {
       case 'text':
       case 'open_ended':
         answerSection = `
@@ -1695,7 +1720,7 @@ class LLMService {
           </div>
         `;
         break;
-        
+
       case 'yes_no':
         answerSection = `
           <div class="answer-options">
@@ -1710,11 +1735,11 @@ class LLMService {
           </div>
         `;
         break;
-        
+
       case 'multiple_choice':
         answerSection = `
           <div class="answer-options">
-            ${(question.options || []).map(option => `
+            ${(question.QuestionOptions || []).map(option => `
               <div class="option">
                 <span class="option-radio"></span>
                 <span class="option-text">${option.option_text}</span>
@@ -1723,11 +1748,11 @@ class LLMService {
           </div>
         `;
         break;
-        
+
       case 'checkbox':
         answerSection = `
           <div class="answer-options">
-            ${(question.options || []).map(option => `
+            ${(question.QuestionOptions || []).map(option => `
               <div class="option">
                 <span class="option-checkbox"></span>
                 <span class="option-text">${option.option_text}</span>
@@ -1736,18 +1761,18 @@ class LLMService {
           </div>
         `;
         break;
-        
+
       case 'dropdown':
         answerSection = `
           <select class="dropdown-select" disabled>
             <option>-- Select an option --</option>
-            ${(question.options || []).map(option => `
+            ${(question.QuestionOptions || []).map(option => `
               <option>${option.option_text}</option>
             `).join('')}
           </select>
         `;
         break;
-        
+
       case 'likert_scale':
       case 'rating':
         answerSection = `
@@ -1761,7 +1786,7 @@ class LLMService {
           </div>
         `;
         break;
-        
+
       default:
         answerSection = `
           <div class="text-answer">
@@ -1769,7 +1794,7 @@ class LLMService {
           </div>
         `;
     }
-    
+
     return `
       <div class="question-block">
         <div class="question-number">Question ${questionNumber}</div>
@@ -1777,7 +1802,7 @@ class LLMService {
           ${question.question_text} ${requiredMark}
         </div>
         <div class="question-type">
-          Type: ${question.question_type} ${question.description ? `| ${question.description}` : ''}
+          Type: ${questionType} ${question.description ? `| ${question.description}` : ''}
         </div>
         ${answerSection}
       </div>
