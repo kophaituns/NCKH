@@ -1,5 +1,4 @@
-// src/components/LLM/SurveyCreator.jsx
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Card from '../UI/Card';
 import Button from '../UI/Button';
 import Input from '../UI/Input';
@@ -9,30 +8,48 @@ import Checkbox from '../UI/Checkbox';
 import Switch from '../UI/Switch';
 import { useToast } from '../../contexts/ToastContext';
 import LLMService from '../../api/services/llm.service';
+import WorkspaceService from '../../api/services/workspace.service';
 import styles from './SurveyCreator.module.scss';
 
 const SurveyCreator = ({ generatedQuestions, onSurveyCreated }) => {
   const { showToast } = useToast();
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('select');
-  
+  const [workspaces, setWorkspaces] = useState([]);
+
   const [surveyData, setSurveyData] = useState({
     title: '',
     description: '',
-    targetAudience: 'all_users',
+    targetAudience: 'public', // Changed default from 'all_users' to 'public'
     targetValue: '',
     startDate: new Date().toISOString().split('T')[0],
     endDate: '',
+    workspaceId: '', // Add workspaceId to state
   });
 
   const [selectedQuestions, setSelectedQuestions] = useState([]);
   const [customQuestions, setCustomQuestions] = useState([]);
   const [shareSettings, setShareSettings] = useState({
-    isPublic: false,
+    isPublic: true, // Default to true for 'public' targetAudience
     allowAnonymous: true,
     requireLogin: false,
     expiryDays: 30
   });
+
+  useEffect(() => {
+    fetchWorkspaces();
+  }, []);
+
+  const fetchWorkspaces = async () => {
+    try {
+      const response = await WorkspaceService.getMyWorkspaces();
+      if (response.ok) {
+        setWorkspaces(response.items);
+      }
+    } catch (error) {
+      console.error('Failed to fetch workspaces:', error);
+    }
+  };
 
   const handleQuestionSelect = (question, isSelected) => {
     if (isSelected) {
@@ -70,7 +87,7 @@ const SurveyCreator = ({ generatedQuestions, onSurveyCreated }) => {
   };
 
   const updateCustomQuestion = (id, field, value) => {
-    setCustomQuestions(customQuestions.map(q => 
+    setCustomQuestions(customQuestions.map(q =>
       q.id === id ? { ...q, [field]: value } : q
     ));
   };
@@ -80,19 +97,19 @@ const SurveyCreator = ({ generatedQuestions, onSurveyCreated }) => {
   };
 
   const addOptionToQuestion = (questionId) => {
-    setCustomQuestions(customQuestions.map(q => 
-      q.id === questionId ? { 
-        ...q, 
-        options: [...(q.options || []), ''] 
+    setCustomQuestions(customQuestions.map(q =>
+      q.id === questionId ? {
+        ...q,
+        options: [...(q.options || []), '']
       } : q
     ));
   };
 
   const updateQuestionOption = (questionId, optionIndex, value) => {
-    setCustomQuestions(customQuestions.map(q => 
+    setCustomQuestions(customQuestions.map(q =>
       q.id === questionId ? {
         ...q,
-        options: q.options.map((opt, index) => 
+        options: q.options.map((opt, index) =>
           index === optionIndex ? value : opt
         )
       } : q
@@ -100,7 +117,7 @@ const SurveyCreator = ({ generatedQuestions, onSurveyCreated }) => {
   };
 
   const removeQuestionOption = (questionId, optionIndex) => {
-    setCustomQuestions(customQuestions.map(q => 
+    setCustomQuestions(customQuestions.map(q =>
       q.id === questionId ? {
         ...q,
         options: q.options.filter((_, index) => index !== optionIndex)
@@ -116,6 +133,11 @@ const SurveyCreator = ({ generatedQuestions, onSurveyCreated }) => {
 
     if (selectedQuestions.length === 0 && customQuestions.length === 0) {
       showToast('Vui lòng chọn hoặc thêm ít nhất một câu hỏi', 'error');
+      return;
+    }
+
+    if (surveyData.targetAudience === 'internal' && !surveyData.workspaceId) {
+      showToast('Vui lòng chọn Workspace cho khảo sát nội bộ', 'error');
       return;
     }
 
@@ -160,16 +182,16 @@ const SurveyCreator = ({ generatedQuestions, onSurveyCreated }) => {
           <label>Tiêu đề Survey *</label>
           <Input
             value={surveyData.title}
-            onChange={(e) => setSurveyData({...surveyData, title: e.target.value})}
+            onChange={(e) => setSurveyData({ ...surveyData, title: e.target.value })}
             placeholder="Nhập tiêu đề survey"
           />
         </div>
-        
+
         <div className={styles.formGroup}>
           <label>Mô tả</label>
           <TextArea
             value={surveyData.description}
-            onChange={(e) => setSurveyData({...surveyData, description: e.target.value})}
+            onChange={(e) => setSurveyData({ ...surveyData, description: e.target.value })}
             placeholder="Mô tả về survey này..."
             rows={3}
           />
@@ -180,28 +202,51 @@ const SurveyCreator = ({ generatedQuestions, onSurveyCreated }) => {
             <label>Đối tượng khảo sát</label>
             <Select
               value={surveyData.targetAudience}
-              onChange={(value) => setSurveyData({...surveyData, targetAudience: value})}
+              onChange={(value) => {
+                // Auto-configure share settings based on target audience
+                let newShareSettings = { ...shareSettings };
+
+                switch (value) {
+                  case 'public':
+                    newShareSettings = { ...newShareSettings, isPublic: true, allowAnonymous: true, requireLogin: false };
+                    break;
+                  case 'public_with_login':
+                    newShareSettings = { ...newShareSettings, isPublic: true, allowAnonymous: false, requireLogin: true };
+                    break;
+                  case 'private':
+                    newShareSettings = { ...newShareSettings, isPublic: false, allowAnonymous: false, requireLogin: true };
+                    break;
+                  case 'internal':
+                    newShareSettings = { ...newShareSettings, isPublic: false, allowAnonymous: false, requireLogin: true };
+                    break;
+                  default:
+                    break;
+                }
+
+                setSurveyData({ ...surveyData, targetAudience: value });
+                setShareSettings(newShareSettings);
+              }}
             >
-              <option value="all_users">Tất cả người dùng</option>
-              <option value="specific_group">Nhóm cụ thể</option>
-              <option value="custom">Tùy chỉnh</option>
+              <option value="public">Công khai (Tất cả mọi người)</option>
+              <option value="public_with_login">Công khai (Yêu cầu đăng nhập)</option>
+              <option value="private">Riêng tư (Chỉ người được mời)</option>
+              <option value="internal">Nội bộ (Thành viên Workspace)</option>
             </Select>
           </div>
 
-          {(surveyData.targetAudience === 'specific_group' || surveyData.targetAudience === 'custom') && (
+          {/* Workspace Selection for Internal Audience */}
+          {surveyData.targetAudience === 'internal' && (
             <div className={styles.formGroup}>
-              <label>
-                {surveyData.targetAudience === 'specific_group' ? 'Tên nhóm' : 'Giá trị tùy chỉnh'}
-              </label>
-              <Input
-                value={surveyData.targetValue}
-                onChange={(e) => setSurveyData({...surveyData, targetValue: e.target.value})}
-                placeholder={
-                  surveyData.targetAudience === 'specific_group' 
-                    ? 'Ví dụ: Sinh viên IT, Khoa CNTT...' 
-                    : 'Nhập giá trị tùy chỉnh...'
-                }
-              />
+              <label>Chọn Workspace *</label>
+              <Select
+                value={surveyData.workspaceId}
+                onChange={(value) => setSurveyData({ ...surveyData, workspaceId: value })}
+              >
+                <option value="">-- Chọn Workspace --</option>
+                {workspaces.map(ws => (
+                  <option key={ws.id} value={ws.id}>{ws.name}</option>
+                ))}
+              </Select>
             </div>
           )}
 
@@ -210,7 +255,7 @@ const SurveyCreator = ({ generatedQuestions, onSurveyCreated }) => {
             <Input
               type="date"
               value={surveyData.startDate}
-              onChange={(e) => setSurveyData({...surveyData, startDate: e.target.value})}
+              onChange={(e) => setSurveyData({ ...surveyData, startDate: e.target.value })}
             />
           </div>
 
@@ -219,7 +264,7 @@ const SurveyCreator = ({ generatedQuestions, onSurveyCreated }) => {
             <Input
               type="date"
               value={surveyData.endDate}
-              onChange={(e) => setSurveyData({...surveyData, endDate: e.target.value})}
+              onChange={(e) => setSurveyData({ ...surveyData, endDate: e.target.value })}
             />
           </div>
         </div>
@@ -227,19 +272,19 @@ const SurveyCreator = ({ generatedQuestions, onSurveyCreated }) => {
 
       {/* Tabs */}
       <div className={styles.tabs}>
-        <button 
+        <button
           className={`${styles.tab} ${activeTab === 'select' ? styles.active : ''}`}
           onClick={() => setActiveTab('select')}
         >
           Chọn Câu Hỏi ({selectedQuestions.length})
         </button>
-        <button 
+        <button
           className={`${styles.tab} ${activeTab === 'custom' ? styles.active : ''}`}
           onClick={() => setActiveTab('custom')}
         >
           Câu Hỏi Tùy Chỉnh ({customQuestions.length})
         </button>
-        <button 
+        <button
           className={`${styles.tab} ${activeTab === 'share' ? styles.active : ''}`}
           onClick={() => setActiveTab('share')}
         >
@@ -355,12 +400,12 @@ const SurveyCreator = ({ generatedQuestions, onSurveyCreated }) => {
         {activeTab === 'share' && (
           <div className={styles.shareSettings}>
             <h4>Cài Đặt Chia Sẻ</h4>
-            
+
             <div className={styles.settingGroup}>
               <div className={styles.settingItem}>
                 <Switch
                   checked={shareSettings.isPublic}
-                  onChange={(checked) => setShareSettings({...shareSettings, isPublic: checked})}
+                  onChange={(checked) => setShareSettings({ ...shareSettings, isPublic: checked })}
                 />
                 <div className={styles.settingLabel}>
                   <strong>Công khai</strong>
@@ -371,7 +416,7 @@ const SurveyCreator = ({ generatedQuestions, onSurveyCreated }) => {
               <div className={styles.settingItem}>
                 <Switch
                   checked={shareSettings.allowAnonymous}
-                  onChange={(checked) => setShareSettings({...shareSettings, allowAnonymous: checked})}
+                  onChange={(checked) => setShareSettings({ ...shareSettings, allowAnonymous: checked })}
                 />
                 <div className={styles.settingLabel}>
                   <strong>Cho phép ẩn danh</strong>
@@ -382,7 +427,7 @@ const SurveyCreator = ({ generatedQuestions, onSurveyCreated }) => {
               <div className={styles.settingItem}>
                 <Switch
                   checked={shareSettings.requireLogin}
-                  onChange={(checked) => setShareSettings({...shareSettings, requireLogin: checked})}
+                  onChange={(checked) => setShareSettings({ ...shareSettings, requireLogin: checked })}
                 />
                 <div className={styles.settingLabel}>
                   <strong>Yêu cầu đăng nhập</strong>
@@ -396,7 +441,7 @@ const SurveyCreator = ({ generatedQuestions, onSurveyCreated }) => {
               <Input
                 type="number"
                 value={shareSettings.expiryDays}
-                onChange={(e) => setShareSettings({...shareSettings, expiryDays: parseInt(e.target.value)})}
+                onChange={(e) => setShareSettings({ ...shareSettings, expiryDays: parseInt(e.target.value) })}
                 min="1"
                 max="365"
               />

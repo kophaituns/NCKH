@@ -704,21 +704,27 @@ class LLMService {
         status: 'draft'
       });
 
+      const shareSettings = surveyData.shareSettings || {
+        isPublic: false,
+        allowAnonymous: true,
+        requireLogin: false
+      };
+
       const survey = await Survey.create({
         template_id: template.id,
         title: surveyData.title,
         description: surveyData.description || '',
-        target_audience: surveyData.targetAudience || 'all_users',
+        target_audience: 'all_users', // Default legacy field
+        access_type: surveyData.targetAudience || 'public',
         target_value: surveyData.targetValue || null,
         start_date: surveyData.startDate ? new Date(surveyData.startDate) : now,
         end_date: surveyData.endDate ? new Date(surveyData.endDate) : defaultEndDate,
         created_by: userId,
         status: 'draft',
-        share_settings: JSON.stringify(surveyData.shareSettings || {
-          isPublic: false,
-          allowAnonymous: true,
-          requireLogin: false
-        })
+        workspace_id: surveyData.workspaceId || null, // Save workspace_id
+        require_login: shareSettings.requireLogin, // Map to dedicated column
+        allow_anonymous: shareSettings.allowAnonymous, // Map to dedicated column
+        share_settings: JSON.stringify(shareSettings)
       });
 
       // Process selected questions
