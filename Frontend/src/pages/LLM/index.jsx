@@ -44,7 +44,7 @@ const LLM = () => {
       setPrompts(promptsRes.data.prompts || []);
     } catch (error) {
       console.error('Error loading initial data:', error);
-      showToast('Lỗi khi tải dữ liệu ban đầu', 'error');
+      showToast('Error while loading initial data', 'error');
     } finally {
       setLoading(false);
     }
@@ -63,7 +63,7 @@ const LLM = () => {
 
   const handleGenerateQuestions = async () => {
     if (!formData.keyword.trim()) {
-      showToast('Vui lòng nhập từ khóa', 'error');
+      showToast('Please enter a keyword', 'error');
       return;
     }
 
@@ -76,10 +76,14 @@ const LLM = () => {
       });
 
       setGeneratedQuestions(response.data.questions || []);
-      showToast('Tạo câu hỏi thành công!', 'success');
+      showToast('Questions generated successfully!', 'success');
     } catch (error) {
       console.error('Error generating questions:', error);
-      showToast('Lỗi khi tạo câu hỏi: ' + (error.response?.data?.message || error.message), 'error');
+      showToast(
+        'Error while generating questions: ' +
+          (error.response?.data?.message || error.message),
+        'error'
+      );
     } finally {
       setLoading(false);
     }
@@ -87,7 +91,7 @@ const LLM = () => {
 
   const handlePredictCategory = async () => {
     if (!formData.keyword.trim()) {
-      showToast('Vui lòng nhập từ khóa', 'error');
+      showToast('Please enter a keyword', 'error');
       return;
     }
 
@@ -102,11 +106,14 @@ const LLM = () => {
           ...prev,
           category: response.data.category
         }));
-        showToast(`Dự đoán danh mục: ${response.data.category} (${response.data.confidence}%)`, 'success');
+        showToast(
+          `Predicted category: ${response.data.category} (${response.data.confidence}%)`,
+          'success'
+        );
       }
     } catch (error) {
       console.error('Error predicting category:', error);
-      showToast('Lỗi khi dự đoán danh mục', 'error');
+      showToast('Error while predicting category', 'error');
     } finally {
       setLoading(false);
     }
@@ -114,7 +121,7 @@ const LLM = () => {
 
   const handleGenerateSurvey = async () => {
     if (!formData.prompt.trim() && !selectedPrompt) {
-      showToast('Vui lòng nhập prompt hoặc chọn prompt có sẵn', 'error');
+      showToast('Please enter a prompt or select an existing one', 'error');
       return;
     }
 
@@ -128,11 +135,15 @@ const LLM = () => {
         course_name: 'AI Course'
       });
 
-      showToast('Tạo khảo sát thành công!', 'success');
+      showToast('Survey generated successfully!', 'success');
       console.log('Generated survey:', response.data);
     } catch (error) {
       console.error('Error generating survey:', error);
-      showToast('Lỗi khi tạo khảo sát: ' + (error.response?.data?.message || error.message), 'error');
+      showToast(
+        'Error while generating survey: ' +
+          (error.response?.data?.message || error.message),
+        'error'
+      );
     } finally {
       setLoading(false);
     }
@@ -146,14 +157,14 @@ const LLM = () => {
   const renderQuestionGeneration = () => (
     <div className={styles.tabContent}>
       <Card className={styles.formCard}>
-        <h3>Tạo Câu Hỏi Từ AI</h3>
+        <h3>Generate Questions from AI</h3>
         
         <div className={styles.formGroup}>
-          <label>Từ khóa *</label>
+          <label>Keyword *</label>
           <div className={styles.inputWithButton}>
             <Input
               type="text"
-              placeholder="Nhập từ khóa (ví dụ: machine learning, digital marketing...)"
+              placeholder="Enter a keyword (e.g. machine learning, digital marketing...)"
               value={formData.keyword}
               onChange={(e) => handleInputChange('keyword', e.target.value)}
             />
@@ -162,19 +173,19 @@ const LLM = () => {
               disabled={loading || !formData.keyword.trim()}
               variant="outline"
             >
-              Dự đoán danh mục
+              Predict Category
             </Button>
           </div>
         </div>
 
         <div className={styles.formGroup}>
-          <label>Danh mục</label>
+          <label>Category</label>
           <Select
             value={formData.category}
             onChange={(value) => handleInputChange('category', value)}
-            placeholder="Chọn danh mục"
+            placeholder="Select category"
           >
-            <option value="">Tự động</option>
+            <option value="">Auto detect</option>
             {categories.map(cat => (
               <option key={cat} value={cat}>{cat}</option>
             ))}
@@ -182,15 +193,15 @@ const LLM = () => {
         </div>
 
         <div className={styles.formGroup}>
-          <label>Số lượng câu hỏi</label>
+          <label>Number of questions</label>
           <Select
             value={formData.questionCount}
             onChange={(value) => handleInputChange('questionCount', parseInt(value))}
           >
-            <option value={3}>3 câu hỏi</option>
-            <option value={5}>5 câu hỏi</option>
-            <option value={10}>10 câu hỏi</option>
-            <option value={15}>15 câu hỏi</option>
+            <option value={3}>3 questions</option>
+            <option value={5}>5 questions</option>
+            <option value={10}>10 questions</option>
+            <option value={15}>15 questions</option>
           </Select>
         </div>
 
@@ -199,13 +210,13 @@ const LLM = () => {
           disabled={loading || !formData.keyword.trim()}
           className={styles.generateBtn}
         >
-          {loading ? <Loader size="small" /> : 'Tạo Câu Hỏi'}
+          {loading ? <Loader size="small" /> : 'Generate Questions'}
         </Button>
       </Card>
 
       {generatedQuestions.length > 0 && (
         <Card className={styles.resultsCard}>
-          <h3>Câu Hỏi Được Tạo ({generatedQuestions.length})</h3>
+          <h3>Generated Questions ({generatedQuestions.length})</h3>
           <div className={styles.questionsList}>
             {generatedQuestions.map((q, index) => (
               <div key={index} className={styles.questionItem}>
@@ -213,7 +224,8 @@ const LLM = () => {
                 <div className={styles.questionContent}>
                   <p className={styles.questionText}>{q.question}</p>
                   <small className={styles.questionSource}>
-                    Nguồn: {q.source} {q.confidence && `• Độ tin cậy: ${q.confidence}%`}
+                    Source: {q.source}{' '}
+                    {q.confidence && `• Confidence: ${q.confidence}%`}
                   </small>
                 </div>
               </div>
@@ -227,16 +239,16 @@ const LLM = () => {
   const renderSurveyGeneration = () => (
     <div className={styles.tabContent}>
       <Card className={styles.formCard}>
-        <h3>Tạo Khảo Sát Từ AI</h3>
+        <h3>Generate Survey from AI</h3>
         
         <div className={styles.formGroup}>
-          <label>Chọn prompt có sẵn</label>
+          <label>Select existing prompt</label>
           <Select
             value={selectedPrompt}
             onChange={(value) => setSelectedPrompt(value)}
-            placeholder="Chọn prompt"
+            placeholder="Select prompt"
           >
-            <option value="">Tùy chỉnh prompt</option>
+            <option value="">Custom prompt</option>
             {prompts.map(prompt => (
               <option key={prompt.id} value={prompt.id}>
                 {prompt.prompt_name} ({prompt.prompt_type})
@@ -246,9 +258,9 @@ const LLM = () => {
         </div>
 
         <div className={styles.formGroup}>
-          <label>Prompt tùy chỉnh</label>
+          <label>Custom prompt</label>
           <TextArea
-            placeholder="Nhập yêu cầu tạo khảo sát (ví dụ: Tạo khảo sát về satisfaction của sinh viên với môn học machine learning...)"
+            placeholder="Enter survey generation instructions (e.g. Create a survey about students' satisfaction with the machine learning course...)"
             value={formData.prompt}
             onChange={(e) => handleInputChange('prompt', e.target.value)}
             rows={4}
@@ -256,7 +268,7 @@ const LLM = () => {
           />
           {selectedPrompt && (
             <small className={styles.helpText}>
-              Bạn đang sử dụng prompt có sẵn. Bỏ chọn để nhập prompt tùy chỉnh.
+              You are using a predefined prompt. Clear the selection to type a custom prompt.
             </small>
           )}
         </div>
@@ -266,7 +278,7 @@ const LLM = () => {
           disabled={loading || (!formData.prompt.trim() && !selectedPrompt)}
           className={styles.generateBtn}
         >
-          {loading ? <Loader size="small" /> : 'Tạo Khảo Sát'}
+          {loading ? <Loader size="small" /> : 'Generate Survey'}
         </Button>
       </Card>
     </div>
@@ -277,7 +289,7 @@ const LLM = () => {
       <div className={styles.container}>
         <div className={styles.loadingContainer}>
           <Loader />
-          <p>Đang tải...</p>
+          <p>Loading...</p>
         </div>
       </div>
     );
@@ -286,8 +298,8 @@ const LLM = () => {
   return (
     <div className={styles.container}>
       <div className={styles.header}>
-        <h1>AI Question & Survey Generator</h1>
-        <p>Tạo câu hỏi và khảo sát thông minh với công nghệ AI</p>
+        <h1>AI Question &amp; Survey Generator</h1>
+        <p>Create smart questions and surveys with AI.</p>
       </div>
 
       <div className={styles.tabs}>
@@ -295,27 +307,27 @@ const LLM = () => {
           className={`${styles.tab} ${activeTab === 'generate' ? styles.active : ''}`}
           onClick={() => setActiveTab('generate')}
         >
-          Tạo Câu Hỏi
+          Generate Questions
         </button>
         <button 
           className={`${styles.tab} ${activeTab === 'survey' ? styles.active : ''}`}
           onClick={() => setActiveTab('survey')}
           disabled={generatedQuestions.length === 0}
         >
-          Tạo Survey ({generatedQuestions.length})
+          Generate Survey ({generatedQuestions.length})
         </button>
         <button 
           className={`${styles.tab} ${activeTab === 'prompt' ? styles.active : ''}`}
           onClick={() => setActiveTab('prompt')}
         >
-          Tạo Khảo Sát Từ Prompt
+          Generate Survey from Prompt
         </button>
         {createdSurvey && (
           <button 
             className={`${styles.tab} ${activeTab === 'result' ? styles.active : ''}`}
             onClick={() => setActiveTab('result')}
           >
-            Kết Quả Survey
+            Survey Result
           </button>
         )}
         {createdSurvey && (
@@ -326,7 +338,7 @@ const LLM = () => {
               setActiveTab('edit');
             }}
           >
-            Chỉnh Sửa Survey
+            Edit Survey
           </button>
         )}
       </div>
@@ -355,7 +367,7 @@ const LLM = () => {
           onClose={() => setActiveTab('result')}
           onSurveyUpdated={() => {
             // Survey has been updated successfully
-            showToast('Survey đã được cập nhật', 'success');
+            showToast('Survey has been updated', 'success');
           }}
         />
       )}

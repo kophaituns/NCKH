@@ -228,36 +228,139 @@ class AnalyticsService {
   /**
    * Get basic statistics (placeholder for dashboard)
    */
+    /**
+   * Get statistics cho Admin / Creator Dashboard
+   */
   async getDashboardStats(user) {
-    let where = {};
-    if (user.role !== 'admin') {
-      where.created_by = user.id;
+    const isAdmin = user.role === 'admin';
+
+    // Điều kiện lọc survey:
+    //  - Admin: toàn hệ thống
+    //  - Khác admin: chỉ survey do user đó tạo
+    const surveyWhere = {};
+    if (!isAdmin) {
+      surveyWhere.created_by = user.id;
     }
 
-    const totalSurveys = await Survey.count({ where });
-    const activeSurveys = await Survey.count({ where: { ...where, status: 'active' } });
-    const draftSurveys = await Survey.count({ where: { ...where, status: 'draft' } });
-
-    // Get total responses for user's surveys
-    const surveyIds = await Survey.findAll({
-      where,
-      attributes: ['id'],
-      raw: true
+    // Lấy danh sách survey (id, title, status, created_at)
+    const surveys = await Survey.findAll({
+      where: surveyWhere,
+      attributes: ['id', 'title', 'status', 'created_at'],
+      raw: true,
     });
 
-    const totalResponses = await SurveyResponse.count({
+    const surveyIds = surveys.map((s) => s.id);
+
+    const totalSurveys = surveys.length;
+    const activeSurveys = surveys.filter((s) => s.status === 'active').length;
+    const draftSurveys = surveys.filter((s) => s.status === 'draft').length;
+
+    // ================== Tổng số responses & Responses per Survey ==================
+    let totalResponses = 0;
+    let responsesPerSurveyLabels = [];
+    let responsesPerSurveyData = [];
+
+    if (surveyIds.length > 0) {
+      // Tổng responses
+      totalResponses = await SurveyResponse.count({
+        where: {
+          survey_id: { [Op.in]: surveyIds },
+        },
+      });
+
+      // Top 10 survey theo số lượng response
+      const topResponses = await SurveyResponse.findAll({
+        attributes: [
+          'survey_id',
+          [sequelize.fn('COUNT', sequelize.col('SurveyResponse.id')), 'responseCount'],
+        ],
+        where: {
+          survey_id: { [Op.in]: surveyIds },
+        },
+        include: [
+          {
+            model: Survey,
+            attributes: ['title'],
+          },
+        ],
+        group: ['survey_id', 'Survey.id'],
+        order: [[sequelize.literal('responseCount'), 'DESC']],
+        limit: 10,
+      });
+
+      responsesPerSurveyLabels = topResponses.map((row) =>
+        row.Survey?.title || `Survey #${row.survey_id}`,
+      );
+      responsesPerSurveyData = topResponses.map((row) =>
+        Number(row.get('responseCount')),
+      );
+    }
+
+    // ================== Survey Activity Trend (30 ngày gần nhất) ==================
+    const fromDate = new Date();
+    fromDate.setDate(fromDate.getDate() - 29); // 30 ngày
+
+    const activityRows = await Survey.findAll({
+      attributes: [
+        [sequelize.fn('DATE', sequelize.col('created_at')), 'date'],
+        [sequelize.fn('COUNT', sequelize.col('id')), 'count'],
+      ],
       where: {
-        survey_id: { [Op.in]: surveyIds.map(s => s.id) }
-      }
+        ...surveyWhere,
+        created_at: {
+          [Op.gte]: fromDate,
+        },
+      },
+      group: [sequelize.fn('DATE', sequelize.col('created_at'))],
+      order: [[sequelize.fn('DATE', sequelize.col('created_at')), 'ASC']],
+      raw: true,
     });
 
+    const activityLabels = activityRows.map((row) => row.date);
+    const activityData = activityRows.map((row) => Number(row.count));
+
+    // ================== User & Role Stats (chỉ admin) ==================
+    let totalUsers = 0;
+    let roleStats = { admin: 0, creator: 0, user: 0 };
+
+    if (isAdmin) {
+      const roleRows = await User.findAll({
+        attributes: ['role', [sequelize.fn('COUNT', sequelize.col('id')), 'count']],
+        group: ['role'],
+        raw: true,
+      });
+
+      roleRows.forEach((row) => {
+        const role = row.role;
+        const count = Number(row.count);
+        totalUsers += count;
+        if (roleStats[role] !== undefined) {
+          roleStats[role] = count;
+        }
+      });
+    }
+
+    // ================== Trả về đúng format FE ==================
     return {
-      total_surveys: totalSurveys,
-      active_surveys: activeSurveys,
-      draft_surveys: draftSurveys,
-      total_responses: totalResponses
+      totals: {
+        totalUsers,
+        totalSurveys,
+        totalResponses,
+        activeSurveys,
+        draftSurveys,
+      },
+      roleStats,
+      responsesPerSurvey: {
+        labels: responsesPerSurveyLabels,
+        data: responsesPerSurveyData,
+      },
+      surveyActivity: {
+        labels: activityLabels,
+        data: activityData,
+      },
     };
   }
+
 }
 
 module.exports = new AnalyticsService();
