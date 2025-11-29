@@ -28,7 +28,7 @@ module.exports = (sequelize, DataTypes) => {
       question_type_id: {
         type: DataTypes.INTEGER,
         allowNull: false,
-        field: 'type_id',
+        field: 'question_type_id',
       },
       required: {
         type: DataTypes.BOOLEAN,
