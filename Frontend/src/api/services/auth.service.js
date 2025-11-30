@@ -75,6 +75,18 @@ const AuthService = {
     
     return response.data;
   },
+    /**
+   * Update current user profile
+   */
+  async updateProfile(profileData) {
+    const response = await http.put('/auth/profile', profileData);
+    const user = response.data.data.user;
+
+    localStorage.setItem('user', JSON.stringify(user));
+
+    return response.data;
+  },
+
 
   /**
    * Logout user

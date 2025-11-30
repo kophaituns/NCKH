@@ -13,6 +13,7 @@ import Dashboard from '../pages/Dashboard/index.jsx';
 import AdminDashboard from '../pages/Admin/Dashboard/index.jsx';
 import CreatorDashboard from '../pages/Creator/Dashboard/index.jsx';
 import UserManagement from '../pages/Admin/Users/index.jsx';
+import ProfilePage from '../pages/Profile/index.jsx';
 import TemplateList from '../pages/Templates/TemplateList/index.jsx';
 import TemplateEditor from '../pages/Templates/TemplateEditor/index.jsx';
 import SurveyList from '../pages/Surveys/SurveyList/index.jsx';
@@ -357,16 +358,17 @@ const AppRoutes = () => {
       />
 
       {/* Profile & Settings (All authenticated users) */}
-      <Route
-        path="/profile"
+            <Route 
+        path="/profile" 
         element={
           <ProtectedRoute>
             <DefaultLayout>
-              <ComingSoon title="Profile" />
+              <ProfilePage />
             </DefaultLayout>
           </ProtectedRoute>
-        }
+        } 
       />
+
       <Route
         path="/settings"
         element={

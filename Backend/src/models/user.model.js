@@ -33,6 +33,18 @@ module.exports = (sequelize, DataTypes) => {
         type: DataTypes.ENUM('admin', 'creator', 'user'),
         defaultValue: 'user',
       },
+        bio: {
+        type: DataTypes.TEXT,
+        allowNull: true,
+      },
+      date_of_birth: {
+        type: DataTypes.DATEONLY,
+        allowNull: true,
+      },
+      gender: {
+        type: DataTypes.ENUM('male', 'female', 'other'),
+        allowNull: true,
+      },
       created_at: {
         type: DataTypes.DATE,
         defaultValue: DataTypes.NOW,
@@ -41,6 +53,7 @@ module.exports = (sequelize, DataTypes) => {
         type: DataTypes.DATE,
         defaultValue: DataTypes.NOW,
       },
+      
     },
     {
       tableName: 'users',

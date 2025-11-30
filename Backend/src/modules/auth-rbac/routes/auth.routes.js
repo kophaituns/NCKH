@@ -33,6 +33,13 @@ router.post('/refresh', authController.refreshToken);
 router.get('/profile', authenticate, authController.getProfile);
 
 /**
+ * @route   PUT /api/auth/profile
+ * @desc    Update current user profile
+ * @access  Private
+ */
+router.put('/profile', authenticate, authController.updateProfile);
+ 
+/**
  * @route   POST /api/auth/logout
  * @desc    Logout user
  * @access  Private

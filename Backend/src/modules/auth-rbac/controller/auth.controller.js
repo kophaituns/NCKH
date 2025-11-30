@@ -122,6 +122,34 @@ class AuthController {
       });
     }
   }
+    /**
+   * Update current user profile
+   */
+  async updateProfile(req, res) {
+    try {
+      const { full_name, bio, dateOfBirth, gender } = req.body;
+
+      const updatedUser = await authService.updateProfile(req.user.id, {
+        full_name,
+        bio,
+        dateOfBirth,
+        gender,
+      });
+
+      return res.status(200).json({
+        success: true,
+        message: 'Profile updated successfully',
+        data: { user: updatedUser },
+      });
+    } catch (error) {
+      logger.error('Update profile error:', error);
+      return res.status(500).json({
+        success: false,
+        message: error.message || 'Error updating profile',
+      });
+    }
+  }
+
 
   /**
    * Logout (client-side token removal, but can be extended)

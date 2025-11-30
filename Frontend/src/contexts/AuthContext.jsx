@@ -167,15 +167,19 @@ export const AuthProvider = ({ children }) => {
       const responseData = data.data;
       const user = responseData.user;
       
-      const userObj = {
+            const userObj = {
         id: user.id.toString(),
         username: user.username,
         email: user.email,
         full_name: user.full_name,
         role: user.role,
+        bio: user.bio || '',
+        dateOfBirth: user.date_of_birth || user.dateOfBirth || null,
+        gender: user.gender || '',
         createdAt: new Date(user.created_at || user.createdAt),
         updatedAt: new Date(user.updated_at || user.updatedAt),
       };
+
 
       TokenService.saveTokens(responseData.token, responseData.refreshToken);
       TokenService.saveUser(userObj);

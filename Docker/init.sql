@@ -9,6 +9,7 @@ CREATE DATABASE llm_survey_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 -- Use the database
 USE llm_survey_db;
 
+
 -- Create users table
 CREATE TABLE users (
     id INT AUTO_INCREMENT PRIMARY KEY,
@@ -17,9 +18,14 @@ CREATE TABLE users (
     password VARCHAR(255) NOT NULL,
     full_name VARCHAR(100) NOT NULL,
     role ENUM('admin', 'creator', 'user') NOT NULL DEFAULT 'user',
+    bio TEXT NULL,                        -- Tiểu sử / mô tả
+    date_of_birth DATE NULL,              -- Ngày sinh
+    gender ENUM('male','female','other') NULL,  -- Giới tính: male/female/other
+
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
+
 
 -- Create survey_templates table
 CREATE TABLE survey_templates (

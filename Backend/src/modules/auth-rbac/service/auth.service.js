@@ -122,6 +122,38 @@ class AuthService {
       throw new Error('Invalid refresh token');
     }
   }
+  /**
+   * Update current user profile
+   */
+  async updateProfile(userId, profileData) {
+    const user = await User.findByPk(userId);
+
+    if (!user) {
+      throw new Error('User not found');
+    }
+
+    const fieldsToUpdate = {};
+
+    if (profileData.full_name !== undefined) {
+      fieldsToUpdate.full_name = profileData.full_name;
+    }
+    if (profileData.bio !== undefined) {
+      fieldsToUpdate.bio = profileData.bio;
+    }
+    if (profileData.dateOfBirth !== undefined) {
+      // FE gửi dateOfBirth dạng 'YYYY-MM-DD'
+      fieldsToUpdate.date_of_birth = profileData.dateOfBirth || null;
+    }
+    if (profileData.gender !== undefined) {
+      
+      fieldsToUpdate.gender = profileData.gender || null;
+    }
+
+    await user.update(fieldsToUpdate);
+
+    // Trả về user không có password
+    return user.toJSON();
+  }
 
   /**
    * Get user profile
