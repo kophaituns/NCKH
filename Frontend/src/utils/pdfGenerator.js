@@ -8,7 +8,7 @@ export const generateResponsePDF = (response) => {
   try {
     // Create a new window for PDF content
     const printWindow = window.open('', '_blank');
-    
+
     if (!printWindow) {
       throw new Error('Popup blocked. Please enable popups for this site.');
     }
@@ -204,7 +204,7 @@ export const generateResponsePDF = (response) => {
     printWindow.onload = () => {
       setTimeout(() => {
         printWindow.print();
-        
+
         // Close the window after printing (with some delay for print dialog)
         setTimeout(() => {
           printWindow.close();
@@ -230,31 +230,31 @@ export const generateAdvancedResponsePDF = async (response) => {
 
     const doc = new jsPDF();
     const pageWidth = doc.internal.pageSize.width;
-    
+
     // Header
     doc.setFontSize(20);
     doc.setTextColor(44, 62, 80);
     doc.text('Survey Response Report', pageWidth / 2, 30, { align: 'center' });
-    
+
     doc.setFontSize(14);
     doc.setTextColor(0, 123, 255);
     doc.text(response.Survey.title, pageWidth / 2, 45, { align: 'center' });
-    
+
     doc.setFontSize(10);
     doc.setTextColor(102, 102, 102);
     doc.text(`Generated on ${new Date().toLocaleDateString()}`, pageWidth / 2, 55, { align: 'center' });
-    
+
     // Survey Information Table
     const surveyInfo = [
       ['Survey Title', response.Survey.title],
       ['Response Date', new Date(response.created_at).toLocaleDateString()],
       ['Status', response.status || 'Completed'],
     ];
-    
+
     if (response.Survey.description) {
       surveyInfo.push(['Description', response.Survey.description]);
     }
-    
+
     doc.autoTable({
       startY: 70,
       head: [['Field', 'Value']],
@@ -262,19 +262,19 @@ export const generateAdvancedResponsePDF = async (response) => {
       headStyles: { fillColor: [0, 123, 255] },
       margin: { left: 20, right: 20 },
     });
-    
+
     // Answers Section
     if (response.Answers && response.Answers.length > 0) {
       const finalY = doc.lastAutoTable.finalY + 20;
-      
+
       doc.setFontSize(16);
       doc.setTextColor(44, 62, 80);
       doc.text('Your Answers', 20, finalY);
-      
+
       const answersData = response.Answers.map((answer, index) => {
         const question = answer.Question.label || answer.Question.question_text;
         let answerText = 'No answer';
-        
+
         if (answer.QuestionOption) {
           answerText = answer.QuestionOption.option_text;
         } else if (answer.numeric_answer !== null) {
@@ -282,10 +282,10 @@ export const generateAdvancedResponsePDF = async (response) => {
         } else if (answer.text_answer) {
           answerText = answer.text_answer;
         }
-        
+
         return [index + 1, question, answerText];
       });
-      
+
       doc.autoTable({
         startY: finalY + 10,
         head: [['#', 'Question', 'Answer']],
@@ -304,11 +304,11 @@ export const generateAdvancedResponsePDF = async (response) => {
         },
       });
     }
-    
+
     // Save the PDF
     const fileName = `survey-response-${response.Survey.title.replace(/[^a-zA-Z0-9]/g, '-')}-${new Date().toISOString().split('T')[0]}.pdf`;
     doc.save(fileName);
-    
+
     return true;
   } catch (error) {
     console.error('Advanced PDF generation failed:', error);
@@ -317,7 +317,9 @@ export const generateAdvancedResponsePDF = async (response) => {
   }
 };
 
-export default {
+const pdfGenerator = {
   generateResponsePDF,
   generateAdvancedResponsePDF,
 };
+
+export default pdfGenerator;

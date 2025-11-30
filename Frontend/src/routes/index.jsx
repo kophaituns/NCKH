@@ -29,6 +29,8 @@ import LLM from '../pages/LLM/index.jsx';
 import PublicResponseForm from '../pages/Public/ResponseForm/index.jsx';
 import WorkspaceInvitationAccept from '../pages/Public/WorkspaceInvitationAccept/index.jsx';
 import UserResponses from '../pages/User/Responses/index.jsx';
+import Profile from '../pages/User/Profile/Profile.jsx';
+import Settings from '../pages/User/Settings/Settings.jsx';
 
 // Placeholder components for routes not yet implemented
 const ComingSoon = ({ title }) => (
@@ -362,7 +364,7 @@ const AppRoutes = () => {
         element={
           <ProtectedRoute>
             <DefaultLayout>
-              <ComingSoon title="Profile" />
+              <Profile />
             </DefaultLayout>
           </ProtectedRoute>
         }
@@ -372,7 +374,7 @@ const AppRoutes = () => {
         element={
           <ProtectedRoute>
             <DefaultLayout>
-              <ComingSoon title="Settings" />
+              <Settings />
             </DefaultLayout>
           </ProtectedRoute>
         }

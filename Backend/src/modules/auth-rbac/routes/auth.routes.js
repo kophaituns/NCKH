@@ -39,4 +39,11 @@ router.get('/profile', authenticate, authController.getProfile);
  */
 router.post('/logout', authenticate, authController.logout);
 
+/**
+ * @route   POST /api/auth/change-password
+ * @desc    Change password
+ * @access  Private
+ */
+router.post('/change-password', authenticate, authController.changePassword);
+
 module.exports = router;

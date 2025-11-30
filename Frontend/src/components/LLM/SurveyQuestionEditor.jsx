@@ -132,27 +132,24 @@ const SurveyQuestionEditor = ({ surveyId, onClose, onSurveyUpdated }) => {
 
       // Filter out empty options
       const validOptions = questionForm.options.filter(opt => opt.trim());
-      
+
       const questionData = {
         ...questionForm,
         options: validOptions.length > 0 ? validOptions : undefined
       };
 
-      let response;
       if (editingQuestion) {
-        // Update existing question
-        response = await LLMService.updateSurveyQuestion(surveyId, editingQuestion.id, questionData);
+        await LLMService.updateSurveyQuestion(surveyId, editingQuestion.id, questionData);
         showToast('Question updated', 'success');
       } else {
-        // Add new question
-        response = await LLMService.addSurveyQuestion(surveyId, questionData);
-        showToast('New question added', 'success');
+        await LLMService.addSurveyQuestion(surveyId, questionData);
+        showToast('Question added', 'success');
       }
 
       // Reload survey data
       const updatedSurvey = await LLMService.getSurveyForEditing(surveyId);
       setSurvey(updatedSurvey.data);
-      
+
       // Reset form
       setEditingQuestion(null);
       setShowAddModal(false);
@@ -182,7 +179,7 @@ const SurveyQuestionEditor = ({ surveyId, onClose, onSurveyUpdated }) => {
       setSaving(true);
       await LLMService.deleteSurveyQuestion(surveyId, questionId);
       showToast('Question deleted', 'success');
-      
+
       // Reload survey data
       const updatedSurvey = await LLMService.getSurveyForEditing(surveyId);
       setSurvey(updatedSurvey.data);
@@ -203,7 +200,7 @@ const SurveyQuestionEditor = ({ surveyId, onClose, onSurveyUpdated }) => {
       setSaving(true);
       await LLMService.updateSurveySettings(surveyId, settingsForm);
       showToast('Survey information updated', 'success');
-      
+
       // Update local state
       setSurvey(prev => ({
         ...prev,
@@ -232,8 +229,8 @@ const SurveyQuestionEditor = ({ surveyId, onClose, onSurveyUpdated }) => {
           <p>Manage questions and survey settings</p>
         </div>
         <div className={styles.headerActions}>
-          <Button 
-            variant="outline" 
+          <Button
+            variant="outline"
             onClick={() => setShowSettingsModal(true)}
           >
             Survey Settings
@@ -257,15 +254,15 @@ const SurveyQuestionEditor = ({ surveyId, onClose, onSurveyUpdated }) => {
                 <div className={styles.questionHeader}>
                   <span className={styles.questionNumber}>Question {index + 1}</span>
                   <div className={styles.questionActions}>
-                    <Button 
-                      variant="outline" 
+                    <Button
+                      variant="outline"
                       size="sm"
                       onClick={() => startEditQuestion(question)}
                     >
                       Edit
                     </Button>
-                    <Button 
-                      variant="danger" 
+                    <Button
+                      variant="danger"
                       size="sm"
                       onClick={() => deleteQuestion(question.id)}
                     >

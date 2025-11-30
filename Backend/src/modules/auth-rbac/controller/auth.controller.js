@@ -141,6 +141,34 @@ class AuthController {
       });
     }
   }
+  /**
+   * Change password
+   */
+  async changePassword(req, res) {
+    try {
+      const { oldPassword, newPassword } = req.body;
+
+      if (!oldPassword || !newPassword) {
+        return res.status(400).json({
+          success: false,
+          message: 'Current password and new password are required'
+        });
+      }
+
+      await authService.changePassword(req.user.id, oldPassword, newPassword);
+
+      res.status(200).json({
+        success: true,
+        message: 'Password changed successfully'
+      });
+    } catch (error) {
+      logger.error('Change password error:', error);
+      res.status(400).json({
+        success: false,
+        message: error.message || 'Error changing password'
+      });
+    }
+  }
 }
 
 module.exports = new AuthController();

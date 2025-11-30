@@ -6,12 +6,14 @@ import Pagination from '../../../components/common/Pagination/Pagination';
 import ConfirmModal from '../../../components/UI/ConfirmModal';
 import { useToast } from '../../../contexts/ToastContext';
 import { useAuth } from '../../../contexts/AuthContext';
+import { useLanguage } from '../../../contexts/LanguageContext';
 import styles from './TemplateList.module.scss';
 
 const TemplateList = () => {
   const navigate = useNavigate();
   const { showToast } = useToast();
   const { state: { user } } = useAuth();
+  const { t } = useLanguage();
 
   const [templates, setTemplates] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -123,8 +125,8 @@ const TemplateList = () => {
     <div className={styles.templateList}>
       <div className={styles.header}>
         <div>
-          <h1 className={styles.title}>Survey Templates</h1>
-          <p className={styles.subtitle}>Create and manage reusable survey templates</p>
+          <h1 className={styles.title}>{t('survey_templates')}</h1>
+          <p className={styles.subtitle}>{t('manage_templates_desc') || 'Create and manage reusable survey templates'}</p>
         </div>
         <button
           className={styles.createButton}
@@ -134,7 +136,7 @@ const TemplateList = () => {
             <line x1="12" y1="5" x2="12" y2="19" />
             <line x1="5" y1="12" x2="19" y2="12" />
           </svg>
-          Create Template
+          {t('create_template') || 'Create Template'}
         </button>
       </div>
 
@@ -146,7 +148,7 @@ const TemplateList = () => {
           </svg>
           <input
             type="text"
-            placeholder="Search templates..."
+            placeholder={t('search_templates')}
             value={searchTerm}
             onChange={(e) => {
               setSearchTerm(e.target.value);
@@ -178,12 +180,12 @@ const TemplateList = () => {
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
               </svg>
-              Delete Selected ({selectedIds.length})
+              {t('delete_selected')} ({selectedIds.length})
             </button>
           )}
 
           <span className={styles.resultCount}>
-            {totalItems} {totalItems === 1 ? 'template' : 'templates'} found
+            {totalItems} {totalItems === 1 ? t('template') : t('templates')} {t('found')}
           </span>
         </div>
       </div>
@@ -205,20 +207,20 @@ const TemplateList = () => {
           style={{ width: '1.25rem', height: '1.25rem', cursor: 'pointer', marginRight: '0.75rem' }}
         />
         <span style={{ fontSize: '0.875rem', color: '#374151', fontWeight: 500 }}>
-          Select All (My Templates)
+          {t('select_all_my_templates') || 'Select All (My Templates)'}
         </span>
       </div>
 
       {templates.length === 0 ? (
         <div className={styles.emptyState}>
           <div className={styles.emptyIcon}>📋</div>
-          <h3>No templates found</h3>
-          <p>Create your first survey template to get started</p>
+          <h3>{t('no_templates_found')}</h3>
+          <p>{t('create_first_template_desc') || 'Create your first survey template to get started'}</p>
           <button
             className={styles.emptyButton}
             onClick={() => navigate('/templates/new')}
           >
-            Create Template
+            {t('create_template') || 'Create Template'}
           </button>
         </div>
       ) : (
@@ -245,7 +247,7 @@ const TemplateList = () => {
                       <button
                         onClick={() => navigate(`/templates/${template.id}/edit`)}
                         className={styles.editButton}
-                        title="Edit template"
+                        title={t('edit')}
                       >
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                           <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
@@ -256,7 +258,7 @@ const TemplateList = () => {
                         <button
                           onClick={() => openDeleteModal(template)}
                           className={styles.deleteButton}
-                          title="Delete template"
+                          title={t('delete')}
                         >
                           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                             <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
@@ -267,12 +269,12 @@ const TemplateList = () => {
                   </div>
 
                   <p className={styles.cardDescription} style={{ paddingLeft: isDeletable ? '2rem' : '0' }}>
-                    {template.description || 'No description provided'}
+                    {template.description || t('no_description')}
                   </p>
 
                   <div className={styles.cardFooter}>
                     <span className={styles.questionCount}>
-                      📝 {template.question_count || 0} questions
+                      📝 {template.question_count || 0} {t('questions')}
                     </span>
                     <span className={styles.createdDate}>
                       {new Date(template.created_at).toLocaleDateString()}
@@ -302,9 +304,9 @@ const TemplateList = () => {
           setTemplateToDelete(null);
         }}
         onConfirm={handleDelete}
-        title="Delete Template"
-        message={`Are you sure you want to delete "${templateToDelete?.title}"? This action cannot be undone and will delete all associated questions.`}
-        confirmText="Delete"
+        title={t('delete_template') || "Delete Template"}
+        message={t('delete_template_confirm') || `Are you sure you want to delete "${templateToDelete?.title}"? This action cannot be undone and will delete all associated questions.`}
+        confirmText={t('delete')}
         confirmColor="danger"
       />
 
@@ -312,13 +314,13 @@ const TemplateList = () => {
         isOpen={showBulkDeleteModal}
         onClose={() => setShowBulkDeleteModal(false)}
         onConfirm={handleBulkDelete}
-        title={user?.role === 'admin' ? "Delete Selected Templates (Admin)" : "Delete Selected Templates"}
+        title={user?.role === 'admin' ? t('delete_selected_admin') : t('delete_selected')}
         message={
           user?.role === 'admin'
-            ? `WARNING: You are about to delete ${selectedIds.length} templates. As an admin, you can delete templates created by other users. This action cannot be undone.`
-            : `Are you sure you want to delete ${selectedIds.length} selected templates? This action cannot be undone.`
+            ? t('delete_selected_admin_confirm', { count: selectedIds.length }) || `WARNING: You are about to delete ${selectedIds.length} templates. As an admin, you can delete templates created by other users. This action cannot be undone.`
+            : t('delete_selected_confirm', { count: selectedIds.length }) || `Are you sure you want to delete ${selectedIds.length} selected templates? This action cannot be undone.`
         }
-        confirmText={`Delete ${selectedIds.length} Templates`}
+        confirmText={`${t('delete')} ${selectedIds.length} ${t('templates')}`}
         confirmColor="danger"
       />
     </div>

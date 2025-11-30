@@ -2,12 +2,14 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import WorkspaceService from '../../../api/services/workspace.service';
 import { useToast } from '../../../contexts/ToastContext';
+import { useLanguage } from '../../../contexts/LanguageContext';
 import Loader from '../../../components/common/Loader/Loader';
 import styles from './WorkspaceList.module.scss';
 
 const WorkspaceList = () => {
   const navigate = useNavigate();
   const { showToast } = useToast();
+  const { t } = useLanguage();
 
   const [loading, setLoading] = useState(true);
   const [workspaces, setWorkspaces] = useState([]);
@@ -37,7 +39,7 @@ const WorkspaceList = () => {
         limit: itemsPerPage,
         search
       });
-      
+
       if (result.ok) {
         setWorkspaces(result.items || []);
         if (result.pagination) {
@@ -47,27 +49,27 @@ const WorkspaceList = () => {
       } else {
         // Check for forbidden access
         if (result.code === 'FORBIDDEN') {
-          showToast('You do not have permission to access this workspace.', 'error');
+          showToast(t('forbidden_access') || 'You do not have permission to access this workspace.', 'error');
           navigate('/403');
           return;
         }
-        setError(result.error || 'Failed to load workspaces');
+        setError(result.error || t('failed_load_workspaces') || 'Failed to load workspaces');
         setWorkspaces([]);
       }
     } catch (err) {
       console.error('[WorkspaceList] Error fetching workspaces:', err);
       // Check for 403 error
       if (err.response?.status === 403) {
-        showToast('You do not have permission to access this workspace.', 'error');
+        showToast(t('forbidden_access') || 'You do not have permission to access this workspace.', 'error');
         navigate('/403');
         return;
       }
-      setError(err.message || 'Failed to load workspaces');
+      setError(err.message || t('failed_load_workspaces') || 'Failed to load workspaces');
       setWorkspaces([]);
     } finally {
       setLoading(false);
     }
-  }, [navigate, showToast, itemsPerPage]);
+  }, [navigate, showToast, itemsPerPage, t]);
 
   useEffect(() => {
     fetchWorkspaces(currentPage, searchTerm);
@@ -105,7 +107,7 @@ const WorkspaceList = () => {
     e.preventDefault();
 
     if (!formData.name.trim()) {
-      showToast('Workspace name is required', 'error');
+      showToast(t('workspace_name_required') || 'Workspace name is required', 'error');
       return;
     }
 
@@ -117,15 +119,15 @@ const WorkspaceList = () => {
       });
 
       if (result.ok) {
-        showToast('Workspace created successfully', 'success');
+        showToast(t('workspace_created_success') || 'Workspace created successfully', 'success');
         handleCloseModal();
         await fetchWorkspaces(); // Refresh list
       } else {
-        showToast(result.error || 'Failed to create workspace', 'error');
+        showToast(result.error || t('failed_create_workspace') || 'Failed to create workspace', 'error');
       }
     } catch (err) {
       console.error('[WorkspaceList] Error creating workspace:', err);
-      showToast(err.response?.data?.message || 'Failed to create workspace', 'error');
+      showToast(err.response?.data?.message || t('failed_create_workspace') || 'Failed to create workspace', 'error');
     } finally {
       setCreating(false);
     }
@@ -161,11 +163,11 @@ const WorkspaceList = () => {
   const handleDeleteSelected = async () => {
     const selectedCount = selectedWorkspaces.size;
     if (selectedCount === 0) {
-      showToast('Please select workspaces to delete', 'error');
+      showToast(t('select_workspaces_delete') || 'Please select workspaces to delete', 'error');
       return;
     }
 
-    if (!window.confirm(`Are you sure you want to delete ${selectedCount} workspace(s)?`)) {
+    if (!window.confirm(t('delete_workspaces_confirm', { count: selectedCount }) || `Are you sure you want to delete ${selectedCount} workspace(s)?`)) {
       return;
     }
 
@@ -175,16 +177,16 @@ const WorkspaceList = () => {
       const result = await WorkspaceService.deleteMultipleWorkspaces(workspaceIds);
 
       if (result.ok) {
-        showToast(`Successfully deleted ${result.deletedCount} workspace(s)`, 'success');
+        showToast(t('workspaces_deleted_success', { count: result.deletedCount }) || `Successfully deleted ${result.deletedCount} workspace(s)`, 'success');
         setSelectedWorkspaces(new Set());
         setSelectAll(false);
         await fetchWorkspaces(currentPage, searchTerm);
       } else {
-        showToast(result.error || 'Failed to delete workspaces', 'error');
+        showToast(result.error || t('failed_delete_workspaces') || 'Failed to delete workspaces', 'error');
       }
     } catch (error) {
       console.error('[WorkspaceList] Error deleting workspaces:', error);
-      showToast(error.response?.data?.message || 'Failed to delete workspaces', 'error');
+      showToast(error.response?.data?.message || t('failed_delete_workspaces') || 'Failed to delete workspaces', 'error');
     } finally {
       setDeleting(false);
     }
@@ -209,19 +211,19 @@ const WorkspaceList = () => {
   return (
     <div className={styles.workspaceContainer}>
       <div className={styles.header}>
-        <h1>Workspaces</h1>
+        <h1>{t('workspaces')}</h1>
         <div className={styles.headerActions}>
           <div className={styles.searchBox}>
             <input
               type="text"
-              placeholder="Search workspaces..."
+              placeholder={t('search_workspaces') || "Search workspaces..."}
               value={searchTerm}
               onChange={handleSearchChange}
               className={styles.searchInput}
             />
           </div>
           <button className={styles.createButton} onClick={handleCreateClick}>
-            Create workspace
+            {t('create_workspace')}
           </button>
         </div>
       </div>
@@ -231,9 +233,9 @@ const WorkspaceList = () => {
       {workspaces.length === 0 ? (
         <div className={styles.emptyState}>
           <div className={styles.emptyIcon}>📦</div>
-          <p>No workspaces found.</p>
+          <p>{t('no_workspaces_found') || "No workspaces found."}</p>
           <button className={styles.createButton} onClick={handleCreateClick} style={{ marginTop: '1rem' }}>
-            Create your first workspace
+            {t('create_first_workspace') || "Create your first workspace"}
           </button>
         </div>
       ) : (
@@ -247,11 +249,11 @@ const WorkspaceList = () => {
                   checked={selectAll}
                   onChange={(e) => handleSelectAll(e.target.checked)}
                 />
-                Select All ({workspaces.length})
+                {t('select_all')} ({workspaces.length})
               </label>
               {selectedWorkspaces.size > 0 && (
                 <span className={styles.selectedInfo}>
-                  {selectedWorkspaces.size} selected
+                  {selectedWorkspaces.size} {t('selected')}
                 </span>
               )}
             </div>
@@ -262,7 +264,7 @@ const WorkspaceList = () => {
                   onClick={handleDeleteSelected}
                   disabled={deleting}
                 >
-                  {deleting ? 'Deleting...' : `Delete Selected (${selectedWorkspaces.size})`}
+                  {deleting ? t('deleting') : `${t('delete_selected')} (${selectedWorkspaces.size})`}
                 </button>
               </div>
             )}
@@ -270,8 +272,8 @@ const WorkspaceList = () => {
 
           <div className={styles.workspaceList}>
             {workspaces.map(workspace => (
-              <div 
-                key={workspace.id} 
+              <div
+                key={workspace.id}
                 className={`${styles.workspaceCard} ${selectedWorkspaces.has(workspace.id) ? styles.selected : ''}`}
               >
                 <div className={styles.workspaceCardHeader}>
@@ -288,19 +290,19 @@ const WorkspaceList = () => {
                 )}
                 <div className={styles.workspaceMetadata}>
                   {workspace.owner_id && (
-                    <span className={styles.ownerInfo}>Owner: User #{workspace.owner_id}</span>
+                    <span className={styles.ownerInfo}>{t('owner')}: User #{workspace.owner_id}</span>
                   )}
                   {workspace.created_at && (
                     <span className={styles.workspaceDate}>
-                      Created {new Date(workspace.created_at).toLocaleDateString()}
+                      {t('created')} {new Date(workspace.created_at).toLocaleDateString()}
                     </span>
                   )}
                 </div>
-                <button 
+                <button
                   className={styles.openButton}
                   onClick={() => handleOpenWorkspace(workspace.id)}
                 >
-                  Open
+                  {t('open') || "Open"}
                 </button>
               </div>
             ))}
@@ -310,7 +312,7 @@ const WorkspaceList = () => {
           {totalPages > 1 && (
             <div className={styles.pagination}>
               <div className={styles.paginationInfo}>
-                Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, totalItems)} of {totalItems} workspaces
+                {t('showing')} {((currentPage - 1) * itemsPerPage) + 1} {t('to')} {Math.min(currentPage * itemsPerPage, totalItems)} {t('of')} {totalItems} {t('workspaces')}
               </div>
               <div className={styles.paginationControls}>
                 <button
@@ -318,15 +320,15 @@ const WorkspaceList = () => {
                   onClick={() => handlePageChange(currentPage - 1)}
                   disabled={currentPage === 1}
                 >
-                  Previous
+                  {t('previous') || "Previous"}
                 </button>
-                
+
                 {[...Array(totalPages)].map((_, index) => {
                   const pageNumber = index + 1;
                   const isCurrentPage = pageNumber === currentPage;
-                  const showPage = pageNumber === 1 || 
-                                 pageNumber === totalPages || 
-                                 (pageNumber >= currentPage - 2 && pageNumber <= currentPage + 2);
+                  const showPage = pageNumber === 1 ||
+                    pageNumber === totalPages ||
+                    (pageNumber >= currentPage - 2 && pageNumber <= currentPage + 2);
 
                   if (!showPage) {
                     if (pageNumber === currentPage - 3 || pageNumber === currentPage + 3) {
@@ -351,7 +353,7 @@ const WorkspaceList = () => {
                   onClick={() => handlePageChange(currentPage + 1)}
                   disabled={currentPage === totalPages}
                 >
-                  Next
+                  {t('next') || "Next"}
                 </button>
               </div>
             </div>
@@ -364,8 +366,8 @@ const WorkspaceList = () => {
         <div className={styles.modalOverlay} onClick={handleCloseModal}>
           <div className={styles.modal} onClick={e => e.stopPropagation()}>
             <div className={styles.modalHeader}>
-              <h2>Create workspace</h2>
-              <button 
+              <h2>{t('create_workspace')}</h2>
+              <button
                 className={styles.closeButton}
                 onClick={handleCloseModal}
                 aria-label="Close modal"
@@ -376,26 +378,26 @@ const WorkspaceList = () => {
 
             <form onSubmit={handleCreateWorkspace}>
               <div className={styles.formGroup}>
-                <label htmlFor="name">Workspace name</label>
+                <label htmlFor="name">{t('workspace_name')}</label>
                 <input
                   type="text"
                   id="name"
                   name="name"
                   value={formData.name}
                   onChange={handleFormChange}
-                  placeholder="Enter workspace name"
+                  placeholder={t('enter_workspace_name') || "Enter workspace name"}
                   required
                 />
               </div>
 
               <div className={styles.formGroup}>
-                <label htmlFor="description">Description (optional)</label>
+                <label htmlFor="description">{t('description')} ({t('optional') || "optional"})</label>
                 <textarea
                   id="description"
                   name="description"
                   value={formData.description}
                   onChange={handleFormChange}
-                  placeholder="Enter workspace description"
+                  placeholder={t('enter_workspace_desc') || "Enter workspace description"}
                 />
               </div>
 
@@ -405,14 +407,14 @@ const WorkspaceList = () => {
                   className={styles.cancelButton}
                   onClick={handleCloseModal}
                 >
-                  Cancel
+                  {t('cancel')}
                 </button>
                 <button
                   type="submit"
                   className={styles.submitButton}
                   disabled={creating}
                 >
-                  {creating ? 'Creating...' : 'Create workspace'}
+                  {creating ? t('creating') : t('create_workspace')}
                 </button>
               </div>
             </form>

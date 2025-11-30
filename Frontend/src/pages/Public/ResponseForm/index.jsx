@@ -13,7 +13,7 @@ const PublicResponseForm = () => {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [survey, setSurvey] = useState(null);
-  const [collectorId, setCollectorId] = useState(null);
+  // const [collectorId, setCollectorId] = useState(null); // Unused
   const [answers, setAnswers] = useState({});
   const [errors, setErrors] = useState({});
   const [submitted, setSubmitted] = useState(false);
@@ -66,7 +66,7 @@ const PublicResponseForm = () => {
       }
 
       setSurvey(surveyData);
-      setCollectorId(response.data.collector_id);
+      // setCollectorId(response.data.collector_id);
 
       // Initialize answers based on question type
       const initialAnswers = {};
@@ -94,24 +94,24 @@ const PublicResponseForm = () => {
   // Calculate progress percentage
   const calculateProgress = () => {
     if (!survey || survey.questions.length === 0) return 0;
-    
+
     const answeredQuestions = survey.questions.filter(q => {
       const answer = answers[q.id];
       return answer && (Array.isArray(answer) ? answer.length > 0 : answer.toString().trim() !== '');
     });
-    
+
     return Math.round((answeredQuestions.length / survey.questions.length) * 100);
   };
 
-  // Estimate completion time
-  const getEstimatedTime = () => {
-    if (!survey) return '5-10 min';
-    const questionCount = survey.questions.length;
-    const timePerQuestion = 45; // seconds per question
-    const totalSeconds = questionCount * timePerQuestion;
-    const minutes = Math.ceil(totalSeconds / 60);
-    return `${minutes} min`;
-  };
+  // Estimate completion time (Unused)
+  // const getEstimatedTime = () => {
+  //   if (!survey) return '5-10 min';
+  //   const questionCount = survey.questions.length;
+  //   const timePerQuestion = 45; // seconds per question
+  //   const totalSeconds = questionCount * timePerQuestion;
+  //   const minutes = Math.ceil(totalSeconds / 60);
+  //   return `${minutes} min`;
+  // };
 
   // Get question type display name with details
   const getQuestionTypeDisplay = (question) => {
@@ -127,14 +127,14 @@ const PublicResponseForm = () => {
       'date': 'Date',
       'likert_scale': 'Rating Scale (1-5)'
     };
-    
+
     const baseType = typeMap[question.type] || 'Response';
-    
+
     // Add option count for relevant types
     if (['multiple_choice', 'checkbox', 'dropdown'].includes(question.type) && question.options) {
       return `${baseType} (${question.options.length} options)`;
     }
-    
+
     return baseType;
   };
 
@@ -261,7 +261,7 @@ const PublicResponseForm = () => {
                   type="radio"
                   name={`question-${question.id}`}
                   value={option.id}
-                  checked={answer == option.id}
+                  checked={String(answer) === String(option.id)}
                   onChange={(e) => handleAnswerChange(question.id, option.id, question.type)}
                   className={styles.radioInput}
                 />
@@ -313,7 +313,7 @@ const PublicResponseForm = () => {
                 key={rating}
                 type="button"
                 onClick={() => handleAnswerChange(question.id, rating, question.type)}
-                className={`${styles.ratingButton} ${answer == rating ? styles.ratingSelected : ''}`}
+                className={`${styles.ratingButton} ${String(answer) === String(rating) ? styles.ratingSelected : ''}`}
               >
                 {rating}
               </button>
@@ -376,8 +376,8 @@ const PublicResponseForm = () => {
               </span>
             </div>
             <div className={styles.progressBar}>
-              <div 
-                className={styles.progressFill} 
+              <div
+                className={styles.progressFill}
                 style={{ width: `${calculateProgress()}%` }}
               />
             </div>

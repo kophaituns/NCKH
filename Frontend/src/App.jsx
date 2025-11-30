@@ -6,17 +6,21 @@ import AppRoutes from './routes/index.jsx';
 import GlobalStyles from './components/GlobalStyles/index.jsx';
 import './styles/main.scss';
 
+import { LanguageProvider } from './contexts/LanguageContext.jsx';
+
 function App() {
   return (
-    <AuthProvider>
-      <ToastProvider>
-        <GlobalStyles>
-          <Router>
-            <AppRoutes />
-          </Router>
-        </GlobalStyles>
-      </ToastProvider>
-    </AuthProvider>
+    <LanguageProvider>
+      <AuthProvider>
+        <ToastProvider>
+          <GlobalStyles>
+            <Router>
+              <AppRoutes />
+            </Router>
+          </GlobalStyles>
+        </ToastProvider>
+      </AuthProvider>
+    </LanguageProvider>
   );
 }
 

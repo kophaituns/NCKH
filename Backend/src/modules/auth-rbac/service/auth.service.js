@@ -111,7 +111,7 @@ class AuthService {
   async refreshToken(refreshToken) {
     try {
       const decoded = jwt.verify(refreshToken, process.env.JWT_SECRET);
-      
+
       const user = await User.findByPk(decoded.id);
       if (!user) {
         throw new Error('User not found');
@@ -136,6 +136,31 @@ class AuthService {
     }
 
     return user.toJSON();
+  }
+  /**
+   * Change password
+   */
+  async changePassword(userId, oldPassword, newPassword) {
+    const user = await User.findByPk(userId);
+
+    if (!user) {
+      throw new Error('User not found');
+    }
+
+    // Verify old password
+    const isMatch = await bcrypt.compare(oldPassword, user.password);
+    if (!isMatch) {
+      throw new Error('Incorrect current password');
+    }
+
+    // Hash new password
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+    // Update password
+    user.password = hashedPassword;
+    await user.save();
+
+    return true;
   }
 }
 
