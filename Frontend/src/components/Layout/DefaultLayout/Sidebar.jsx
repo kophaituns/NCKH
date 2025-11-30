@@ -11,6 +11,7 @@ const Sidebar = ({ isOpen, onClose }) => {
   const getMenuItems = () => {
     const baseItems = [
       { path: '/notifications', label: 'Notifications', icon: 'notifications' },
+      { path: '/my-responses', label: 'My Responses', icon: 'responses' },
       { path: '/chat', label: 'Chat', icon: 'chat' },
     ];
 
@@ -24,6 +25,7 @@ const Sidebar = ({ isOpen, onClose }) => {
         { path: '/collectors', label: 'Collectors', icon: 'collectors' },
         { path: '/analytics', label: 'Analytics', icon: 'analytics' },
         { path: '/llm', label: 'AI Generation', icon: 'llm' },
+        { path: '/my-responses', label: 'My Responses', icon: 'responses' },
         { path: '/chat', label: 'Chat', icon: 'chat' },
       ];
     }
@@ -37,6 +39,7 @@ const Sidebar = ({ isOpen, onClose }) => {
         { path: '/collectors', label: 'Collectors', icon: 'collectors' },
         { path: '/analytics', label: 'Analytics', icon: 'analytics' },
         { path: '/llm', label: 'AI Generation', icon: 'llm' },
+        { path: '/my-responses', label: 'My Responses', icon: 'responses' },
         { path: '/chat', label: 'Chat', icon: 'chat' },
       ];
     }
@@ -90,7 +93,8 @@ const Sidebar = ({ isOpen, onClose }) => {
       ),
       responses: (
         <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-          <path d="M9 17l-5-5 5-5M15 7l-6 6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+          <path d="M3 5a2 2 0 012-2h10a2 2 0 012 2v8a2 2 0 01-2 2h-2.5L9 17.5 5.5 15H5a2 2 0 01-2-2V5z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+          <path d="M7 8h6M7 11h3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
         </svg>
       ),
       analytics: (

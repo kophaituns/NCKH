@@ -22,7 +22,7 @@ const SurveyActions = ({ survey, onClose }) => {
       }
     } catch (error) {
       console.error('PDF Export Error:', error);
-      showToast(error.response?.data?.message || error.message || 'Có lỗi xảy ra khi xuất PDF', 'error');
+      showToast(error.response?.data?.message || error.message || 'An error occurred while exporting PDF', 'error');
     } finally {
       setLoading(false);
     }
@@ -34,38 +34,38 @@ const SurveyActions = ({ survey, onClose }) => {
         <div className={styles.titleSection}>
           <h3>{survey.survey.title}</h3>
           <Badge variant="success">
-            {survey.totalQuestions} câu hỏi
+            {survey.totalQuestions} questions
           </Badge>
         </div>
         <p className={styles.description}>
-          {survey.survey.description || 'Không có mô tả'}
+          {survey.survey.description || 'No description'}
         </p>
         <div className={styles.meta}>
           <span>ID: {survey.survey.id}</span>
-          <span>Trạng thái: {survey.survey.status}</span>
-          <span>Tạo lúc: {new Date(survey.survey.created_at).toLocaleString('vi-VN')}</span>
+          <span>Status: {survey.survey.status}</span>
+          <span>Created: {new Date(survey.survey.created_at).toLocaleString('en-US')}</span>
         </div>
       </Card>
 
       <div className={styles.actionGrid}>
         <Card className={styles.actionCard}>
           <div className={styles.actionIcon}>📄</div>
-          <h4>Xuất PDF</h4>
-          <p>Tải xuống survey dưới dạng file PDF để in hoặc chia sẻ offline</p>
+          <h4>Export PDF</h4>
+          <p>Download survey as PDF file for printing or offline sharing</p>
           <Button
             onClick={handleExportPDF}
             loading={loading}
             variant="outline"
             className={styles.actionButton}
           >
-            Tải PDF
+            Download PDF
           </Button>
         </Card>
       </div>
 
       {/* Questions Preview */}
       <Card className={styles.questionsPreview}>
-        <h4>Câu Hỏi Trong Survey ({survey.totalQuestions || survey.questions?.length || 0})</h4>
+        <h4>Questions in Survey ({survey.totalQuestions || survey.questions?.length || 0})</h4>
         <div className={styles.questionsList}>
           {(survey.questions || []).map((question, index) => {
             const questionText = question.question_text || question.text || String(question);
@@ -79,7 +79,7 @@ const SurveyActions = ({ survey, onClose }) => {
                   <p className={styles.questionText}>{questionText}</p>
                   <div className={styles.questionMeta}>
                     <Badge variant="outline">{questionType}</Badge>
-                    {isRequired && <Badge variant="warning">Bắt buộc</Badge>}
+                    {isRequired && <Badge variant="warning">Required</Badge>}
                   </div>
                 </div>
               </div>
@@ -91,10 +91,10 @@ const SurveyActions = ({ survey, onClose }) => {
       {/* Actions */}
       <div className={styles.bottomActions}>
         <Button onClick={onClose} variant="outline">
-          Tiếp Tục Chỉnh Sửa
+          Continue Editing
         </Button>
         <Button onClick={() => window.location.href = '/surveys'}>
-          Hoàn Tất & Xem Danh Sách
+          Complete & View List
         </Button>
       </div>
     </div>

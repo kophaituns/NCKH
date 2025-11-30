@@ -32,7 +32,7 @@ const AnalyticsService = {
 
   /**
    * Get detailed question analytics for ONE question
-   * (nếu bạn dùng endpoint này)
+   * (if you use this endpoint)
    * Backend (nếu có): /analytics/survey/:survey_id/questions/:question_id
    */
   async getQuestionAnalytics(surveyId, questionId) {
@@ -65,7 +65,7 @@ const AnalyticsService = {
 
   /**
    * Get time-series data for responses
-   * (nếu bạn có route /analytics/survey/:id/time-series)
+   * (if you have route /analytics/survey/:id/time-series)
    */
   async getResponseTimeSeries(surveyId, params = {}) {
     const response = await http.get(
@@ -77,7 +77,7 @@ const AnalyticsService = {
 
   /**
    * Get completion rate statistics
-   * (nếu bạn có route /analytics/survey/:id/completion)
+   * (if you have route /analytics/survey/:id/completion)
    */
   async getCompletionStats(surveyId) {
     const response = await http.get(
@@ -88,7 +88,7 @@ const AnalyticsService = {
 
   /**
    * Get survey activity trend (for dashboard)
-   * Backend: /analytics/survey-activity-trend (nếu bạn đã khai báo)
+   * Backend: /analytics/survey-activity-trend (if you have declared this)
    */
   async getSurveyActivityTrend(params = {}) {
     const response = await http.get('/analytics/survey-activity-trend', {

@@ -30,14 +30,14 @@ const SurveyResults = ({ surveyId, onClose }) => {
       );
 
       if (!response.ok) {
-        throw new Error('Không thể tải kết quả khảo sát');
+        throw new Error('Unable to load survey results');
       }
 
       const data = await response.json();
       if (data.success) {
         setResults(data.data);
       } else {
-        throw new Error(data.message || 'Lỗi tải dữ liệu');
+        throw new Error(data.message || 'Data loading error');
       }
     } catch (err) {
       setError(err.message);
@@ -51,12 +51,12 @@ const SurveyResults = ({ surveyId, onClose }) => {
     return (
       <div className={styles.surveyResults}>
         <div className={styles.header}>
-          <h2>Kết quả khảo sát</h2>
+          <h2>Survey Results</h2>
           <button className={styles.closeBtn} onClick={onClose}>×</button>
         </div>
         <div className={styles.loading}>
           <div className={styles.spinner}></div>
-          <p>Đang tải kết quả...</p>
+          <p>Loading results...</p>
         </div>
       </div>
     );
@@ -66,13 +66,13 @@ const SurveyResults = ({ surveyId, onClose }) => {
     return (
       <div className={styles.surveyResults}>
         <div className={styles.header}>
-          <h2>Kết quả khảo sát</h2>
+          <h2>Survey Results</h2>
           <button className={styles.closeBtn} onClick={onClose}>×</button>
         </div>
         <div className={styles.error}>
           <p>❌ {error}</p>
           <button onClick={fetchSurveyResults} className={styles.retryBtn}>
-            Thử lại
+            Retry
           </button>
         </div>
       </div>
@@ -86,15 +86,15 @@ const SurveyResults = ({ surveyId, onClose }) => {
   const renderAnalytics = () => (
     <div className={styles.analytics}>
       <div className={styles.summary}>
-        <h3>Tổng quan</h3>
+        <h3>Overview</h3>
         <div className={styles.summaryCards}>
           <div className={styles.card}>
             <div className={styles.cardNumber}>{results.analytics.total_responses}</div>
-            <div className={styles.cardLabel}>Tổng phản hồi</div>
+            <div className={styles.cardLabel}>Total Responses</div>
           </div>
           <div className={styles.card}>
             <div className={styles.cardNumber}>{results.analytics.questions.length}</div>
-            <div className={styles.cardLabel}>Số câu hỏi</div>
+            <div className={styles.cardLabel}>Number of Questions</div>
           </div>
         </div>
       </div>
@@ -102,9 +102,9 @@ const SurveyResults = ({ surveyId, onClose }) => {
       <div className={styles.questionAnalytics}>
         {results.analytics.questions.map((question, index) => (
           <div key={question.id} className={styles.questionResult}>
-            <h4>Câu {index + 1}: {question.text}</h4>
+            <h4>Question {index + 1}: {question.text}</h4>
             <p className={styles.questionMeta}>
-              Loại: {question.type} | Tổng câu trả lời: {question.total_answers}
+              Type: {question.type} | Total Answers: {question.total_answers}
             </p>
 
             {question.type === 'multiple_choice' && question.data.options && (
@@ -129,7 +129,7 @@ const SurveyResults = ({ surveyId, onClose }) => {
             {question.type === 'yes_no' && question.data.yes_no && (
               <div className={styles.yesNoResults}>
                 <div className={styles.optionResult}>
-                  <div className={styles.optionText}>Có</div>
+                  <div className={styles.optionText}>Yes</div>
                   <div className={styles.optionStats}>
                     <div 
                       className={styles.progressBar}
@@ -141,7 +141,7 @@ const SurveyResults = ({ surveyId, onClose }) => {
                   </div>
                 </div>
                 <div className={styles.optionResult}>
-                  <div className={styles.optionText}>Không</div>
+                  <div className={styles.optionText}>No</div>
                   <div className={styles.optionStats}>
                     <div 
                       className={styles.progressBar}
@@ -158,7 +158,7 @@ const SurveyResults = ({ surveyId, onClose }) => {
             {question.type === 'rating' && question.data.ratings && (
               <div className={styles.ratingResults}>
                 <div className={styles.averageRating}>
-                  <span className={styles.ratingLabel}>Điểm trung bình:</span>
+                  <span className={styles.ratingLabel}>Average Score:</span>
                   <span className={styles.ratingValue}>{question.data.ratings.average}/5</span>
                 </div>
                 <div className={styles.ratingDistribution}>
@@ -184,7 +184,7 @@ const SurveyResults = ({ surveyId, onClose }) => {
 
             {question.type === 'text' && question.data.text_examples && (
               <div className={styles.textResults}>
-                <h5>Một số câu trả lời:</h5>
+                <h5>Sample Answers:</h5>
                 {question.data.text_examples.map((text, idx) => (
                   <div key={idx} className={styles.textExample}>
                     "{text}"
@@ -200,11 +200,11 @@ const SurveyResults = ({ surveyId, onClose }) => {
 
   const renderResponses = () => (
     <div className={styles.responses}>
-      <h3>Danh sách phản hồi ({results.responses.length})</h3>
+      <h3>Response List ({results.responses.length})</h3>
       {results.responses.map((response) => (
         <div key={response.id} className={styles.responseItem}>
           <div className={styles.responseHeader}>
-            <span className={styles.responseId}>Phản hồi #{response.id}</span>
+            <span className={styles.responseId}>Response #{response.id}</span>
             <span className={styles.responseDate}>
               {new Date(response.submitted_at).toLocaleString('vi-VN')}
             </span>
@@ -214,7 +214,7 @@ const SurveyResults = ({ surveyId, onClose }) => {
               <div key={idx} className={styles.answerItem}>
                 <div className={styles.questionText}>{answer.question_text}</div>
                 <div className={styles.answerText}>
-                  {answer.answer_text || 'Không có câu trả lời'}
+                  {answer.answer_text || 'No answer provided'}
                 </div>
               </div>
             ))}
@@ -239,13 +239,13 @@ const SurveyResults = ({ surveyId, onClose }) => {
           className={`${styles.tab} ${activeTab === 'analytics' ? styles.active : ''}`}
           onClick={() => setActiveTab('analytics')}
         >
-          Phân tích
+          Analytics
         </button>
         <button 
           className={`${styles.tab} ${activeTab === 'responses' ? styles.active : ''}`}
           onClick={() => setActiveTab('responses')}
         >
-          Chi tiết phản hồi
+          Response Details
         </button>
       </div>
 

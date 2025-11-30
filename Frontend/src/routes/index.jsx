@@ -28,6 +28,7 @@ import Chat from '../pages/Chat/index.jsx';
 import LLM from '../pages/LLM/index.jsx';
 import PublicResponseForm from '../pages/Public/ResponseForm/index.jsx';
 import WorkspaceInvitationAccept from '../pages/Public/WorkspaceInvitationAccept/index.jsx';
+import UserResponses from '../pages/User/Responses/index.jsx';
 
 // Placeholder components for routes not yet implemented
 const ComingSoon = ({ title }) => (
@@ -273,7 +274,19 @@ const AppRoutes = () => {
         element={
           <ProtectedRoute allowedRoles={['user']}>
             <DefaultLayout>
-              <ComingSoon title="My Responses" />
+              <UserResponses />
+            </DefaultLayout>
+          </ProtectedRoute>
+        }
+      />
+
+      {/* My Responses - All authenticated users can view their own responses */}
+      <Route
+        path="/my-responses"
+        element={
+          <ProtectedRoute>
+            <DefaultLayout>
+              <UserResponses />
             </DefaultLayout>
           </ProtectedRoute>
         }

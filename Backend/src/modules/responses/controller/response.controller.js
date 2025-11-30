@@ -129,13 +129,32 @@ class ResponseController {
   }
 
   /**
-   * Get user's own responses
+   * Get user's own responses with enhanced filtering
    */
   async getUserResponses(req, res) {
     try {
-      const { page, limit } = req.query;
+      const { 
+        page, 
+        limit, 
+        search, 
+        status, 
+        sortBy, 
+        sortOrder, 
+        includeAnswers 
+      } = req.query;
 
-      const result = await responseService.getUserResponses(req.user, { page, limit });
+      // Convert string boolean to actual boolean
+      const includeAnswersFlag = includeAnswers === 'true';
+
+      const result = await responseService.getUserResponses(req.user, { 
+        page, 
+        limit, 
+        search, 
+        status, 
+        sortBy, 
+        sortOrder,
+        includeAnswers: includeAnswersFlag 
+      });
 
       res.status(200).json({
         success: true,
@@ -146,6 +165,36 @@ class ResponseController {
       res.status(500).json({
         success: false,
         message: error.message || 'Error fetching user responses'
+      });
+    }
+  }
+
+  /**
+   * Get detailed user response with all answers
+   */
+  async getUserResponseDetail(req, res) {
+    try {
+      const { id } = req.params;
+
+      const response = await responseService.getUserResponseDetail(id, req.user);
+
+      res.status(200).json({
+        success: true,
+        data: { response }
+      });
+    } catch (error) {
+      logger.error('Get user response detail error:', error);
+
+      if (error.message.includes('not found') || error.message.includes('access denied')) {
+        return res.status(404).json({
+          success: false,
+          message: error.message
+        });
+      }
+
+      res.status(500).json({
+        success: false,
+        message: error.message || 'Error fetching response details'
       });
     }
   }

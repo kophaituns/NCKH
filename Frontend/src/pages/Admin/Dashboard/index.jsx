@@ -15,7 +15,7 @@ import {
 import { Bar, Line, Pie } from 'react-chartjs-2';
 import { useToast } from '../../../contexts/ToastContext';
 import AnalyticsService from '../../../api/services/analytics.service';
-// ❌ KHÔNG CẦN NỮA: UserService, SurveyService
+// ❌ NO LONGER NEEDED: UserService, SurveyService
 // import UserService from '../../../api/services/user.service';
 // import SurveyService from '../../../api/services/survey.service';
 import StatCard from '../../../components/UI/StatCard';
@@ -64,8 +64,8 @@ const AdminDashboard = () => {
   const fetchDashboardData = useCallback(async () => {
     setLoading(true);
     try {
-      // ✅ GỌI API ADMIN DASHBOARD MỚI
-      // AnalyticsService.getAdminDashboard() đã được định nghĩa ở src/api/services/analytics.service.js
+      // ✅ CALL NEW ADMIN DASHBOARD API
+      // AnalyticsService.getAdminDashboard() is already defined in src/api/services/analytics.service.js
       const payload = await AnalyticsService.getAdminDashboard();
 
       // payload = { totals, roleStats, responsesPerSurvey, surveyActivity }
@@ -82,20 +82,20 @@ const AdminDashboard = () => {
         activeSurveys: totals.activeSurveys ?? 0
       });
 
-      // Set dữ liệu role cho biểu đồ hình tròn
+      // Set role data for pie chart
       setRoleStats({
         admin: roles.admin ?? 0,
         creator: roles.creator ?? 0,
         user: roles.user ?? 0
       });
 
-      // Set dữ liệu cho Responses per Survey (Bar chart)
+      // Set data for Responses per Survey (Bar chart)
       setResponsesPerSurvey({
         labels: responses.labels || [],
         data: responses.data || []
       });
 
-      // Set dữ liệu cho Survey Activity Trend (Line chart)
+      // Set data for Survey Activity Trend (Line chart)
       setSurveyActivity({
         labels: activity.labels || [],
         data: activity.data || []
@@ -113,7 +113,7 @@ const AdminDashboard = () => {
     fetchDashboardData();
   }, [fetchDashboardData]);
 
-  // Chart configurations (GIỮ NGUYÊN)
+  // Chart configurations (KEEP AS IS)
   const responsesChartData = {
     labels: responsesPerSurvey.labels,
     datasets: [

@@ -114,16 +114,112 @@ class ResponseService {
   }
 
   /**
-   * Get user's own responses
+   * Get user's own responses with enhanced filtering and search
    */
   async getUserResponses(user, options = {}) {
-    const { page = 1, limit = 20 } = options;
+    const { 
+      page = 1, 
+      limit = 20, 
+      search = '', 
+      status = '', 
+      sortBy = 'created_at',
+      sortOrder = 'DESC',
+      includeAnswers = false 
+    } = options;
+    
     const offset = (page - 1) * limit;
 
+    // Build where clause with search and filters
+    const where = { respondent_id: user.id };
+
+    // Add survey title search
+    const surveyWhere = {};
+    if (search.trim()) {
+      surveyWhere.title = {
+        [require('sequelize').Op.like]: `%${search.trim()}%`
+      };
+    }
+
+    // Add status filter 
+    if (status && ['completed', 'started', 'abandoned'].includes(status)) {
+      where.status = status;
+    }
+
+    // Define includes
+    const includes = [
+      {
+        model: Survey,
+        as: 'Survey',
+        attributes: ['id', 'title', 'description', 'status', 'created_at'],
+        where: Object.keys(surveyWhere).length > 0 ? surveyWhere : undefined,
+        include: [
+          {
+            model: User,
+            as: 'creator',
+            attributes: ['id', 'username', 'full_name']
+          }
+        ]
+      }
+    ];
+
+    // Include detailed answers if requested
+    if (includeAnswers) {
+      includes.push({
+        model: Answer,
+        include: [
+          {
+            model: Question,
+            attributes: ['id', 'question_text', 'label', 'question_type_id']
+          },
+          {
+            model: QuestionOption,
+            attributes: ['id', 'option_text'],
+            required: false
+          }
+        ]
+      });
+    }
+
+    // Validate sort options
+    const validSortFields = ['created_at', 'updated_at', 'completion_time'];
+    const sortField = validSortFields.includes(sortBy) ? sortBy : 'created_at';
+    const sortDirection = ['ASC', 'DESC'].includes(sortOrder.toUpperCase()) ? sortOrder.toUpperCase() : 'DESC';
+
     const { count, rows } = await SurveyResponse.findAndCountAll({
-      where: { respondent_id: user.id },
+      where,
       limit: parseInt(limit),
       offset,
+      include: includes,
+      order: [[sortField, sortDirection]],
+      distinct: true // Important when using includes to get accurate count
+    });
+
+    return {
+      responses: rows,
+      pagination: {
+        total: count,
+        page: parseInt(page),
+        limit: parseInt(limit),
+        totalPages: Math.ceil(count / limit)
+      },
+      filters: {
+        search,
+        status,
+        sortBy: sortField,
+        sortOrder: sortDirection
+      }
+    };
+  }
+
+  /**
+   * Get detailed response with all answers for user (own responses only)
+   */
+  async getUserResponseDetail(responseId, user) {
+    const response = await SurveyResponse.findOne({
+      where: { 
+        id: responseId,
+        respondent_id: user.id // Only allow user to see their own responses
+      },
       include: [
         {
           model: Survey,
@@ -136,20 +232,29 @@ class ResponseService {
               attributes: ['id', 'username', 'full_name']
             }
           ]
+        },
+        {
+          model: Answer,
+          include: [
+            {
+              model: Question,
+              attributes: ['id', 'question_text', 'label', 'question_type_id']
+            },
+            {
+              model: QuestionOption,
+              attributes: ['id', 'option_text'],
+              required: false
+            }
+          ]
         }
-      ],
-      order: [['created_at', 'DESC']]
+      ]
     });
 
-    return {
-      responses: rows,
-      pagination: {
-        total: count,
-        page: parseInt(page),
-        limit: parseInt(limit),
-        totalPages: Math.ceil(count / limit)
-      }
-    };
+    if (!response) {
+      throw new Error('Response not found or access denied');
+    }
+
+    return response;
   }
 
   /**

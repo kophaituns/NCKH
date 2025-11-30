@@ -353,7 +353,7 @@
   }
 }
 
-/* Responsive cho bảng Users */
+/* Responsive for Users table */
 @media (max-width: 1024px) {
   .tableContainer {
     overflow-x: auto; 
@@ -398,7 +398,7 @@
     font-size: 0.75rem;
   }
 
-  /* Ẩn cột EMAIL */
+  /* Hide EMAIL column */
   .table thead th:nth-child(3),
   .table tbody td:nth-child(3) {
     display: none;

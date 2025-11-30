@@ -189,14 +189,14 @@
   flex-shrink: 0;
   transition: color 0.2s;
 }
-/* Extra responsive cho màn rất nhỏ (mobile / cửa sổ thu hẹp) */
+/* Extra responsive for very small screens (mobile / minimized window) */
 @media (max-width: 480px) {
   .header {
     gap: 1rem;
   }
 
   .title {
-    font-size: 1.5rem; /* nhỏ hơn 1 chút cho đỡ to */
+    font-size: 1.5rem; /* slightly smaller to be less large */
   }
 
   .subtitle {

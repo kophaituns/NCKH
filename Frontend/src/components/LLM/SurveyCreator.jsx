@@ -127,17 +127,17 @@ const SurveyCreator = ({ generatedQuestions, onSurveyCreated }) => {
 
   const handleCreateSurvey = async () => {
     if (!surveyData.title.trim()) {
-      showToast('Vui lòng nhập tiêu đề survey', 'error');
+      showToast('Please enter survey title', 'error');
       return;
     }
 
     if (selectedQuestions.length === 0 && customQuestions.length === 0) {
-      showToast('Vui lòng chọn hoặc thêm ít nhất một câu hỏi', 'error');
+      showToast('Please select or add at least one question', 'error');
       return;
     }
 
     if (surveyData.targetAudience === 'internal' && !surveyData.workspaceId) {
-      showToast('Vui lòng chọn Workspace cho khảo sát nội bộ', 'error');
+      showToast('Please select a Workspace for internal survey', 'error');
       return;
     }
 
@@ -155,10 +155,10 @@ const SurveyCreator = ({ generatedQuestions, onSurveyCreated }) => {
         shareSettings
       });
 
-      showToast('Tạo survey thành công!', 'success');
+      showToast('Survey created successfully!', 'success');
       onSurveyCreated && onSurveyCreated(response.data);
     } catch (error) {
-      showToast(error.response?.data?.message || 'Có lỗi xảy ra khi tạo survey', 'error');
+      showToast(error.response?.data?.message || 'An error occurred while creating survey', 'error');
     } finally {
       setLoading(false);
     }
@@ -171,35 +171,35 @@ const SurveyCreator = ({ generatedQuestions, onSurveyCreated }) => {
   return (
     <div className={styles.surveyCreator}>
       <Card className={styles.header}>
-        <h3>Tạo Survey từ Câu Hỏi AI</h3>
-        <p>Chọn câu hỏi và cấu hình survey của bạn</p>
+        <h3>Create Survey from AI Questions</h3>
+        <p>Select questions and configure your survey</p>
       </Card>
 
       {/* Survey Basic Info */}
       <Card className={styles.basicInfo}>
-        <h4>Thông Tin Cơ Bản</h4>
+        <h4>Basic Information</h4>
         <div className={styles.formGroup}>
-          <label>Tiêu đề Survey *</label>
+          <label>Survey Title *</label>
           <Input
             value={surveyData.title}
             onChange={(e) => setSurveyData({ ...surveyData, title: e.target.value })}
-            placeholder="Nhập tiêu đề survey"
+            placeholder="Enter survey title"
           />
         </div>
 
         <div className={styles.formGroup}>
-          <label>Mô tả</label>
+          <label>Description</label>
           <TextArea
             value={surveyData.description}
             onChange={(e) => setSurveyData({ ...surveyData, description: e.target.value })}
-            placeholder="Mô tả về survey này..."
+            placeholder="Description about this survey..."
             rows={3}
           />
         </div>
 
         <div className={styles.formRow}>
           <div className={styles.formGroup}>
-            <label>Đối tượng khảo sát</label>
+            <label>Survey Target</label>
             <Select
               value={surveyData.targetAudience}
               onChange={(value) => {
@@ -227,22 +227,22 @@ const SurveyCreator = ({ generatedQuestions, onSurveyCreated }) => {
                 setShareSettings(newShareSettings);
               }}
             >
-              <option value="public">Công khai (Tất cả mọi người)</option>
-              <option value="public_with_login">Công khai (Yêu cầu đăng nhập)</option>
-              <option value="private">Riêng tư (Chỉ người được mời)</option>
-              <option value="internal">Nội bộ (Thành viên Workspace)</option>
+              <option value="public">Public (Everyone)</option>
+              <option value="public_with_login">Public (Requires Login)</option>
+              <option value="private">Private (Invited Only)</option>
+              <option value="internal">Internal (Workspace Members)</option>
             </Select>
           </div>
 
           {/* Workspace Selection for Internal Audience */}
           {surveyData.targetAudience === 'internal' && (
             <div className={styles.formGroup}>
-              <label>Chọn Workspace *</label>
+              <label>Select Workspace *</label>
               <Select
                 value={surveyData.workspaceId}
                 onChange={(value) => setSurveyData({ ...surveyData, workspaceId: value })}
               >
-                <option value="">-- Chọn Workspace --</option>
+                <option value="">-- Select Workspace --</option>
                 {workspaces.map(ws => (
                   <option key={ws.id} value={ws.id}>{ws.name}</option>
                 ))}
@@ -251,7 +251,7 @@ const SurveyCreator = ({ generatedQuestions, onSurveyCreated }) => {
           )}
 
           <div className={styles.formGroup}>
-            <label>Ngày bắt đầu</label>
+            <label>Start Date</label>
             <Input
               type="date"
               value={surveyData.startDate}
@@ -260,7 +260,7 @@ const SurveyCreator = ({ generatedQuestions, onSurveyCreated }) => {
           </div>
 
           <div className={styles.formGroup}>
-            <label>Ngày kết thúc (tùy chọn)</label>
+            <label>End Date (optional)</label>
             <Input
               type="date"
               value={surveyData.endDate}
@@ -276,19 +276,19 @@ const SurveyCreator = ({ generatedQuestions, onSurveyCreated }) => {
           className={`${styles.tab} ${activeTab === 'select' ? styles.active : ''}`}
           onClick={() => setActiveTab('select')}
         >
-          Chọn Câu Hỏi ({selectedQuestions.length})
+          Select Questions ({selectedQuestions.length})
         </button>
         <button
           className={`${styles.tab} ${activeTab === 'custom' ? styles.active : ''}`}
           onClick={() => setActiveTab('custom')}
         >
-          Câu Hỏi Tùy Chỉnh ({customQuestions.length})
+          Custom Questions ({customQuestions.length})
         </button>
         <button
           className={`${styles.tab} ${activeTab === 'share' ? styles.active : ''}`}
           onClick={() => setActiveTab('share')}
         >
-          Cài Đặt Chia Sẻ
+          Share Settings
         </button>
       </div>
 
@@ -296,7 +296,7 @@ const SurveyCreator = ({ generatedQuestions, onSurveyCreated }) => {
       <Card className={styles.tabContent}>
         {activeTab === 'select' && (
           <div className={styles.questionSelection}>
-            <h4>Chọn từ {generatedQuestions.length} câu hỏi được tạo</h4>
+            <h4>Select from {generatedQuestions.length} generated questions</h4>
             <div className={styles.questionList}>
               {generatedQuestions.map((question, index) => (
                 <div key={index} className={styles.questionItem}>
@@ -307,7 +307,7 @@ const SurveyCreator = ({ generatedQuestions, onSurveyCreated }) => {
                   <div className={styles.questionContent}>
                     <p className={styles.questionText}>{question.question}</p>
                     <small className={styles.questionMeta}>
-                      Loại: {getQuestionType(question.question)} • Nguồn: {question.source}
+                      Type: {getQuestionType(question.question)} • Source: {question.source}
                     </small>
                   </div>
                 </div>
@@ -319,9 +319,9 @@ const SurveyCreator = ({ generatedQuestions, onSurveyCreated }) => {
         {activeTab === 'custom' && (
           <div className={styles.customQuestions}>
             <div className={styles.sectionHeader}>
-              <h4>Câu Hỏi Tùy Chỉnh</h4>
+              <h4>Custom Questions</h4>
               <Button onClick={addCustomQuestion} variant="outline">
-                + Thêm Câu Hỏi
+                + Add Question
               </Button>
             </div>
 
@@ -331,49 +331,49 @@ const SurveyCreator = ({ generatedQuestions, onSurveyCreated }) => {
                   <Input
                     value={question.question_text}
                     onChange={(e) => updateCustomQuestion(question.id, 'question_text', e.target.value)}
-                    placeholder="Nhập câu hỏi..."
+                    placeholder="Enter question..."
                   />
                   <Select
                     value={question.question_type}
                     onChange={(value) => updateCustomQuestion(question.id, 'question_type', value)}
                   >
-                    <option value="text">Văn bản</option>
-                    <option value="multiple_choice">Trắc nghiệm</option>
-                    <option value="yes_no">Có/Không</option>
-                    <option value="rating">Đánh giá</option>
-                    <option value="date">Ngày tháng</option>
+                    <option value="text">Text</option>
+                    <option value="multiple_choice">Multiple Choice</option>
+                    <option value="yes_no">Yes/No</option>
+                    <option value="rating">Rating</option>
+                    <option value="date">Date</option>
                     <option value="email">Email</option>
                   </Select>
                   <Checkbox
                     checked={question.is_required}
                     onChange={(checked) => updateCustomQuestion(question.id, 'is_required', checked)}
                   />
-                  <span className={styles.requiredLabel}>Bắt buộc</span>
+                  <span className={styles.requiredLabel}>Required</span>
                   <Button
                     onClick={() => removeCustomQuestion(question.id)}
                     variant="outline"
                     className={styles.removeBtn}
                   >
-                    Xóa
+                    Delete
                   </Button>
                 </div>
 
                 {question.question_type === 'multiple_choice' && (
                   <div className={styles.options}>
-                    <h5>Tùy chọn:</h5>
+                    <h5>Options:</h5>
                     {(question.options || []).map((option, index) => (
                       <div key={index} className={styles.optionRow}>
                         <Input
                           value={option}
                           onChange={(e) => updateQuestionOption(question.id, index, e.target.value)}
-                          placeholder={`Tùy chọn ${index + 1}`}
+                          placeholder={`Option ${index + 1}`}
                         />
                         <Button
                           onClick={() => removeQuestionOption(question.id, index)}
                           variant="outline"
                           size="small"
                         >
-                          Xóa
+                          Delete
                         </Button>
                       </div>
                     ))}
@@ -382,7 +382,7 @@ const SurveyCreator = ({ generatedQuestions, onSurveyCreated }) => {
                       variant="outline"
                       size="small"
                     >
-                      + Thêm tùy chọn
+                      + Add Option
                     </Button>
                   </div>
                 )}
@@ -391,7 +391,7 @@ const SurveyCreator = ({ generatedQuestions, onSurveyCreated }) => {
 
             {customQuestions.length === 0 && (
               <div className={styles.emptyState}>
-                <p>Chưa có câu hỏi tùy chỉnh. Nhấn "Thêm Câu Hỏi" để bắt đầu.</p>
+                <p>No custom questions yet. Click "Add Question" to get started.</p>
               </div>
             )}
           </div>
@@ -399,7 +399,7 @@ const SurveyCreator = ({ generatedQuestions, onSurveyCreated }) => {
 
         {activeTab === 'share' && (
           <div className={styles.shareSettings}>
-            <h4>Cài Đặt Chia Sẻ</h4>
+            <h4>Share Settings</h4>
 
             <div className={styles.settingGroup}>
               <div className={styles.settingItem}>
@@ -408,8 +408,8 @@ const SurveyCreator = ({ generatedQuestions, onSurveyCreated }) => {
                   onChange={(checked) => setShareSettings({ ...shareSettings, isPublic: checked })}
                 />
                 <div className={styles.settingLabel}>
-                  <strong>Công khai</strong>
-                  <p>Survey có thể được truy cập bởi bất kỳ ai có link</p>
+                  <strong>Public</strong>
+                  <p>Survey can be accessed by anyone with the link</p>
                 </div>
               </div>
 
@@ -419,8 +419,8 @@ const SurveyCreator = ({ generatedQuestions, onSurveyCreated }) => {
                   onChange={(checked) => setShareSettings({ ...shareSettings, allowAnonymous: checked })}
                 />
                 <div className={styles.settingLabel}>
-                  <strong>Cho phép ẩn danh</strong>
-                  <p>Người dùng có thể trả lời mà không cần đăng nhập</p>
+                  <strong>Allow Anonymous</strong>
+                  <p>Users can respond without logging in</p>
                 </div>
               </div>
 
@@ -430,14 +430,14 @@ const SurveyCreator = ({ generatedQuestions, onSurveyCreated }) => {
                   onChange={(checked) => setShareSettings({ ...shareSettings, requireLogin: checked })}
                 />
                 <div className={styles.settingLabel}>
-                  <strong>Yêu cầu đăng nhập</strong>
-                  <p>Chỉ người dùng đã đăng nhập mới có thể trả lời</p>
+                  <strong>Requires Login</strong>
+                  <p>Only logged-in users can respond</p>
                 </div>
               </div>
             </div>
 
             <div className={styles.formGroup}>
-              <label>Thời hạn link (ngày)</label>
+              <label>Link Expiry (days)</label>
               <Input
                 type="number"
                 value={shareSettings.expiryDays}
@@ -458,7 +458,7 @@ const SurveyCreator = ({ generatedQuestions, onSurveyCreated }) => {
           className={styles.createBtn}
           loading={loading}
         >
-          Tạo Survey
+          Create Survey
         </Button>
       </div>
     </div>

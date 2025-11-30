@@ -36,13 +36,13 @@ const SurveyQuestionEditor = ({ surveyId, onClose, onSurveyUpdated }) => {
   });
 
   const questionTypes = [
-    { value: 'multiple_choice', label: 'Trắc nghiệm' },
-    { value: 'single_choice', label: 'Chọn 1 đáp án' },
-    { value: 'text', label: 'Văn bản' },
+    { value: 'multiple_choice', label: 'Multiple Choice' },
+    { value: 'single_choice', label: 'Single Choice' },
+    { value: 'text', label: 'Text' },
     { value: 'email', label: 'Email' },
-    { value: 'number', label: 'Số' },
-    { value: 'rating', label: 'Đánh giá' },
-    { value: 'boolean', label: 'Có/Không' }
+    { value: 'number', label: 'Number' },
+    { value: 'rating', label: 'Rating' },
+    { value: 'boolean', label: 'Yes/No' }
   ];
 
   // Load survey data for editing
@@ -58,7 +58,7 @@ const SurveyQuestionEditor = ({ surveyId, onClose, onSurveyUpdated }) => {
           status: response.data.status || 'draft'
         });
       } catch (error) {
-        showToast('Không thể tải thông tin survey', 'error');
+        showToast('Could not load survey information', 'error');
         onClose();
       } finally {
         setLoading(false);
@@ -126,7 +126,7 @@ const SurveyQuestionEditor = ({ surveyId, onClose, onSurveyUpdated }) => {
 
       // Validate form
       if (!questionForm.question_text.trim()) {
-        showToast('Vui lòng nhập nội dung câu hỏi', 'error');
+        showToast('Please enter question content', 'error');
         return;
       }
 
@@ -142,11 +142,11 @@ const SurveyQuestionEditor = ({ surveyId, onClose, onSurveyUpdated }) => {
       if (editingQuestion) {
         // Update existing question
         response = await LLMService.updateSurveyQuestion(surveyId, editingQuestion.id, questionData);
-        showToast('Đã cập nhật câu hỏi', 'success');
+        showToast('Question updated', 'success');
       } else {
         // Add new question
         response = await LLMService.addSurveyQuestion(surveyId, questionData);
-        showToast('Đã thêm câu hỏi mới', 'success');
+        showToast('New question added', 'success');
       }
 
       // Reload survey data
@@ -168,7 +168,7 @@ const SurveyQuestionEditor = ({ surveyId, onClose, onSurveyUpdated }) => {
         onSurveyUpdated();
       }
     } catch (error) {
-      showToast(error.response?.data?.message || 'Lỗi khi lưu câu hỏi', 'error');
+      showToast(error.response?.data?.message || 'Error saving question', 'error');
     } finally {
       setSaving(false);
     }
@@ -176,12 +176,12 @@ const SurveyQuestionEditor = ({ surveyId, onClose, onSurveyUpdated }) => {
 
   // Delete question
   const deleteQuestion = async (questionId) => {
-    if (!window.confirm('Bạn có chắc muốn xóa câu hỏi này?')) return;
+    if (!window.confirm('Are you sure you want to delete this question?')) return;
 
     try {
       setSaving(true);
       await LLMService.deleteSurveyQuestion(surveyId, questionId);
-      showToast('Đã xóa câu hỏi', 'success');
+      showToast('Question deleted', 'success');
       
       // Reload survey data
       const updatedSurvey = await LLMService.getSurveyForEditing(surveyId);
@@ -191,7 +191,7 @@ const SurveyQuestionEditor = ({ surveyId, onClose, onSurveyUpdated }) => {
         onSurveyUpdated();
       }
     } catch (error) {
-      showToast('Lỗi khi xóa câu hỏi', 'error');
+      showToast('Error deleting question', 'error');
     } finally {
       setSaving(false);
     }
@@ -202,7 +202,7 @@ const SurveyQuestionEditor = ({ surveyId, onClose, onSurveyUpdated }) => {
     try {
       setSaving(true);
       await LLMService.updateSurveySettings(surveyId, settingsForm);
-      showToast('Đã cập nhật thông tin survey', 'success');
+      showToast('Survey information updated', 'success');
       
       // Update local state
       setSurvey(prev => ({
@@ -216,7 +216,7 @@ const SurveyQuestionEditor = ({ surveyId, onClose, onSurveyUpdated }) => {
         onSurveyUpdated();
       }
     } catch (error) {
-      showToast('Lỗi khi cập nhật thông tin survey', 'error');
+      showToast('Error updating survey information', 'error');
     } finally {
       setSaving(false);
     }
@@ -228,26 +228,26 @@ const SurveyQuestionEditor = ({ surveyId, onClose, onSurveyUpdated }) => {
     <div className={styles.surveyQuestionEditor}>
       <div className={styles.header}>
         <div>
-          <h2>Chỉnh sửa Survey: {survey?.title}</h2>
-          <p>Quản lý câu hỏi và cài đặt survey</p>
+          <h2>Edit Survey: {survey?.title}</h2>
+          <p>Manage questions and survey settings</p>
         </div>
         <div className={styles.headerActions}>
           <Button 
             variant="outline" 
             onClick={() => setShowSettingsModal(true)}
           >
-            Cài đặt Survey
+            Survey Settings
           </Button>
-          <Button onClick={onClose}>Đóng</Button>
+          <Button onClick={onClose}>Close</Button>
         </div>
       </div>
 
       <div className={styles.content}>
         <Card>
           <div className={styles.questionsHeader}>
-            <h3>Danh sách câu hỏi ({survey?.questions?.length || 0})</h3>
+            <h3>Question List ({survey?.questions?.length || 0})</h3>
             <Button onClick={() => setShowAddModal(true)}>
-              + Thêm câu hỏi
+              + Add Question
             </Button>
           </div>
 
@@ -255,33 +255,33 @@ const SurveyQuestionEditor = ({ surveyId, onClose, onSurveyUpdated }) => {
             {survey?.questions?.map((question, index) => (
               <div key={question.id} className={styles.questionItem}>
                 <div className={styles.questionHeader}>
-                  <span className={styles.questionNumber}>Câu {index + 1}</span>
+                  <span className={styles.questionNumber}>Question {index + 1}</span>
                   <div className={styles.questionActions}>
                     <Button 
                       variant="outline" 
                       size="sm"
                       onClick={() => startEditQuestion(question)}
                     >
-                      Sửa
+                      Edit
                     </Button>
                     <Button 
                       variant="danger" 
                       size="sm"
                       onClick={() => deleteQuestion(question.id)}
                     >
-                      Xóa
+                      Delete
                     </Button>
                   </div>
                 </div>
                 <div className={styles.questionContent}>
                   <h4>{question.question_text}</h4>
                   <p className={styles.questionType}>
-                    Loại: {questionTypes.find(t => t.value === question.question_type)?.label}
-                    {question.is_required && ' (Bắt buộc)'}
+                    Type: {questionTypes.find(t => t.value === question.question_type)?.label}
+                    {question.is_required && ' (Required)'}
                   </p>
                   {question.question_options?.length > 0 && (
                     <div className={styles.options}>
-                      <strong>Tùy chọn:</strong>
+                      <strong>Options:</strong>
                       <ul>
                         {question.question_options.map(option => (
                           <li key={option.id}>{option.option_text}</li>
@@ -303,28 +303,28 @@ const SurveyQuestionEditor = ({ surveyId, onClose, onSurveyUpdated }) => {
           setShowAddModal(false);
           setEditingQuestion(null);
         }}
-        title={editingQuestion ? 'Chỉnh sửa câu hỏi' : 'Thêm câu hỏi mới'}
+        title={editingQuestion ? 'Edit Question' : 'Add New Question'}
       >
         <div className={styles.questionForm}>
           <Input
-            label="Nội dung câu hỏi *"
+            label="Question Content *"
             value={questionForm.question_text}
             onChange={(e) => handleQuestionChange('question_text', e.target.value)}
-            placeholder="Nhập nội dung câu hỏi"
+            placeholder="Enter question content"
           />
 
           <Select
-            label="Loại câu hỏi"
+            label="Question Type"
             value={questionForm.question_type}
             onChange={(e) => handleQuestionChange('question_type', e.target.value)}
             options={questionTypes}
           />
 
           <TextArea
-            label="Mô tả (không bắt buộc)"
+            label="Description (optional)"
             value={questionForm.description}
             onChange={(e) => handleQuestionChange('description', e.target.value)}
-            placeholder="Nhập mô tả cho câu hỏi"
+            placeholder="Enter question description"
             rows={3}
           />
 
@@ -335,19 +335,19 @@ const SurveyQuestionEditor = ({ surveyId, onClose, onSurveyUpdated }) => {
                 checked={questionForm.is_required}
                 onChange={(e) => handleQuestionChange('is_required', e.target.checked)}
               />
-              Bắt buộc trả lời
+              Required to answer
             </label>
           </div>
 
           {['multiple_choice', 'single_choice', 'rating'].includes(questionForm.question_type) && (
             <div className={styles.optionsSection}>
-              <h4>Tùy chọn trả lời</h4>
+              <h4>Answer Options</h4>
               {questionForm.options.map((option, index) => (
                 <div key={index} className={styles.optionRow}>
                   <Input
                     value={option}
                     onChange={(e) => handleOptionChange(index, e.target.value)}
-                    placeholder={`Tùy chọn ${index + 1}`}
+                    placeholder={`Option ${index + 1}`}
                   />
                   <Button
                     variant="danger"
@@ -355,12 +355,12 @@ const SurveyQuestionEditor = ({ surveyId, onClose, onSurveyUpdated }) => {
                     onClick={() => removeOption(index)}
                     disabled={questionForm.options.length <= 2}
                   >
-                    Xóa
+                    Delete
                   </Button>
                 </div>
               ))}
               <Button variant="outline" onClick={addOption}>
-                + Thêm tùy chọn
+                + Add Option
               </Button>
             </div>
           )}
@@ -373,13 +373,13 @@ const SurveyQuestionEditor = ({ surveyId, onClose, onSurveyUpdated }) => {
                 setEditingQuestion(null);
               }}
             >
-              Hủy
+              Cancel
             </Button>
             <Button
               onClick={saveQuestion}
               disabled={saving}
             >
-              {saving ? 'Đang lưu...' : editingQuestion ? 'Cập nhật' : 'Thêm câu hỏi'}
+              {saving ? 'Saving...' : editingQuestion ? 'Update' : 'Add Question'}
             </Button>
           </div>
         </div>
@@ -389,33 +389,33 @@ const SurveyQuestionEditor = ({ surveyId, onClose, onSurveyUpdated }) => {
       <Modal
         isOpen={showSettingsModal}
         onClose={() => setShowSettingsModal(false)}
-        title="Cài đặt Survey"
+        title="Survey Settings"
       >
         <div className={styles.settingsForm}>
           <Input
-            label="Tiêu đề Survey *"
+            label="Survey Title *"
             value={settingsForm.title}
             onChange={(e) => setSettingsForm(prev => ({ ...prev, title: e.target.value }))}
-            placeholder="Nhập tiêu đề survey"
+            placeholder="Enter survey title"
           />
 
           <TextArea
-            label="Mô tả"
+            label="Description"
             value={settingsForm.description}
             onChange={(e) => setSettingsForm(prev => ({ ...prev, description: e.target.value }))}
-            placeholder="Nhập mô tả survey"
+            placeholder="Enter survey description"
             rows={4}
           />
 
           <Select
-            label="Trạng thái"
+            label="Status"
             value={settingsForm.status}
             onChange={(e) => setSettingsForm(prev => ({ ...prev, status: e.target.value }))}
             options={[
-              { value: 'draft', label: 'Bản thảo' },
-              { value: 'active', label: 'Hoạt động' },
-              { value: 'paused', label: 'Tạm dừng' },
-              { value: 'completed', label: 'Hoàn thành' }
+              { value: 'draft', label: 'Draft' },
+              { value: 'active', label: 'Active' },
+              { value: 'paused', label: 'Paused' },
+              { value: 'completed', label: 'Completed' }
             ]}
           />
 
@@ -424,13 +424,13 @@ const SurveyQuestionEditor = ({ surveyId, onClose, onSurveyUpdated }) => {
               variant="outline"
               onClick={() => setShowSettingsModal(false)}
             >
-              Hủy
+              Cancel
             </Button>
             <Button
               onClick={updateSurveySettings}
               disabled={saving}
             >
-              {saving ? 'Đang lưu...' : 'Cập nhật'}
+              {saving ? 'Saving...' : 'Update'}
             </Button>
           </div>
         </div>

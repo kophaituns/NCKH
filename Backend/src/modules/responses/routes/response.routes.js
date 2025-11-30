@@ -19,6 +19,13 @@ router.post('/', authenticate, responseController.submitResponse);
 router.get('/my-responses', authenticate, responseController.getUserResponses);
 
 /**
+ * @route   GET /api/responses/my-responses/:id
+ * @desc    Get detailed user response with all answers
+ * @access  Private (own responses only)
+ */
+router.get('/my-responses/:id', authenticate, responseController.getUserResponseDetail);
+
+/**
  * @route   GET /api/responses/:id
  * @desc    Get response by ID
  * @access  Private
