@@ -78,11 +78,11 @@
 }
 
 .primaryButton {
-  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  background: linear-gradient(135deg, #14B8A6 0%, #0F766E 100%);
   color: white;
 
   &:hover {
-    background: linear-gradient(135deg, #059669 0%, #047857 100%);
+    background: linear-gradient(135deg, #0F766E 0%, #047857 100%);
     box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
   }
 }
@@ -144,11 +144,11 @@
 
   &:hover {
     background: #f3f4f6;
-    border-color: #10b981;
+    border-color: #14B8A6;
     transform: translateX(4px);
 
     .quickActionArrow {
-      color: #10b981;
+      color: #14B8A6;
     }
   }
 }
@@ -161,7 +161,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #10b981;
+  color: #14B8A6;
   flex-shrink: 0;
   border: 1px solid #e5e7eb;
 }

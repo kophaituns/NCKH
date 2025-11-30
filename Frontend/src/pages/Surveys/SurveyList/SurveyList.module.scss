@@ -35,7 +35,7 @@
   align-items: center;
   gap: 0.5rem;
   padding: 0.75rem 1.5rem;
-  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  background: linear-gradient(135deg, #14B8A6 0%, #0F766E 100%);
   color: white;
   border: none;
   border-radius: 8px;
@@ -46,7 +46,7 @@
   white-space: nowrap;
 
   &:hover {
-    background: linear-gradient(135deg, #059669 0%, #047857 100%);
+    background: linear-gradient(135deg, #0F766E 0%, #047857 100%);
     box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
   }
 
@@ -91,7 +91,7 @@
 
   &:focus {
     outline: none;
-    border-color: #10b981;
+    border-color: #14B8A6;
     box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
   }
 }
@@ -119,7 +119,7 @@
 
   &:focus {
     outline: none;
-    border-color: #10b981;
+    border-color: #14B8A6;
     box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
   }
 }
@@ -207,7 +207,7 @@
 
 .responseCount {
   font-weight: 600;
-  color: #10b981;
+  color: #14B8A6;
 }
 
 .actions {
@@ -237,10 +237,10 @@
 }
 
 .publishButton {
-  color: #10b981;
+  color: #14B8A6;
 
   &:hover {
-    border-color: #10b981;
+    border-color: #14B8A6;
   }
 }
 
@@ -261,10 +261,10 @@
 }
 
 .distributeButton {
-  color: #8b5cf6;
+  color: #14B8A6;
 
   &:hover {
-    border-color: #8b5cf6;
+    border-color: #14B8A6;
   }
 }
 
@@ -312,7 +312,7 @@
 
 .emptyButton {
   padding: 0.75rem 1.5rem;
-  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  background: linear-gradient(135deg, #14B8A6 0%, #0F766E 100%);
   color: white;
   border: none;
   border-radius: 8px;
@@ -322,7 +322,7 @@
   transition: all 0.2s;
 
   &:hover {
-    background: linear-gradient(135deg, #059669 0%, #047857 100%);
+    background: linear-gradient(135deg, #0F766E 0%, #047857 100%);
     box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
   }
 }

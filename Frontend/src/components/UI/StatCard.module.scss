@@ -17,18 +17,18 @@
   }
 
   &.primary {
-    border-left-color: #10b981;
+    border-left-color: #14B8A6;
     
     .iconContainer {
-      background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+      background: linear-gradient(135deg, #14B8A6 0%, #0F766E 100%);
     }
   }
 
   &.success {
-    border-left-color: #10b981;
+    border-left-color: #14B8A6;
     
     .iconContainer {
-      background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+      background: linear-gradient(135deg, #14B8A6 0%, #0F766E 100%);
     }
   }
 
@@ -112,7 +112,7 @@
   font-weight: 500;
 
   &.increase {
-    color: #10b981;
+    color: #14B8A6;
   }
 
   &.decrease {

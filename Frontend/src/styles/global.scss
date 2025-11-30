@@ -129,7 +129,7 @@ p {
 }
 
 a {
-  color: #667eea;
+  color: #14B8A6;
   text-decoration: none;
   transition: color 0.2s;
 
@@ -178,7 +178,7 @@ select {
 
   &:focus {
     outline: none;
-    border-color: #667eea;
+    border-color: #14B8A6;
     box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
   }
 
@@ -310,13 +310,13 @@ ul, ol {
 
 /* Ensure minimum contrast for readability */
 ::selection {
-  background-color: #667eea;
+  background-color: #14B8A6;
   color: #fff;
 }
 
 /* Focus styles for keyboard navigation */
 :focus-visible {
-  outline: 2px solid #667eea;
+  outline: 2px solid #14B8A6;
   outline-offset: 2px;
 }
 

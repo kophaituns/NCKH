@@ -130,7 +130,7 @@ const LLM = () => {
       const response = await LLMService.generateSurvey({
         prompt: formData.prompt,
         prompt_id: selectedPrompt,
-        description: 'AI generated survey',
+        description: 'erated survey',
         target_audience: 'General',
         course_name: 'AI Course'
       });
@@ -178,19 +178,7 @@ const LLM = () => {
           </div>
         </div>
 
-        <div className={styles.formGroup}>
-          <label>Category</label>
-          <Select
-            value={formData.category}
-            onChange={(value) => handleInputChange('category', value)}
-            placeholder="Select category"
-          >
-            <option value="">Auto detect</option>
-            {categories.map(cat => (
-              <option key={cat} value={cat}>{cat}</option>
-            ))}
-          </Select>
-        </div>
+
 
         <div className={styles.formGroup}>
           <label>Number of questions</label>
@@ -223,8 +211,8 @@ const LLM = () => {
                 <div className={styles.questionNumber}>{index + 1}</div>
                 <div className={styles.questionContent}>
                   <p className={styles.questionText}>{q.question}</p>
-                  <small className={styles.questionSource}>
-                    Source: {q.source}{' '}
+                  <small className={styles.questionMeta}>
+                    Type: {q.type || 'text'} • Source: {q.source}{' '}
                     {q.confidence && `• Confidence: ${q.confidence}%`}
                   </small>
                 </div>

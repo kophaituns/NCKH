@@ -91,6 +91,53 @@ const PublicResponseForm = () => {
     fetchSurvey();
   }, [fetchSurvey]);
 
+  // Calculate progress percentage
+  const calculateProgress = () => {
+    if (!survey || survey.questions.length === 0) return 0;
+    
+    const answeredQuestions = survey.questions.filter(q => {
+      const answer = answers[q.id];
+      return answer && (Array.isArray(answer) ? answer.length > 0 : answer.toString().trim() !== '');
+    });
+    
+    return Math.round((answeredQuestions.length / survey.questions.length) * 100);
+  };
+
+  // Estimate completion time
+  const getEstimatedTime = () => {
+    if (!survey) return '5-10 min';
+    const questionCount = survey.questions.length;
+    const timePerQuestion = 45; // seconds per question
+    const totalSeconds = questionCount * timePerQuestion;
+    const minutes = Math.ceil(totalSeconds / 60);
+    return `${minutes} min`;
+  };
+
+  // Get question type display name with details
+  const getQuestionTypeDisplay = (question) => {
+    const typeMap = {
+      'open_ended': 'Text Response',
+      'multiple_choice': 'Single Choice',
+      'checkbox': 'Multiple Choice',
+      'dropdown': 'Dropdown',
+      'rating': 'Rating Scale',
+      'boolean': 'Yes/No',
+      'number': 'Number',
+      'email': 'Email',
+      'date': 'Date',
+      'likert_scale': 'Rating Scale (1-5)'
+    };
+    
+    const baseType = typeMap[question.type] || 'Response';
+    
+    // Add option count for relevant types
+    if (['multiple_choice', 'checkbox', 'dropdown'].includes(question.type) && question.options) {
+      return `${baseType} (${question.options.length} options)`;
+    }
+    
+    return baseType;
+  };
+
   const validateAnswers = () => {
     const newErrors = {};
 
@@ -166,16 +213,33 @@ const PublicResponseForm = () => {
     }
   };
 
-  const renderQuestion = (question) => {
+  const renderQuestion = (question, index) => {
     const answer = answers[question.id];
     const hasError = errors[question.id];
 
     return (
       <div key={question.id} className={styles.questionBlock}>
-        <label className={styles.questionLabel}>
-          {question.label}
-          {question.required && <span className={styles.required}>*</span>}
-        </label>
+        <div className={styles.questionHeader}>
+          <div className={styles.questionNumber}>
+            {index + 1}
+          </div>
+          <div className={styles.questionContent}>
+            <div className={styles.questionType}>
+              {getQuestionTypeDisplay(question)}
+            </div>
+            <label className={styles.questionLabel}>
+              {question.label}
+              {question.required && (
+                <span className={styles.requiredIndicator}>Required</span>
+              )}
+            </label>
+            {question.description && (
+              <div className={styles.questionDescription}>
+                {question.description}
+              </div>
+            )}
+          </div>
+        </div>
 
         {/* Open Ended - Text area */}
         {question.type === 'open_ended' && (
@@ -299,13 +363,50 @@ const PublicResponseForm = () => {
           {survey.description && (
             <p className={styles.description}>{survey.description}</p>
           )}
+
+          {/* Progress Bar */}
+          <div className={styles.progressSection}>
+            <div className={styles.progressLabel}>
+              <div className={styles.progressText}>
+                <span className={styles.progressIcon}>📊</span>
+                Progress
+              </div>
+              <span className={styles.progressPercentage}>
+                {calculateProgress()}%
+              </span>
+            </div>
+            <div className={styles.progressBar}>
+              <div 
+                className={styles.progressFill} 
+                style={{ width: `${calculateProgress()}%` }}
+              />
+            </div>
+          </div>
+
+          {/* Survey Statistics */}
+          <div className={styles.surveyStats}>
+            <div className={styles.statItem}>
+              <span className={styles.statValue}>{survey.questions.length}</span>
+              <span className={styles.statLabel}>Total Questions</span>
+            </div>
+            <div className={styles.statItem}>
+              <span className={styles.statValue}>
+                {new Set(survey.questions.map(q => q.type)).size}
+              </span>
+              <span className={styles.statLabel}>Question Types</span>
+            </div>
+            <div className={styles.statItem}>
+              <span className={styles.statValue}>{calculateProgress()}%</span>
+              <span className={styles.statLabel}>Progress</span>
+            </div>
+          </div>
         </div>
 
         <form onSubmit={handleSubmit} className={styles.form}>
           <div className={styles.questionsContainer}>
             {survey.questions
               .sort((a, b) => a.display_order - b.display_order)
-              .map(renderQuestion)}
+              .map((question, index) => renderQuestion(question, index))}
           </div>
 
           <div className={styles.submitSection}>

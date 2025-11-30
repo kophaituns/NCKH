@@ -38,8 +38,8 @@
 
   &:focus {
     outline: none;
-    border-color: #667eea;
-    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    border-color: #14B8A6;
+    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
   }
 
   &::placeholder {
@@ -49,7 +49,7 @@
 
 .createButton {
   padding: 0.75rem 1.5rem;
-  background: #667eea;
+  background: #14B8A6;
   color: white;
   border: none;
   border-radius: 6px;
@@ -58,7 +58,7 @@
   transition: all 0.2s;
 
   &:hover {
-    background: #5568d3;
+    background: #0F766E;
     transform: translateY(-2px);
   }
 
@@ -114,7 +114,7 @@
   background: rgba(102, 126, 234, 0.1);
   border-radius: 6px;
   margin-bottom: 1rem;
-  border-left: 4px solid #667eea;
+  border-left: 4px solid #14B8A6;
 
   .selectActions {
     display: flex;
@@ -132,13 +132,13 @@
       input[type="checkbox"] {
         width: 16px;
         height: 16px;
-        accent-color: #667eea;
+        accent-color: #14B8A6;
       }
     }
 
     .selectedInfo {
       font-size: 0.9rem;
-      color: #667eea;
+      color: #14B8A6;
       font-weight: 500;
     }
   }
@@ -182,15 +182,15 @@
   position: relative;
 
   &.selected {
-    border-color: #667eea;
-    background: rgba(102, 126, 234, 0.05);
+    border-color: #14B8A6;
+    background: rgba(16, 185, 129, 0.05);
     transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15);
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.15);
   }
 
   &:hover {
-    border-color: #667eea;
-    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15);
+    border-color: #14B8A6;
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.15);
     transform: translateY(-2px);
   }
 
@@ -204,7 +204,7 @@
   .workspaceCheckbox {
     width: 18px;
     height: 18px;
-    accent-color: #667eea;
+    accent-color: #14B8A6;
     cursor: pointer;
     margin-top: 0.1rem;
   }
@@ -245,7 +245,7 @@
 .openButton {
   width: 100%;
   padding: 0.75rem;
-  background: #667eea;
+  background: #14B8A6;
   color: white;
   border: none;
   border-radius: 6px;
@@ -254,7 +254,7 @@
   transition: all 0.2s;
 
   &:hover {
-    background: #5568d3;
+    background: #0F766E;
   }
 }
 
@@ -329,8 +329,8 @@
 
     &:focus {
       outline: none;
-      border-color: #667eea;
-      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+      border-color: #14B8A6;
+      box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
     }
   }
 
@@ -348,7 +348,7 @@
 
 .submitButton {
   padding: 0.75rem 1.5rem;
-  background: #667eea;
+  background: #14B8A6;
   color: white;
   border: none;
   border-radius: 6px;
@@ -357,7 +357,7 @@
   transition: all 0.2s;
 
   &:hover {
-    background: #5568d3;
+    background: #0F766E;
   }
 
   &:disabled {
@@ -412,14 +412,14 @@
       font-size: 0.9rem;
 
       &:hover {
-        border-color: #667eea;
-        background: rgba(102, 126, 234, 0.05);
+        border-color: #14B8A6;
+        background: rgba(16, 185, 129, 0.05);
       }
 
       &.active {
-        background: #667eea;
+        background: #14B8A6;
         color: white;
-        border-color: #667eea;
+        border-color: #14B8A6;
       }
 
       &:disabled {
@@ -450,7 +450,7 @@
     width: 24px;
     height: 24px;
     border: 3px solid #f3f3f3;
-    border-top: 3px solid #667eea;
+    border-top: 3px solid #14B8A6;
     border-radius: 50%;
     animation: spin 1s linear infinite;
   }

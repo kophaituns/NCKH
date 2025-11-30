@@ -38,7 +38,7 @@ const Sidebar = ({ isOpen, onClose }) => {
         { path: '/surveys', label: 'Surveys', icon: 'surveys' },
         { path: '/collectors', label: 'Collectors', icon: 'collectors' },
         { path: '/analytics', label: 'Analytics', icon: 'analytics' },
-        { path: '/llm', label: 'AI Generation', icon: 'llm' },
+        { path: '/llm', label: 'eration', icon: 'llm' },
         { path: '/my-responses', label: 'My Responses', icon: 'responses' },
         { path: '/chat', label: 'Chat', icon: 'chat' },
       ];
