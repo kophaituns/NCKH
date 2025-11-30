@@ -24,6 +24,8 @@ const WorkspaceActivity = require('./workspaceActivity.model')(sequelize, DataTy
 const ChatConversation = require('./chatConversation.model')(sequelize, DataTypes);
 const ChatMessage = require('./chatMessage.model')(sequelize, DataTypes);
 const SurveyAccess = require('./surveyAccess.model')(sequelize, DataTypes);
+const UserSettings = require('./userSettings.model')(sequelize, DataTypes);
+const AdminSettings = require('./adminSettings.model')(sequelize, DataTypes);
 
 // Define associations
 User.hasMany(SurveyTemplate, { foreignKey: 'created_by' });
@@ -135,6 +137,10 @@ SurveyAccess.belongsTo(User, { foreignKey: 'user_id', as: 'user' });
 User.hasMany(SurveyAccess, { foreignKey: 'granted_by', as: 'grantedAccess' });
 SurveyAccess.belongsTo(User, { foreignKey: 'granted_by', as: 'grantor' });
 
+// User Settings associations
+User.hasOne(UserSettings, { foreignKey: 'user_id', as: 'settings' });
+UserSettings.belongsTo(User, { foreignKey: 'user_id', as: 'user' });
+
 module.exports = {
   sequelize,
   User,
@@ -157,5 +163,7 @@ module.exports = {
   WorkspaceActivity,
   ChatConversation,
   ChatMessage,
-  SurveyAccess
+  SurveyAccess,
+  UserSettings,
+  AdminSettings
 };

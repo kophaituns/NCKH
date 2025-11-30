@@ -10,4 +10,5 @@ export { default as ExportService } from './export.service';
 export { default as LLMService } from './llm.service';
 export { default as ChatService } from './chat.service';
 export { default as SurveyAccessService } from './surveyAccess.service';
+export { default as SettingsService } from './settings.service';
 export { TokenService } from './token.service';

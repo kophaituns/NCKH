@@ -122,6 +122,22 @@ const Navbar = ({ onToggleSidebar }) => {
                   </svg>
                   Settings
                 </button>
+                {state.user?.role === 'admin' && (
+                  <button 
+                    className={styles.dropdownItem}
+                    onClick={() => {
+                      setShowUserMenu(false);
+                      navigate('/admin/settings');
+                    }}
+                  >
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                      <circle cx="8" cy="8" r="2" stroke="currentColor" strokeWidth="1.5"/>
+                      <path d="M12.5 8a4.5 4.5 0 00-.5-2M3.5 8a4.5 4.5 0 01.5-2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+                      <path d="M6 3l1.5 1.5L11 1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                    Admin Settings
+                  </button>
+                )}
                 <div className={styles.dropdownDivider}></div>
                 <button 
                   className={`${styles.dropdownItem} ${styles.logoutButton}`}
