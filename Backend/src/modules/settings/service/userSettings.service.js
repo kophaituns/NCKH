@@ -8,7 +8,9 @@ class UserSettingsService {
    * Get user settings for a specific user
    * Creates default settings if they don't exist
    */
+  
   async getUserSettings(userId) {
+    console.log(">>> DEBUG UserSettings model keys:", Object.keys(UserSettings));
     try {
       let settings = await UserSettings.findOne({
         where: { user_id: userId }

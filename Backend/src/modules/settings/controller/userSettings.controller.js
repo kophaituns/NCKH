@@ -1,6 +1,7 @@
 // src/modules/settings/controller/userSettings.controller.js
 const userSettingsService = require('../service/userSettings.service');
 const logger = require('../../../utils/logger');
+const { UserSettings } = require('../../../models');
 
 class UserSettingsController {
   /**
@@ -8,6 +9,7 @@ class UserSettingsController {
    * Get current user's settings
    */
   async getUserSettings(req, res) {
+    console.log(">>> Controller sees UserSettings table:", UserSettings.getTableName());
     try {
       const settings = await userSettingsService.getUserSettings(req.user.id);
       

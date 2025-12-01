@@ -9,7 +9,7 @@ class SettingsService {
    */
   async getUserSettings() {
     try {
-      const response = await http.get('/modules/settings/user');
+      const response = await http.get('/settings/user');
       return {
         ok: true,
         data: response.data.data
@@ -28,7 +28,7 @@ class SettingsService {
    */
   async updateNotificationSettings(data) {
     try {
-      const response = await http.put('/modules/settings/user/notifications', data);
+      const response = await http.put('/settings/user/notifications', data);
       return {
         ok: true,
         data: response.data.data,
@@ -48,7 +48,7 @@ class SettingsService {
    */
   async updatePrivacySettings(data) {
     try {
-      const response = await http.put('/modules/settings/user/privacy', data);
+      const response = await http.put('/settings/user/privacy', data);
       return {
         ok: true,
         data: response.data.data,
@@ -68,7 +68,7 @@ class SettingsService {
    */
   async changePassword(data) {
     try {
-      const response = await http.put('/modules/settings/user/change-password', data);
+      const response = await http.put('/settings/user/change-password', data);
       return {
         ok: true,
         message: response.data.message
@@ -87,7 +87,7 @@ class SettingsService {
    */
   async deletePersonalData() {
     try {
-      const response = await http.delete('/modules/settings/user/personal-data', {
+      const response = await http.delete('/settings/user/personal-data', {
         confirmDelete: true
       });
       return {
@@ -110,7 +110,7 @@ class SettingsService {
    */
   async getAdminSettings() {
     try {
-      const response = await http.get('/modules/settings/admin');
+      const response = await http.get('/settings/admin');
       return {
         ok: true,
         data: response.data.data
@@ -129,7 +129,7 @@ class SettingsService {
    */
   async updateGeneralSettings(data) {
     try {
-      const response = await http.put('/modules/settings/admin/general', data);
+      const response = await http.put('/settings/admin/general', data);
       return {
         ok: true,
         data: response.data.data,
@@ -149,7 +149,7 @@ class SettingsService {
    */
   async updateSurveyLimits(data) {
     try {
-      const response = await http.put('/modules/settings/admin/survey-limits', data);
+      const response = await http.put('/settings/admin/survey-limits', data);
       return {
         ok: true,
         data: response.data.data,
@@ -169,7 +169,7 @@ class SettingsService {
    */
   async updateSecuritySettings(data) {
     try {
-      const response = await http.put('/modules/settings/admin/security', data);
+      const response = await http.put('/settings/admin/security', data);
       return {
         ok: true,
         data: response.data.data,
@@ -189,7 +189,7 @@ class SettingsService {
    */
   async updateAllAdminSettings(data) {
     try {
-      const response = await http.put('/modules/settings/admin', data);
+      const response = await http.put('/settings/admin', data);
       return {
         ok: true,
         data: response.data.data,
@@ -209,7 +209,7 @@ class SettingsService {
    */
   async resetAdminSettingsToDefaults() {
     try {
-      const response = await http.post('/modules/settings/admin/reset');
+      const response = await http.post('/settings/admin/reset');
       return {
         ok: true,
         data: response.data.data,

@@ -54,7 +54,7 @@ const Navbar = ({ onToggleSidebar }) => {
             <rect width="32" height="32" rx="8" fill="#10b981"/>
             <path d="M8 12h16M8 16h16M8 20h10" stroke="white" strokeWidth="2" strokeLinecap="round"/>
           </svg>
-          <span className={styles.brandName}>ALLMTAGS</span>
+          <span className={styles.brandName}>{state.systemName}</span>
         </div>
       </div>
 
