@@ -5,6 +5,7 @@ import Loader from '../../../components/common/Loader/Loader';
 import Pagination from '../../../components/common/Pagination/Pagination';
 import StatusBadge from '../../../components/UI/StatusBadge';
 import ConfirmModal from '../../../components/UI/ConfirmModal';
+import Checkbox from '../../../components/UI/Checkbox/Checkbox';
 import { useToast } from '../../../contexts/ToastContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import styles from './SurveyList.module.scss';
@@ -21,23 +22,27 @@ const SurveyList = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [surveyToDelete, setSurveyToDelete] = useState(null);
+
+  // Bulk Selection State
+  const [selectedSurveys, setSelectedSurveys] = useState([]);
+  const [showBulkDeleteModal, setShowBulkDeleteModal] = useState(false);
+
   const itemsPerPage = 10;
 
   const fetchSurveys = useCallback(async () => {
     try {
       setLoading(true);
       const response = await SurveyService.getAll();
-      // SurveyService.getAll() returns { surveys: [...], pagination: {...} }
       const surveys = response.surveys || [];
       setSurveys(surveys);
+      setSelectedSurveys([]); // Reset selection on fetch
     } catch (error) {
       console.error('Error fetching surveys:', error);
-      setSurveys([]); // Set empty array on error
+      setSurveys([]);
       showToast(error.response?.data?.message || 'Failed to fetch surveys', 'error');
     } finally {
       setLoading(false);
     }
-
   }, [showToast]);
 
   useEffect(() => {
@@ -55,6 +60,18 @@ const SurveyList = () => {
       fetchSurveys();
     } catch (error) {
       showToast(error.response?.data?.message || 'Failed to delete survey', 'error');
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    try {
+      await SurveyService.deleteMany(selectedSurveys);
+      showToast('Selected surveys deleted successfully', 'success');
+      setShowBulkDeleteModal(false);
+      setSelectedSurveys([]);
+      fetchSurveys();
+    } catch (error) {
+      showToast(error.response?.data?.message || 'Failed to delete surveys', 'error');
     }
   };
 
@@ -84,6 +101,29 @@ const SurveyList = () => {
   const totalPages = Math.ceil(filteredSurveys.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const currentSurveys = filteredSurveys.slice(startIndex, startIndex + itemsPerPage);
+
+  // Selection Handlers
+  const handleSelectAll = (e) => {
+    if (e.target.checked) {
+      const allIds = currentSurveys.map(s => s.id);
+      setSelectedSurveys(allIds);
+    } else {
+      setSelectedSurveys([]);
+    }
+  };
+
+  const handleSelectOne = (id) => {
+    setSelectedSurveys(prev => {
+      if (prev.includes(id)) {
+        return prev.filter(item => item !== id);
+      } else {
+        return [...prev, id];
+      }
+    });
+  };
+
+  const isAllSelected = currentSurveys.length > 0 && currentSurveys.every(s => selectedSurveys.includes(s.id));
+  const isIndeterminate = selectedSurveys.length > 0 && !isAllSelected;
 
   if (loading) return <Loader />;
 
@@ -147,6 +187,24 @@ const SurveyList = () => {
         </span>
       </div>
 
+      {/* Bulk Actions Bar */}
+      {selectedSurveys.length > 0 && (
+        <div className={styles.bulkActions}>
+          <span className={styles.selectedCount}>
+            {selectedSurveys.length} selected
+          </span>
+          <button
+            className={styles.bulkDeleteButton}
+            onClick={() => setShowBulkDeleteModal(true)}
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+            </svg>
+            Delete Selected
+          </button>
+        </div>
+      )}
+
       {currentSurveys.length === 0 ? (
         <div className={styles.emptyState}>
           <div className={styles.emptyIcon}>📊</div>
@@ -165,6 +223,12 @@ const SurveyList = () => {
             <table className={styles.table}>
               <thead>
                 <tr>
+                  <th style={{ width: '40px' }}>
+                    <Checkbox
+                      checked={isAllSelected}
+                      onChange={handleSelectAll}
+                    />
+                  </th>
                   <th>{t('survey_name') || 'Title'}</th>
                   <th>{t('status')}</th>
                   <th>{t('questions')}</th>
@@ -179,7 +243,13 @@ const SurveyList = () => {
                 {currentSurveys.map((survey) => {
                   const questionCount = survey.questionCount ?? survey.template?.Questions?.length ?? 0;
                   return (
-                    <tr key={survey.id}>
+                    <tr key={survey.id} className={selectedSurveys.includes(survey.id) ? styles.selectedRow : ''}>
+                      <td>
+                        <Checkbox
+                          checked={selectedSurveys.includes(survey.id)}
+                          onChange={() => handleSelectOne(survey.id)}
+                        />
+                      </td>
                       <td>
                         <div className={styles.surveyTitle}>
                           <span className={styles.title}>{survey.title}</span>
@@ -305,7 +375,19 @@ const SurveyList = () => {
         confirmText={t('delete')}
         confirmColor="danger"
       />
+
+      {/* Bulk Delete Confirmation Modal */}
+      <ConfirmModal
+        isOpen={showBulkDeleteModal}
+        onClose={() => setShowBulkDeleteModal(false)}
+        onConfirm={handleBulkDelete}
+        title="Delete Selected Surveys"
+        message={`Are you sure you want to delete ${selectedSurveys.length} selected surveys? This action cannot be undone.`}
+        confirmText={`Delete ${selectedSurveys.length} Surveys`}
+        confirmColor="danger"
+      />
     </div>
   );
 };
+
 export default SurveyList;

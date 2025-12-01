@@ -1,12 +1,12 @@
 .publicResponse {
   min-height: 100vh;
-  background: 
+  background:
     radial-gradient(circle at 20% 80%, rgba(86, 230, 170, 0.1) 0%, transparent 50%),
     radial-gradient(circle at 80% 20%, rgba(15, 118, 110, 0.1) 0%, transparent 50%),
     linear-gradient(135deg, #14B8A6 0%, #249955 100%);
   padding: 3rem 1rem;
   position: relative;
-  
+
   &::before {
     content: '';
     position: absolute;
@@ -30,12 +30,12 @@
   background: white;
   border-radius: 1rem 1rem 0 0;
   padding: 3rem 3rem 2.5rem 3rem;
-  box-shadow: 
+  box-shadow:
     0 4px 20px rgba(0, 0, 0, 0.08),
     0 1px 3px rgba(0, 0, 0, 0.1);
   border-bottom: 3px solid #14B8A6;
   position: relative;
-  
+
   &::after {
     content: '';
     position: absolute;
@@ -162,7 +162,7 @@
   border-radius: 4px;
   transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
-  
+
   &::after {
     content: '';
     position: absolute;
@@ -170,14 +170,19 @@
     left: 0;
     right: 0;
     bottom: 0;
-    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
     animation: shimmer 2s infinite;
   }
 }
 
 @keyframes shimmer {
-  0% { transform: translateX(-100%); }
-  100% { transform: translateX(100%); }
+  0% {
+    transform: translateX(-100%);
+  }
+
+  100% {
+    transform: translateX(100%);
+  }
 }
 
 .title {
@@ -203,7 +208,7 @@
 
 .form {
   background: white;
-  box-shadow: 
+  box-shadow:
     0 4px 20px rgba(0, 0, 0, 0.08),
     0 1px 3px rgba(0, 0, 0, 0.1);
   border-radius: 0 0 1rem 1rem;
@@ -319,7 +324,7 @@
   &:last-child {
     border-bottom: none;
   }
-  
+
   &::before {
     content: '';
     position: absolute;
@@ -331,7 +336,7 @@
     opacity: 0;
     transition: opacity 0.3s ease;
   }
-  
+
   &:hover::before {
     opacity: 1;
   }
@@ -430,7 +435,7 @@
     outline: none;
     border-color: #14B8A6;
     background: white;
-    box-shadow: 
+    box-shadow:
       0 0 0 3px rgba(20, 184, 166, 0.1),
       0 4px 12px rgba(0, 0, 0, 0.1);
     transform: translateY(-1px);
@@ -516,7 +521,7 @@
     border-color: #14B8A6;
     transform: translateY(-2px);
     box-shadow: 0 8px 25px rgba(20, 184, 166, 0.15);
-    
+
     &::before {
       opacity: 1;
     }
@@ -585,7 +590,7 @@
     transform: translateY(-4px) scale(1.05);
     box-shadow: 0 12px 24px rgba(20, 184, 166, 0.25);
   }
-  
+
   span {
     position: relative;
     z-index: 1;
@@ -638,7 +643,7 @@
   border-top: 1px solid #e5e7eb;
   text-align: center;
   position: relative;
-  
+
   &::before {
     content: '';
     position: absolute;
@@ -672,16 +677,16 @@
   display: flex;
   justify-content: center;
   gap: 2rem;
-  
+
   .statItem {
     text-align: center;
-    
+
     .statValue {
       font-size: 1.25rem;
       font-weight: 700;
       color: #14B8A6;
     }
-    
+
     .statLabel {
       font-size: 0.875rem;
       color: #6b7280;
@@ -707,7 +712,7 @@
   box-shadow: 0 4px 14px rgba(20, 184, 166, 0.3);
   position: relative;
   overflow: hidden;
-  
+
   &::before {
     content: '';
     position: absolute;
@@ -715,10 +720,10 @@
     left: -100%;
     width: 100%;
     height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
     transition: left 0.5s;
   }
-  
+
   &:hover::before {
     left: 100%;
   }
@@ -728,7 +733,7 @@
     transform: translateY(-3px) scale(1.02);
     box-shadow: 0 8px 25px rgba(20, 184, 166, 0.4);
   }
-  
+
   &:active {
     transform: translateY(-1px) scale(1.01);
   }
@@ -824,6 +829,7 @@
     transform: scale(0);
     opacity: 0;
   }
+
   to {
     transform: scale(1);
     opacity: 1;
@@ -835,6 +841,7 @@
     transform: translateY(20px);
     opacity: 0;
   }
+
   to {
     transform: translateY(0);
     opacity: 1;
@@ -845,13 +852,13 @@
   .publicResponse {
     padding: 1.5rem 0.75rem;
   }
-  
+
   .header,
   .questionBlock,
   .submitSection {
     padding: 2rem 1.5rem;
   }
-  
+
   .header {
     &::after {
       left: 1.5rem;
@@ -862,7 +869,7 @@
   .title {
     font-size: 2rem;
   }
-  
+
   .description {
     font-size: 1rem;
   }
@@ -872,11 +879,11 @@
     height: 56px;
     font-size: 1.25rem;
   }
-  
+
   .ratingScale {
     gap: 0.5rem;
   }
-  
+
   .submitButton {
     padding: 1rem 2rem;
     font-size: 1rem;
