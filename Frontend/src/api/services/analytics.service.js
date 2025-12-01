@@ -16,17 +16,7 @@ const AnalyticsService = {
         });
     },
 
-    submitFeedback: (surveyId, questionId, isHelpful) => {
-        return http.post('/modules/analytics/feedback', {
-            surveyId,
-            questionId,
-            isHelpful
-        });
-    },
 
-    getFeedbackAnalysis: (surveyId) => {
-        return http.get(`/modules/analytics/survey/${surveyId}/feedback`);
-    }
 };
 
 export default AnalyticsService;
