@@ -34,14 +34,14 @@
 
   &:hover {
     background-color: #f9fafb;
-    color: #10b981;
-    border-left-color: #10b981;
+    color: #14B8A6;
+    border-left-color: #14B8A6;
   }
 
   &.active {
     background-color: #f0fdf4;
-    color: #10b981;
-    border-left-color: #10b981;
+    color: #14B8A6;
+    border-left-color: #14B8A6;
     font-weight: 600;
   }
 }
@@ -73,7 +73,7 @@
 
 .collapsibleBtn.expanded {
   background-color: #f9fafb;
-  color: #10b981;
+  color: #14B8A6;
 
   .chevron {
     transform: rotate(180deg);

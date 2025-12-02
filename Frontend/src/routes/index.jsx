@@ -30,6 +30,9 @@ import Chat from '../pages/Chat/index.jsx';
 import LLM from '../pages/LLM/index.jsx';
 import PublicResponseForm from '../pages/Public/ResponseForm/index.jsx';
 import WorkspaceInvitationAccept from '../pages/Public/WorkspaceInvitationAccept/index.jsx';
+import UserResponses from '../pages/User/Responses/index.jsx';
+import Profile from '../pages/User/Profile/Profile.jsx';
+import Settings from '../pages/User/Settings/Settings.jsx';
 
 // Placeholder components for routes not yet implemented
 const ComingSoon = ({ title }) => (
@@ -275,7 +278,19 @@ const AppRoutes = () => {
         element={
           <ProtectedRoute allowedRoles={['user']}>
             <DefaultLayout>
-              <ComingSoon title="My Responses" />
+              <UserResponses />
+            </DefaultLayout>
+          </ProtectedRoute>
+        }
+      />
+
+      {/* My Responses - All authenticated users can view their own responses */}
+      <Route
+        path="/my-responses"
+        element={
+          <ProtectedRoute>
+            <DefaultLayout>
+              <UserResponses />
             </DefaultLayout>
           </ProtectedRoute>
         }
@@ -351,7 +366,7 @@ const AppRoutes = () => {
         element={
           <ProtectedRoute>
             <DefaultLayout>
-              <ComingSoon title="Profile" />
+              <Profile />
             </DefaultLayout>
           </ProtectedRoute>
         }
@@ -361,6 +376,7 @@ const AppRoutes = () => {
         element={
           <ProtectedRoute>
             <DefaultLayout>
+<<<<<<< HEAD
               <UserSettings />
             </DefaultLayout>
           </ProtectedRoute>
@@ -374,6 +390,9 @@ const AppRoutes = () => {
           <ProtectedRoute allowedRoles={['admin']}>
             <DefaultLayout>
               <AdminSettings />
+=======
+              <Settings />
+>>>>>>> 5ceab3f2f7fb42e906e0ed60e1a1e12fe75b065f
             </DefaultLayout>
           </ProtectedRoute>
         }

@@ -1,6 +1,6 @@
 const axios = require('axios');
-const { ChatConversation, ChatMessage, User } = require('../../../../src/models');
-const logger = require('../../../../src/utils/logger');
+const { ChatConversation, ChatMessage, User } = require('../../../models');
+const logger = require('../../../utils/logger');
 const { Op } = require('sequelize');
 
 class ChatService {

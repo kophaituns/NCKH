@@ -5,12 +5,15 @@ import Loader from '../../../components/common/Loader/Loader';
 import Pagination from '../../../components/common/Pagination/Pagination';
 import StatusBadge from '../../../components/UI/StatusBadge';
 import ConfirmModal from '../../../components/UI/ConfirmModal';
+import Checkbox from '../../../components/UI/Checkbox/Checkbox';
 import { useToast } from '../../../contexts/ToastContext';
+import { useLanguage } from '../../../contexts/LanguageContext';
 import styles from './SurveyList.module.scss';
 
 const SurveyList = () => {
   const navigate = useNavigate();
   const { showToast } = useToast();
+  const { t } = useLanguage();
 
   const [surveys, setSurveys] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -19,23 +22,27 @@ const SurveyList = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [surveyToDelete, setSurveyToDelete] = useState(null);
+
+  // Bulk Selection State
+  const [selectedSurveys, setSelectedSurveys] = useState([]);
+  const [showBulkDeleteModal, setShowBulkDeleteModal] = useState(false);
+
   const itemsPerPage = 10;
 
   const fetchSurveys = useCallback(async () => {
     try {
       setLoading(true);
       const response = await SurveyService.getAll();
-      // SurveyService.getAll() returns { surveys: [...], pagination: {...} }
       const surveys = response.surveys || [];
       setSurveys(surveys);
+      setSelectedSurveys([]); // Reset selection on fetch
     } catch (error) {
       console.error('Error fetching surveys:', error);
-      setSurveys([]); // Set empty array on error
+      setSurveys([]);
       showToast(error.response?.data?.message || 'Failed to fetch surveys', 'error');
     } finally {
       setLoading(false);
     }
-
   }, [showToast]);
 
   useEffect(() => {
@@ -53,6 +60,18 @@ const SurveyList = () => {
       fetchSurveys();
     } catch (error) {
       showToast(error.response?.data?.message || 'Failed to delete survey', 'error');
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    try {
+      await SurveyService.deleteMany(selectedSurveys);
+      showToast('Selected surveys deleted successfully', 'success');
+      setShowBulkDeleteModal(false);
+      setSelectedSurveys([]);
+      fetchSurveys();
+    } catch (error) {
+      showToast(error.response?.data?.message || 'Failed to delete surveys', 'error');
     }
   };
 
@@ -83,14 +102,37 @@ const SurveyList = () => {
   const startIndex = (currentPage - 1) * itemsPerPage;
   const currentSurveys = filteredSurveys.slice(startIndex, startIndex + itemsPerPage);
 
+  // Selection Handlers
+  const handleSelectAll = (e) => {
+    if (e.target.checked) {
+      const allIds = currentSurveys.map(s => s.id);
+      setSelectedSurveys(allIds);
+    } else {
+      setSelectedSurveys([]);
+    }
+  };
+
+  const handleSelectOne = (id) => {
+    setSelectedSurveys(prev => {
+      if (prev.includes(id)) {
+        return prev.filter(item => item !== id);
+      } else {
+        return [...prev, id];
+      }
+    });
+  };
+
+  const isAllSelected = currentSurveys.length > 0 && currentSurveys.every(s => selectedSurveys.includes(s.id));
+  const isIndeterminate = selectedSurveys.length > 0 && !isAllSelected;
+
   if (loading) return <Loader />;
 
   return (
     <div className={styles.surveyList}>
       <div className={styles.header}>
         <div>
-          <h1 className={styles.title}>Surveys</h1>
-          <p className={styles.subtitle}>Manage your survey campaigns</p>
+          <h1 className={styles.title}>{t('my_surveys')}</h1>
+          <p className={styles.subtitle}>{t('manage_surveys_desc') || 'Manage your survey campaigns'}</p>
         </div>
         <button
           className={styles.createButton}
@@ -100,7 +142,7 @@ const SurveyList = () => {
             <line x1="12" y1="5" x2="12" y2="19" />
             <line x1="5" y1="12" x2="19" y2="12" />
           </svg>
-          Create Survey
+          {t('create_survey')}
         </button>
       </div>
 
@@ -112,7 +154,7 @@ const SurveyList = () => {
           </svg>
           <input
             type="text"
-            placeholder="Search surveys..."
+            placeholder={t('search_surveys')}
             value={searchTerm}
             onChange={(e) => {
               setSearchTerm(e.target.value);
@@ -124,7 +166,7 @@ const SurveyList = () => {
         </div>
 
         <div className={styles.statusFilter}>
-          <label>Status:</label>
+          <label>{t('status')}:</label>
           <select
             value={statusFilter}
             onChange={(e) => {
@@ -133,10 +175,10 @@ const SurveyList = () => {
             }}
             className={styles.select}
           >
-            <option value="all">All</option>
-            <option value="draft">Draft</option>
-            <option value="active">Active</option>
-            <option value="closed">Closed</option>
+            <option value="all">{t('view_all') || 'All'}</option>
+            <option value="draft">{t('draft')}</option>
+            <option value="active">{t('active')}</option>
+            <option value="closed">{t('closed')}</option>
           </select>
         </div>
 
@@ -145,16 +187,34 @@ const SurveyList = () => {
         </span>
       </div>
 
+      {/* Bulk Actions Bar */}
+      {selectedSurveys.length > 0 && (
+        <div className={styles.bulkActions}>
+          <span className={styles.selectedCount}>
+            {selectedSurveys.length} selected
+          </span>
+          <button
+            className={styles.bulkDeleteButton}
+            onClick={() => setShowBulkDeleteModal(true)}
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+            </svg>
+            Delete Selected
+          </button>
+        </div>
+      )}
+
       {currentSurveys.length === 0 ? (
         <div className={styles.emptyState}>
           <div className={styles.emptyIcon}>📊</div>
-          <h3>No surveys found</h3>
-          <p>Create your first survey to start collecting responses</p>
+          <h3>{t('no_surveys_found')}</h3>
+          <p>{t('create_first_survey_desc') || 'Create your first survey to start collecting responses'}</p>
           <button
             className={styles.emptyButton}
             onClick={() => navigate('/surveys/new')}
           >
-            Create Survey
+            {t('create_survey')}
           </button>
         </div>
       ) : (
@@ -163,21 +223,33 @@ const SurveyList = () => {
             <table className={styles.table}>
               <thead>
                 <tr>
-                  <th>Title</th>
-                  <th>Status</th>
-                  <th>Questions</th>
-                  <th>Responses</th>
-                  <th>Start Date</th>
-                  <th>End Date</th>
-                  <th>Created</th>
-                  <th>Actions</th>
+                  <th style={{ width: '40px' }}>
+                    <Checkbox
+                      checked={isAllSelected}
+                      onChange={handleSelectAll}
+                    />
+                  </th>
+                  <th>{t('survey_name') || 'Title'}</th>
+                  <th>{t('status')}</th>
+                  <th>{t('questions')}</th>
+                  <th>{t('responses') || 'Responses'}</th>
+                  <th>{t('start_date') || 'Start Date'}</th>
+                  <th>{t('end_date') || 'End Date'}</th>
+                  <th>{t('created_at')}</th>
+                  <th>{t('actions')}</th>
                 </tr>
               </thead>
               <tbody>
                 {currentSurveys.map((survey) => {
                   const questionCount = survey.questionCount ?? survey.template?.Questions?.length ?? 0;
                   return (
-                    <tr key={survey.id}>
+                    <tr key={survey.id} className={selectedSurveys.includes(survey.id) ? styles.selectedRow : ''}>
+                      <td>
+                        <Checkbox
+                          checked={selectedSurveys.includes(survey.id)}
+                          onChange={() => handleSelectOne(survey.id)}
+                        />
+                      </td>
                       <td>
                         <div className={styles.surveyTitle}>
                           <span className={styles.title}>{survey.title}</span>
@@ -187,7 +259,7 @@ const SurveyList = () => {
                         </div>
                       </td>
                       <td>
-                        <StatusBadge status={survey.status} />
+                        <StatusBadge status={survey.status} label={t(survey.status)} />
                       </td>
                       <td>
                         <span className={styles.questionCount}>
@@ -208,7 +280,7 @@ const SurveyList = () => {
                             <button
                               onClick={() => handleStatusChange(survey, 'active')}
                               className={styles.publishButton}
-                              title="Publish survey"
+                              title={t('publish_survey') || "Publish survey"}
                             >
                               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                 <circle cx="12" cy="12" r="10" />
@@ -220,7 +292,7 @@ const SurveyList = () => {
                             <button
                               onClick={() => handleStatusChange(survey, 'closed')}
                               className={styles.closeButton}
-                              title="Close survey"
+                              title={t('close_survey') || "Close survey"}
                             >
                               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                 <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
@@ -232,7 +304,7 @@ const SurveyList = () => {
                           <button
                             onClick={() => navigate(`/surveys/${survey.id}/edit`)}
                             className={styles.editButton}
-                            title="Edit survey"
+                            title={t('edit')}
                           >
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                               <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
@@ -242,7 +314,7 @@ const SurveyList = () => {
                           <button
                             onClick={() => navigate(`/surveys/${survey.id}/distribute`)}
                             className={styles.distributeButton}
-                            title="Distribute survey"
+                            title={t('distribute') || "Distribute survey"}
                           >
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                               <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z" />
@@ -251,7 +323,7 @@ const SurveyList = () => {
                           <button
                             onClick={() => navigate(`/surveys/${survey.id}/results`)}
                             className={styles.resultsButton}
-                            title="View results"
+                            title={t('view_results')}
                           >
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                               <line x1="12" y1="20" x2="12" y2="10" />
@@ -262,7 +334,7 @@ const SurveyList = () => {
                           <button
                             onClick={() => openDeleteModal(survey)}
                             className={styles.deleteButton}
-                            title="Delete survey"
+                            title={t('delete')}
                           >
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                               <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
@@ -298,12 +370,24 @@ const SurveyList = () => {
           setSurveyToDelete(null);
         }}
         onConfirm={handleDelete}
-        title="Delete Survey"
-        message={`Are you sure you want to delete "${surveyToDelete?.title}"? This action cannot be undone and will delete all associated responses.`}
-        confirmText="Delete"
+        title={t('delete_survey') || "Delete Survey"}
+        message={t('delete_confirm') || `Are you sure you want to delete "${surveyToDelete?.title}"? This action cannot be undone and will delete all associated responses.`}
+        confirmText={t('delete')}
+        confirmColor="danger"
+      />
+
+      {/* Bulk Delete Confirmation Modal */}
+      <ConfirmModal
+        isOpen={showBulkDeleteModal}
+        onClose={() => setShowBulkDeleteModal(false)}
+        onConfirm={handleBulkDelete}
+        title="Delete Selected Surveys"
+        message={`Are you sure you want to delete ${selectedSurveys.length} selected surveys? This action cannot be undone.`}
+        confirmText={`Delete ${selectedSurveys.length} Surveys`}
         confirmColor="danger"
       />
     </div>
   );
 };
+
 export default SurveyList;

@@ -28,10 +28,18 @@ const ResponseService = {
   },
 
   /**
-   * Get user's own responses
+   * Get user's own responses with enhanced filtering
    */
   async getUserResponses(params = {}) {
     const response = await http.get('/responses/my-responses', { params });
+    return response.data;
+  },
+
+  /**
+   * Get detailed user response with all answers
+   */
+  async getUserResponseDetail(id) {
+    const response = await http.get(`/responses/my-responses/${id}`);
     return response.data;
   },
 

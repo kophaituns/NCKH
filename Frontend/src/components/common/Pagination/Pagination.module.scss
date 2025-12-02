@@ -36,18 +36,18 @@
 
   &:hover:not(:disabled) {
     background: #f3f4f6;
-    border-color: #10b981;
-    color: #10b981;
+    border-color: #14B8A6;
+    color: #14B8A6;
   }
 
   &.active {
-    background: #10b981;
-    border-color: #10b981;
+    background: #14B8A6;
+    border-color: #14B8A6;
     color: white;
 
     &:hover {
-      background: #059669;
-      border-color: #059669;
+      background: #0F766E;
+      border-color: #0F766E;
     }
   }
 

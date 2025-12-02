@@ -24,7 +24,7 @@ const LLM = () => {
     prompt: ''
   });
   const [generatedQuestions, setGeneratedQuestions] = useState([]);
-  const [categories, setCategories] = useState([]);
+  // const [categories, setCategories] = useState([]); // Unused
   const [prompts, setPrompts] = useState([]);
   const [selectedPrompt, setSelectedPrompt] = useState('');
   const [createdSurvey, setCreatedSurvey] = useState(null);
@@ -33,14 +33,14 @@ const LLM = () => {
   const loadInitialData = useCallback(async () => {
     try {
       setLoading(true);
-      
+
       // Load categories and prompts
       const [categoriesRes, promptsRes] = await Promise.all([
         LLMService.getCategories(),
         LLMService.getLlmPrompts()
       ]);
 
-      setCategories(categoriesRes.data.categories || []);
+      // setCategories(categoriesRes.data.categories || []);
       setPrompts(promptsRes.data.prompts || []);
     } catch (error) {
       console.error('Error loading initial data:', error);
@@ -81,7 +81,7 @@ const LLM = () => {
       console.error('Error generating questions:', error);
       showToast(
         'Error while generating questions: ' +
-          (error.response?.data?.message || error.message),
+        (error.response?.data?.message || error.message),
         'error'
       );
     } finally {
@@ -130,7 +130,7 @@ const LLM = () => {
       const response = await LLMService.generateSurvey({
         prompt: formData.prompt,
         prompt_id: selectedPrompt,
-        description: 'AI generated survey',
+        description: 'erated survey',
         target_audience: 'General',
         course_name: 'AI Course'
       });
@@ -141,7 +141,7 @@ const LLM = () => {
       console.error('Error generating survey:', error);
       showToast(
         'Error while generating survey: ' +
-          (error.response?.data?.message || error.message),
+        (error.response?.data?.message || error.message),
         'error'
       );
     } finally {
@@ -158,7 +158,7 @@ const LLM = () => {
     <div className={styles.tabContent}>
       <Card className={styles.formCard}>
         <h3>Generate Questions from AI</h3>
-        
+
         <div className={styles.formGroup}>
           <label>Keyword *</label>
           <div className={styles.inputWithButton}>
@@ -168,7 +168,7 @@ const LLM = () => {
               value={formData.keyword}
               onChange={(e) => handleInputChange('keyword', e.target.value)}
             />
-            <Button 
+            <Button
               onClick={handlePredictCategory}
               disabled={loading || !formData.keyword.trim()}
               variant="outline"
@@ -178,19 +178,7 @@ const LLM = () => {
           </div>
         </div>
 
-        <div className={styles.formGroup}>
-          <label>Category</label>
-          <Select
-            value={formData.category}
-            onChange={(value) => handleInputChange('category', value)}
-            placeholder="Select category"
-          >
-            <option value="">Auto detect</option>
-            {categories.map(cat => (
-              <option key={cat} value={cat}>{cat}</option>
-            ))}
-          </Select>
-        </div>
+
 
         <div className={styles.formGroup}>
           <label>Number of questions</label>
@@ -205,7 +193,7 @@ const LLM = () => {
           </Select>
         </div>
 
-        <Button 
+        <Button
           onClick={handleGenerateQuestions}
           disabled={loading || !formData.keyword.trim()}
           className={styles.generateBtn}
@@ -223,8 +211,8 @@ const LLM = () => {
                 <div className={styles.questionNumber}>{index + 1}</div>
                 <div className={styles.questionContent}>
                   <p className={styles.questionText}>{q.question}</p>
-                  <small className={styles.questionSource}>
-                    Source: {q.source}{' '}
+                  <small className={styles.questionMeta}>
+                    Type: {q.type || 'text'} • Source: {q.source}{' '}
                     {q.confidence && `• Confidence: ${q.confidence}%`}
                   </small>
                 </div>
@@ -240,7 +228,7 @@ const LLM = () => {
     <div className={styles.tabContent}>
       <Card className={styles.formCard}>
         <h3>Generate Survey from AI</h3>
-        
+
         <div className={styles.formGroup}>
           <label>Select existing prompt</label>
           <Select
@@ -273,7 +261,7 @@ const LLM = () => {
           )}
         </div>
 
-        <Button 
+        <Button
           onClick={handleGenerateSurvey}
           disabled={loading || (!formData.prompt.trim() && !selectedPrompt)}
           className={styles.generateBtn}
@@ -303,27 +291,27 @@ const LLM = () => {
       </div>
 
       <div className={styles.tabs}>
-        <button 
+        <button
           className={`${styles.tab} ${activeTab === 'generate' ? styles.active : ''}`}
           onClick={() => setActiveTab('generate')}
         >
           Generate Questions
         </button>
-        <button 
+        <button
           className={`${styles.tab} ${activeTab === 'survey' ? styles.active : ''}`}
           onClick={() => setActiveTab('survey')}
           disabled={generatedQuestions.length === 0}
         >
           Generate Survey ({generatedQuestions.length})
         </button>
-        <button 
+        <button
           className={`${styles.tab} ${activeTab === 'prompt' ? styles.active : ''}`}
           onClick={() => setActiveTab('prompt')}
         >
           Generate Survey from Prompt
         </button>
         {createdSurvey && (
-          <button 
+          <button
             className={`${styles.tab} ${activeTab === 'result' ? styles.active : ''}`}
             onClick={() => setActiveTab('result')}
           >
@@ -331,7 +319,7 @@ const LLM = () => {
           </button>
         )}
         {createdSurvey && (
-          <button 
+          <button
             className={`${styles.tab} ${activeTab === 'edit' ? styles.active : ''}`}
             onClick={() => {
               setEditingSurveyId(createdSurvey.id);
@@ -345,7 +333,7 @@ const LLM = () => {
 
       {activeTab === 'generate' && renderQuestionGeneration()}
       {activeTab === 'survey' && generatedQuestions.length > 0 && (
-        <SurveyCreator 
+        <SurveyCreator
           generatedQuestions={generatedQuestions}
           onSurveyCreated={(survey) => {
             setCreatedSurvey(survey);
@@ -355,14 +343,14 @@ const LLM = () => {
       )}
       {activeTab === 'prompt' && renderSurveyGeneration()}
       {activeTab === 'result' && createdSurvey && (
-        <SurveyActions 
+        <SurveyActions
           survey={createdSurvey}
           onClose={() => setActiveTab('generate')}
           onEditSurvey={handleEditSurvey}
         />
       )}
       {activeTab === 'edit' && editingSurveyId && (
-        <SurveyQuestionEditor 
+        <SurveyQuestionEditor
           surveyId={editingSurveyId}
           onClose={() => setActiveTab('result')}
           onSurveyUpdated={() => {

@@ -35,7 +35,7 @@
   align-items: center;
   gap: 0.5rem;
   padding: 0.625rem 1.25rem;
-  background: #6366f1;
+  background: #14B8A6;
   color: white;
   border: none;
   border-radius: 6px;
@@ -46,7 +46,7 @@
   white-space: nowrap;
 
   &:hover {
-    background: #4f46e5;
+    background: #0F766E;
   }
 
   svg {
@@ -143,7 +143,7 @@
 
   &.active {
     background: #ecfdf5;
-    color: #059669;
+    color: #0F766E;
     border-color: #a7f3d0;
   }
 
@@ -156,7 +156,7 @@
 
 .responseCount {
   font-weight: 500;
-  color: #6366f1;
+  color: #14B8A6;
 }
 
 .actions {
@@ -193,11 +193,11 @@
 }
 
 .qrButton {
-  color: #8b5cf6;
+  color: #14B8A6;
 
   &:hover {
-    border-color: #8b5cf6;
-    background: #f5f3ff;
+    border-color: #14B8A6;
+    background: #ecfdf5;
   }
 }
 
@@ -239,7 +239,7 @@
 
 .emptyButton {
   padding: 0.625rem 1.25rem;
-  background: #6366f1;
+  background: #14B8A6;
   color: white;
   border: none;
   border-radius: 6px;
@@ -280,8 +280,8 @@
 
     &:focus {
       outline: none;
-      border-color: #6366f1;
-      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+      border-color: #14B8A6;
+      box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
     }
   }
 }
@@ -323,11 +323,11 @@
 }
 
 .submitButton {
-  background: #6366f1;
+  background: #14B8A6;
   color: white;
 
   &:hover {
-    background: #4f46e5;
+    background: #0F766E;
   }
 }
 

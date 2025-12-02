@@ -37,14 +37,14 @@
   gap: 0.5rem;
   padding: 0.3rem 0.75rem;
   border-radius: 999px;
-  background: linear-gradient(135deg, #ecfeff, #eef2ff);
+  background: linear-gradient(135deg, #ecfdf5, #f0fdf4);
   border: 1px solid #e5e7eb;
   font-size: 0.8rem;
 
   .badgeLabel {
     padding: 0.15rem 0.5rem;
     border-radius: 999px;
-    background: #6366f1;
+    background: #14B8A6;
     color: #fff;
     font-weight: 600;
   }
@@ -171,8 +171,8 @@
   input:focus,
   select:focus,
   textarea:focus {
-    border-color: #6366f1;
-    box-shadow: 0 0 0 1px rgba(99, 102, 241, 0.18);
+    border-color: #14B8A6;
+    box-shadow: 0 0 0 1px rgba(16, 185, 129, 0.18);
   }
 }
 .inputWithButton {
@@ -189,7 +189,7 @@
   }
 }
 
-/* Nút generate */
+/* Generate button */
 
 .generateBtn {
   margin-top: 0.2rem;
@@ -202,7 +202,7 @@
   padding-inline: 1.4rem;
 }
 
-/* Text gợi ý */
+/* Hint text */
 
 .helpText {
   font-size: 0.8rem;
@@ -261,7 +261,7 @@
   font-size: 0.8rem;
   font-weight: 600;
   color: #ffffff;
-  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  background: linear-gradient(135deg, #14B8A6, #0F766E);
   flex-shrink: 0;
 }
 
@@ -277,14 +277,14 @@
   font-weight: 500;
 }
 
-.questionSource {
+.questionMeta {
   font-size: 0.78rem;
   color: #6b7280;
   display: flex;
   gap: 0.6rem;
 }
 
-/* Textarea riêng để dễ dark mode */
+/* Separate textarea for easier dark mode */
 
 .textarea {
   min-height: 110px;
@@ -307,7 +307,7 @@
 
   .header p,
   .helpText,
-  .questionSource {
+  .questionMeta {
     color: #9ca3af;
   }
 

@@ -8,7 +8,7 @@ const AuthService = {
   async register(userData) {
     const response = await http.post('/auth/register', userData);
     const { user, token, refreshToken } = response.data.data;
-    
+
     // Store tokens
     if (token) {
       localStorage.setItem('token', token);
@@ -16,7 +16,7 @@ const AuthService = {
       localStorage.setItem('user', JSON.stringify(user));
       setAuthToken(token);
     }
-    
+
     return response.data;
   },
 
@@ -26,22 +26,22 @@ const AuthService = {
   async login(identifier, password) {
     // Backend expects { email, password } or { username, password }
     // Send as email if it contains @, otherwise as username
-    const loginPayload = identifier.includes('@') 
+    const loginPayload = identifier.includes('@')
       ? { email: identifier, password }
       : { username: identifier, password };
-      
+
     const response = await http.post('/auth/login', loginPayload);
-    
+
     const { user, token, refreshToken } = response.data.data;
-    
+
     // Store tokens and user data
-   if (token) {
-    sessionStorage.setItem('token', token);
-    sessionStorage.setItem('refreshToken', refreshToken);
-    sessionStorage.setItem('user', JSON.stringify(user));
-    setAuthToken(token);
-}
-    
+    if (token) {
+      sessionStorage.setItem('token', token);
+      sessionStorage.setItem('refreshToken', refreshToken);
+      sessionStorage.setItem('user', JSON.stringify(user));
+      setAuthToken(token);
+    }
+
     return response.data;
   },
 
@@ -51,7 +51,7 @@ const AuthService = {
   async refreshToken(refreshToken) {
     const response = await http.post('/auth/refresh', { refreshToken });
     const { token: newToken, refreshToken: newRefreshToken } = response.data.data;
-    
+
     if (newToken) {
       localStorage.setItem('token', newToken);
       if (newRefreshToken) {
@@ -59,7 +59,7 @@ const AuthService = {
       }
       setAuthToken(newToken);
     }
-    
+
     return response.data;
   },
 
@@ -69,10 +69,10 @@ const AuthService = {
   async getProfile() {
     const response = await http.get('/auth/profile');
     const user = response.data.data.user;
-    
+
     // Update stored user data
     localStorage.setItem('user', JSON.stringify(user));
-    
+
     return response.data;
   },
 
@@ -90,6 +90,14 @@ const AuthService = {
   },
 
   /**
+   * Change password
+   */
+  async changePassword(passwordData) {
+    const response = await http.post('/auth/change-password', passwordData);
+    return response.data;
+  },
+
+  /**
    * Check if user is authenticated
    */
   isAuthenticated() {
@@ -102,10 +110,10 @@ const AuthService = {
   getCurrentUser() {
     const userStr = sessionStorage.getItem('user');
     return userStr ? JSON.parse(userStr) : null;
-},
+  },
 
-getToken() {
-  return sessionStorage.getItem('token');
+  getToken() {
+    return sessionStorage.getItem('token');
   },
 };
 

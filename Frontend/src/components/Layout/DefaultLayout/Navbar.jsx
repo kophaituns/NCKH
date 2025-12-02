@@ -2,10 +2,12 @@ import React, { useState } from 'react';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import NotificationBell from '../../UI/NotificationBell';
+import { useLanguage } from '../../../contexts/LanguageContext';
 import styles from './Navbar.module.scss';
 
 const Navbar = ({ onToggleSidebar }) => {
   const { state, logout } = useAuth();
+  const { t } = useLanguage();
   const navigate = useNavigate();
   const [showUserMenu, setShowUserMenu] = useState(false);
 
@@ -40,7 +42,7 @@ const Navbar = ({ onToggleSidebar }) => {
   return (
     <nav className={styles.navbar}>
       <div className={styles.navbarLeft}>
-        <button 
+        <button
           className={styles.menuButton}
           onClick={onToggleSidebar}
           aria-label="Toggle sidebar"
@@ -51,8 +53,8 @@ const Navbar = ({ onToggleSidebar }) => {
         </button>
         <div className={styles.brand}>
           <svg className={styles.logo} width="32" height="32" viewBox="0 0 32 32" fill="none">
-            <rect width="32" height="32" rx="8" fill="#10b981"/>
-            <path d="M8 12h16M8 16h16M8 20h10" stroke="white" strokeWidth="2" strokeLinecap="round"/>
+            <rect width="32" height="32" rx="8" fill="#10b981" />
+            <path d="M8 12h16M8 16h16M8 20h10" stroke="white" strokeWidth="2" strokeLinecap="round" />
           </svg>
           <span className={styles.brandName}>{state.systemName}</span>
         </div>
@@ -63,47 +65,30 @@ const Navbar = ({ onToggleSidebar }) => {
           <>
             <NotificationBell />
             <div className={styles.userSection}>
-            <div 
-              className={styles.userInfo}
-              onClick={() => setShowUserMenu(!showUserMenu)}
-            >
-              <div className={styles.avatar}>
-                {getInitials(state.user.full_name || state.user.username)}
-              </div>
-              <div className={styles.userDetails}>
-                <span className={styles.userName}>{state.user.full_name || state.user.username}</span>
-                <span 
-                  className={styles.userRole}
-                  style={{ color: getRoleBadgeColor(state.user.role) }}
-                >
-                  {state.user.role}
-                </span>
-              </div>
-              <svg 
-                className={`${styles.chevron} ${showUserMenu ? styles.chevronUp : ''}`}
-                width="16" 
-                height="16" 
-                viewBox="0 0 16 16" 
-                fill="none"
+              <div
+                className={styles.userInfo}
+                onClick={() => setShowUserMenu(!showUserMenu)}
               >
-                <path d="M4 6L8 10L12 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-              </svg>
-            </div>
-
-            {showUserMenu && (
-              <div className={styles.dropdown}>
-                <div className={styles.dropdownHeader}>
-                  <p className={styles.dropdownName}>{state.user.full_name}</p>
-                  <p className={styles.dropdownEmail}>{state.user.email}</p>
+                <div className={styles.avatar}>
+                  {getInitials(state.user.full_name || state.user.username)}
                 </div>
-                <div className={styles.dropdownDivider}></div>
-                <button 
-                  className={styles.dropdownItem}
-                  onClick={() => {
-                    setShowUserMenu(false);
-                    navigate('/profile');
-                  }}
+                <div className={styles.userDetails}>
+                  <span className={styles.userName}>{state.user.full_name || state.user.username}</span>
+                  <span
+                    className={styles.userRole}
+                    style={{ color: getRoleBadgeColor(state.user.role) }}
+                  >
+                    {state.user.role}
+                  </span>
+                </div>
+                <svg
+                  className={`${styles.chevron} ${showUserMenu ? styles.chevronUp : ''}`}
+                  width="16"
+                  height="16"
+                  viewBox="0 0 16 16"
+                  fill="none"
                 >
+<<<<<<< HEAD
                   <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
                     <path d="M8 8a3 3 0 100-6 3 3 0 000 6zM3 14a5 5 0 0110 0" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
                   </svg>
@@ -148,8 +133,56 @@ const Navbar = ({ onToggleSidebar }) => {
                   </svg>
                   Logout
                 </button>
+=======
+                  <path d="M4 6L8 10L12 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                </svg>
+>>>>>>> 5ceab3f2f7fb42e906e0ed60e1a1e12fe75b065f
               </div>
-            )}
+
+              {showUserMenu && (
+                <div className={styles.dropdown}>
+                  <div className={styles.dropdownHeader}>
+                    <p className={styles.dropdownName}>{state.user.full_name}</p>
+                    <p className={styles.dropdownEmail}>{state.user.email}</p>
+                  </div>
+                  <div className={styles.dropdownDivider}></div>
+                  <button
+                    className={styles.dropdownItem}
+                    onClick={() => {
+                      setShowUserMenu(false);
+                      navigate('/profile');
+                    }}
+                  >
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                      <path d="M8 8a3 3 0 100-6 3 3 0 000 6zM3 14a5 5 0 0110 0" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                    </svg>
+                    {t('profile')}
+                  </button>
+                  <button
+                    className={styles.dropdownItem}
+                    onClick={() => {
+                      setShowUserMenu(false);
+                      navigate('/settings');
+                    }}
+                  >
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                      <circle cx="8" cy="8" r="2" stroke="currentColor" strokeWidth="1.5" />
+                      <path d="M12.5 8a4.5 4.5 0 00-.5-2M3.5 8a4.5 4.5 0 01.5-2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                    </svg>
+                    {t('settings')}
+                  </button>
+                  <div className={styles.dropdownDivider}></div>
+                  <button
+                    className={`${styles.dropdownItem} ${styles.logoutButton}`}
+                    onClick={handleLogout}
+                  >
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                      <path d="M6 14H3a1 1 0 01-1-1V3a1 1 0 011-1h3M11 11l3-3-3-3M14 8H6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                    {t('logout')}
+                  </button>
+                </div>
+              )}
             </div>
           </>
         )}
@@ -157,7 +190,7 @@ const Navbar = ({ onToggleSidebar }) => {
 
       {/* Click outside to close dropdown */}
       {showUserMenu && (
-        <div 
+        <div
           className={styles.overlay}
           onClick={() => setShowUserMenu(false)}
         />
