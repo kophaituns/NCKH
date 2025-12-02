@@ -14,6 +14,7 @@ const notifications = require('./notifications');
 const workspaces = require('./workspaces');
 const llm = require('./llm');
 const chat = require('./chat');
+const settings = require('./settings');
 
 module.exports = {
   authRbac,
@@ -28,5 +29,6 @@ module.exports = {
     notifications,
     workspaces,
     llm,
-    chat
+    chat,
+    settings
 };

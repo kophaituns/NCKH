@@ -69,5 +69,7 @@ app.listen(PORT, async () => {
     logger.error('Unable to connect to the database:', error);
   }
 });
+console.log(">>> BACKEND IS USING DB HOST:", process.env.DB_HOST);
+console.log(">>> BACKEND IS USING DB NAME:", process.env.DB_NAME);
 
 module.exports = app; // For testing purposes
