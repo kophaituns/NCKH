@@ -159,6 +159,72 @@ class UserService {
     await user.destroy();
     return true;
   }
+    /**
+   * Get settings for a user (notifications & privacy)
+   */
+  async getSettings(userId) {
+    const user = await User.findByPk(userId);
+
+    if (!user) {
+      const err = new Error('User not found');
+      err.statusCode = 404;
+      throw err;
+    }
+
+    return {
+      email_notifications_enabled: !!user.email_notifications_enabled,
+      email_reminders_enabled: !!user.email_reminders_enabled,
+      save_survey_history: !!user.save_survey_history,
+      anonymous_survey_responses: !!user.anonymous_survey_responses,
+    };
+  }
+
+  /**
+   * Update settings for a user
+   */
+  async updateSettings(userId, settings) {
+    const user = await User.findByPk(userId);
+
+    if (!user) {
+      const err = new Error('User not found');
+      err.statusCode = 404;
+      throw err;
+    }
+
+    const allowedFields = [
+      'email_notifications_enabled',
+      'email_reminders_enabled',
+      'save_survey_history',
+      'anonymous_survey_responses',
+    ];
+
+    for (const field of allowedFields) {
+      if (typeof settings[field] !== 'undefined') {
+        user[field] = !!settings[field];
+      }
+    }
+
+    await user.save();
+
+    return this.getSettings(userId);
+  }
+
+  /**
+   * Delete personal data of a user (for Privacy feature)
+   * NOTE: This will delete user row and all cascaded data (ON DELETE CASCADE).
+   */
+  async deletePersonalData(userId) {
+    const user = await User.findByPk(userId);
+
+    if (!user) {
+      const err = new Error('User not found');
+      err.statusCode = 404;
+      throw err;
+    }
+
+    await user.destroy();
+    return true;
+  }
 
   /**
    * Check if user has permission to view another user

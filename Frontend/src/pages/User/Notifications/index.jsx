@@ -1,303 +1,451 @@
 import React, { useState, useEffect } from 'react';
+import { useToast } from '../../../contexts/ToastContext';
+import { useLanguage } from '../../../contexts/LanguageContext';
+
+import AuthService from '../../../api/services/auth.service';
+import UserService from '../../../api/services/user.service';
+
+import Card from '../../../components/UI/Card';
+import Button from '../../../components/UI/Button';
+import Input from '../../../components/UI/Input';
+import LanguageSwitcher from '../../../components/UI/LanguageSwitcher';
+import Switch from '../../../components/UI/Switch';
+import Modal from '../../../components/UI/Modal';
+
 import styles from './Notifications.module.scss';
-import NotificationService from '../../../api/services/notification.service';
 
-const Notifications = () => {
-  const [notifications, setNotifications] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState('all'); // all, unread, read
-  const [typeFilter, setTypeFilter] = useState('all'); // all, workspace_invitation, survey_response, etc
-  const [searchQuery, setSearchQuery] = useState('');
 
-  useEffect(() => {
-    fetchNotifications();
-  }, []);
 
-  const fetchNotifications = async () => {
-    setLoading(true);
-    const result = await NotificationService.getNotifications(100);
-    if (result.ok) {
-      setNotifications(result.notifications || []);
-    }
-    setLoading(false);
-  };
+const LOCAL_STORAGE_KEY = 'user_settings';
 
-  const handleMarkAsRead = async (notificationId) => {
-    const result = await NotificationService.markAsRead(notificationId);
-    if (result.ok) {
-      setNotifications(prev =>
-        prev.map(n =>
-          n.id === notificationId ? { ...n, is_read: true } : n
-        )
-      );
-    }
-  };
+const Settings = () => {
+  const { showToast } = useToast();
+  const { t } = useLanguage();
 
-  const handleMarkAllAsRead = async () => {
-    const result = await NotificationService.markAllAsRead();
-    if (result.ok) {
-      setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
-    }
-  };
+  const [activeSection, setActiveSection] = useState('notifications');
 
-  const handleDelete = async (notificationId) => {
-    await NotificationService.deleteNotification(notificationId);
-    setNotifications(prev => prev.filter(n => n.id !== notificationId));
-  };
+  const [savingPassword, setSavingPassword] = useState(false);
+  const [settingsSaving, setSettingsSaving] = useState(false);
+  const [loadingSettings, setLoadingSettings] = useState(true);
 
-  const handleAcceptWorkspaceInvitation = (notificationId, invitationData) => {
-    if (invitationData?.token) {
-      window.location.href = `/workspace/invitation/${invitationData.token}/accept`;
-      handleMarkAsRead(notificationId);
-    }
-  };
-
-  const getNotificationIcon = (type) => {
-    switch (type) {
-      case 'workspace_invitation':
-        return '✉️';
-      case 'workspace_member_added':
-        return '👥';
-      case 'survey_response':
-        return '📝';
-      case 'survey_shared':
-        return '📤';
-      case 'collector_created':
-        return '🔗';
-      case 'response_completed':
-        return '✅';
-      default:
-        return '📢';
-    }
-  };
-
-  const formatDate = (dateString) => {
-    if (!dateString) return 'Unknown date';
-
-    try {
-      const date = new Date(dateString);
-
-      if (isNaN(date.getTime())) {
-        return 'Unknown date';
-      }
-
-      const now = new Date();
-      const diffMinutes = Math.floor((now - date) / 60000);
-
-      if (diffMinutes < 1) return 'Just now';
-      if (diffMinutes < 60) return `${diffMinutes}m ago`;
-
-      const diffHours = Math.floor(diffMinutes / 60);
-      if (diffHours < 24) return `${diffHours}h ago`;
-
-      const diffDays = Math.floor(diffHours / 24);
-      if (diffDays < 7) return `${diffDays}d ago`;
-
-      return date.toLocaleDateString();
-    } catch (error) {
-      console.error('Date formatting error:', error);
-      return 'Unknown date';
-    }
-  };
-
-  const filteredNotifications = notifications.filter(n => {
-    // Read status filter
-    if (filter === 'unread' && n.is_read) return false;
-    if (filter === 'read' && !n.is_read) return false;
-
-    // Type filter
-    if (typeFilter !== 'all' && n.type !== typeFilter) return false;
-
-    // Search query
-    if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase();
-      return (
-        n.title?.toLowerCase().includes(query) ||
-        n.body?.toLowerCase().includes(query)
-      );
-    }
-
-    return true;
+  const [passwordForm, setPasswordForm] = useState({
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: '',
   });
 
-  const unreadCount = notifications.filter(n => !n.is_read).length;
-  
-  // Get unique notification types for filter
-  const notificationTypes = [
-    { id: 'workspace_invitation', label: '✉️ Workspace Invitation' },
-    { id: 'workspace_member_added', label: '👥 Member Added' },
-    { id: 'survey_response', label: '📝 Survey Response' },
-    { id: 'survey_shared', label: '📤 Survey Shared' },
-    { id: 'collector_created', label: '🔗 Collector Created' },
-    { id: 'response_completed', label: '✅ Response Completed' }
-  ];
+  // CHỈ DÙNG 1 STATE DUY NHẤT CHO TẤT CẢ SETTINGS
+  const [userSettings, setUserSettings] = useState({
+    email_notifications_enabled: true,
+    email_reminders_enabled: true,
+    save_survey_history: true,
+    anonymous_survey_responses: false,
+  });
+
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [deletingPersonalData, setDeletingPersonalData] = useState(false);
+
+  // Load settings khi mở trang:
+  // 1) Load nhanh từ localStorage (nếu có)
+  // 2) Sau đó gọi API và merge kết quả
+  useEffect(() => {
+    let isMounted = true;
+
+    // 1. Load từ localStorage
+    if (typeof window !== 'undefined') {
+      try {
+        const raw = localStorage.getItem(LOCAL_STORAGE_KEY);
+        if (raw) {
+          const saved = JSON.parse(raw);
+          if (isMounted && saved && typeof saved === 'object') {
+            setUserSettings((prev) => ({
+              ...prev,
+              ...saved,
+            }));
+          }
+        }
+      } catch (err) {
+        console.error('Failed to load settings from localStorage:', err);
+      }
+    }
+
+    // 2. Gọi API từ backend
+    const fetchSettings = async () => {
+      try {
+        const result = await UserService.getMySettings();
+        const serverSettings = result.data?.settings;
+        if (serverSettings && isMounted) {
+          setUserSettings((prev) => ({
+            ...prev,
+            ...serverSettings,
+          }));
+
+          // đồng bộ lại localStorage với dữ liệu từ server
+          if (typeof window !== 'undefined') {
+            localStorage.setItem(
+              LOCAL_STORAGE_KEY,
+              JSON.stringify({
+                ...userSettings,
+                ...serverSettings,
+              })
+            );
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching user settings:', error);
+        if (isMounted) {
+          showToast(t('error_loading_settings'), 'error');
+        }
+      } finally {
+        if (isMounted) {
+          setLoadingSettings(false);
+        }
+      }
+    };
+
+    fetchSettings();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [showToast, t]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handlePasswordChangeField = (field, value) => {
+    setPasswordForm((prev) => ({
+      ...prev,
+      [field]: value,
+    }));
+  };
+
+  const handleToggleChange = (field, value) => {
+    setUserSettings((prev) => ({
+      ...prev,
+      [field]: value,
+    }));
+  };
+
+  const handleSaveSettings = async (e) => {
+    if (e) e.preventDefault();
+    setSettingsSaving(true);
+    try {
+      // Gọi API lưu xuống backend (nếu backend đã hỗ trợ)
+      await UserService.updateMySettings(userSettings);
+
+      // Lưu vào localStorage để khi reload vẫn giữ trạng thái
+      if (typeof window !== 'undefined') {
+        localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(userSettings));
+      }
+
+      showToast(t('settings_saved'), 'success');
+    } catch (error) {
+      console.error('Error saving settings:', error);
+      showToast(
+        error.response?.data?.message || t('error_saving_settings'),
+        'error'
+      );
+    } finally {
+      setSettingsSaving(false);
+    }
+  };
+
+  const handlePasswordChange = async (e) => {
+    e.preventDefault();
+
+    if (passwordForm.newPassword !== passwordForm.confirmPassword) {
+      showToast(t('passwords_do_not_match'), 'error');
+      return;
+    }
+
+    if (passwordForm.newPassword.length < 6) {
+      showToast(t('password_too_short'), 'error');
+      return;
+    }
+
+    setSavingPassword(true);
+
+    try {
+      await AuthService.changePassword({
+        oldPassword: passwordForm.currentPassword,
+        newPassword: passwordForm.newPassword,
+      });
+
+      showToast(t('password_changed'), 'success');
+      setPasswordForm({
+        currentPassword: '',
+        newPassword: '',
+        confirmPassword: '',
+      });
+    } catch (error) {
+      console.error('Change password error:', error);
+      showToast(
+        error.response?.data?.message || 'Failed to change password',
+        'error'
+      );
+    } finally {
+      setSavingPassword(false);
+    }
+  };
+
+  const handleConfirmDeletePersonalData = async () => {
+    setDeletingPersonalData(true);
+    try {
+      await UserService.deletePersonalData();
+      showToast(t('privacy_delete_success'), 'success');
+
+      // Xoá luôn settings trong localStorage
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem(LOCAL_STORAGE_KEY);
+      }
+
+      await AuthService.logout();
+      window.location.href = '/login';
+    } catch (error) {
+      console.error('Error deleting personal data:', error);
+      showToast(
+        error.response?.data?.message || t('error_deleting_personal_data'),
+        'error'
+      );
+    } finally {
+      setDeletingPersonalData(false);
+      setIsDeleteModalOpen(false);
+    }
+  };
+
+  // ======================
+  // RENDER CÁC SECTION
+  // ======================
+
+  const renderNotificationsSection = () => (
+    <Card title={t('notifications_settings')}>
+      <div className={styles.sectionHeader}>
+        <h3>{t('notifications_settings')}</h3>
+      </div>
+
+      <form onSubmit={handleSaveSettings}>
+        <div className={styles.toggleGroup}>
+          <div className={styles.toggleRow}>
+            <Switch
+              checked={userSettings.email_notifications_enabled}
+              onChange={(value) =>
+                handleToggleChange('email_notifications_enabled', value)
+              }
+              disabled={loadingSettings || settingsSaving}
+              label={t('notifications_email_notifications')}
+            />
+          </div>
+          <div className={styles.toggleRow}>
+            <Switch
+              checked={userSettings.email_reminders_enabled}
+              onChange={(value) =>
+                handleToggleChange('email_reminders_enabled', value)
+              }
+              disabled={loadingSettings || settingsSaving}
+              label={t('notifications_email_reminders')}
+            />
+          </div>
+        </div>
+
+        <div className={styles.actions}>
+          <Button type="submit" disabled={settingsSaving || loadingSettings}>
+            {settingsSaving ? t('saving') : t('save_changes')}
+          </Button>
+        </div>
+      </form>
+    </Card>
+  );
+
+  const renderPrivacySection = () => (
+    <Card title={t('privacy_settings')}>
+      <div className={styles.sectionHeader}>
+        <h3>{t('privacy_settings')}</h3>
+      </div>
+
+      <form onSubmit={handleSaveSettings}>
+        <div className={styles.toggleGroup}>
+          <div className={styles.toggleRow}>
+            <Switch
+              checked={userSettings.save_survey_history}
+              onChange={(value) =>
+                handleToggleChange('save_survey_history', value)
+              }
+              disabled={loadingSettings || settingsSaving}
+              label={t('privacy_save_survey_history')}
+            />
+          </div>
+          <div className={styles.toggleRow}>
+            <Switch
+              checked={userSettings.anonymous_survey_responses}
+              onChange={(value) =>
+                handleToggleChange('anonymous_survey_responses', value)
+              }
+              disabled={loadingSettings || settingsSaving}
+              label={t('privacy_anonymous_survey_responses')}
+            />
+          </div>
+        </div>
+
+        <div className={styles.dangerZone}>
+          <div>
+            <h4>{t('privacy_delete_personal_data')}</h4>
+            <p>{t('privacy_delete_personal_data_desc')}</p>
+          </div>
+          <Button
+            type="button"
+            disabled={deletingPersonalData}
+            onClick={() => setIsDeleteModalOpen(true)}
+          >
+            {deletingPersonalData
+              ? t('deleting')
+              : t('privacy_delete_personal_data')}
+          </Button>
+        </div>
+
+        <div className={styles.actions}>
+          <Button type="submit" disabled={settingsSaving || loadingSettings}>
+            {settingsSaving ? t('saving') : t('save_changes')}
+          </Button>
+        </div>
+      </form>
+    </Card>
+  );
+
+  const renderSecuritySection = () => (
+    <Card title={t('security')}>
+      <div className={styles.sectionHeader}>
+        <h3>{t('change_password')}</h3>
+        <p>{t('change_password_desc')}</p>
+      </div>
+
+      <form onSubmit={handlePasswordChange}>
+        <div className={styles.formStack}>
+          <Input
+            type="password"
+            label={t('current_password')}
+            value={passwordForm.currentPassword}
+            onChange={(e) =>
+              handlePasswordChangeField('currentPassword', e.target.value)
+            }
+            placeholder={t('current_password')}
+            required
+          />
+          <Input
+            type="password"
+            label={t('new_password')}
+            value={passwordForm.newPassword}
+            onChange={(e) =>
+              handlePasswordChangeField('newPassword', e.target.value)
+            }
+            placeholder={t('new_password')}
+            required
+          />
+          <Input
+            type="password"
+            label={t('confirm_new_password')}
+            value={passwordForm.confirmPassword}
+            onChange={(e) =>
+              handlePasswordChangeField('confirmPassword', e.target.value)
+            }
+            placeholder={t('confirm_new_password')}
+            required
+          />
+        </div>
+
+        <div className={styles.actions}>
+          <Button type="submit" disabled={savingPassword}>
+            {savingPassword ? t('updating') : t('update_password')}
+          </Button>
+        </div>
+      </form>
+    </Card>
+  );
 
   return (
-    <div className={styles.notificationsPage}>
-      <div className={styles.pageHeader}>
-        <h1>Notifications {unreadCount > 0 && `(${unreadCount})`}</h1>
-        {notifications.length > 0 && (
-          <div className={styles.headerActions}>
-            {unreadCount > 0 && (
-              <button className={styles.markAllRead} onClick={handleMarkAllAsRead}>
-                Mark all as read
-              </button>
-            )}
-          </div>
-        )}
+    <div className={styles.settingsContainer}>
+      <div className={styles.header}>
+        <h1>{t('settings_page')}</h1>
+        <p>{t('manage_account_settings')}</p>
       </div>
 
-      {notifications.length > 0 && (
-        <>
-          <div className={styles.searchBar}>
-            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor">
-              <circle cx="8" cy="8" r="5" strokeWidth="1.5"/>
-              <path d="M13 13l4 4" strokeWidth="1.5" strokeLinecap="round"/>
-            </svg>
-            <input
-              type="text"
-              placeholder="Search notifications by title or content..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className={styles.searchInput}
-            />
-            {searchQuery && (
-              <button 
-                className={styles.clearSearch}
-                onClick={() => setSearchQuery('')}
-              >
-                ✕
-              </button>
-            )}
-          </div>
+      {/* Language card luôn ở trên */}
+      <div className={styles.languageCard}>
+        <Card title={t('language')}>
+          <LanguageSwitcher />
+        </Card>
+      </div>
 
-          <div className={styles.filterBar}>
-            <div className={styles.filterGroup}>
-              <label className={styles.filterLabel}>Status:</label>
-              <button
-                className={`${styles.filterButton} ${filter === 'all' ? styles.active : ''}`}
-                onClick={() => setFilter('all')}
-              >
-                All ({notifications.length})
-              </button>
-              <button
-                className={`${styles.filterButton} ${filter === 'unread' ? styles.active : ''}`}
-                onClick={() => setFilter('unread')}
-              >
-                Unread ({unreadCount})
-              </button>
-              <button
-                className={`${styles.filterButton} ${filter === 'read' ? styles.active : ''}`}
-                onClick={() => setFilter('read')}
-              >
-                Read ({notifications.length - unreadCount})
-              </button>
-            </div>
-
-            <div className={styles.filterGroup}>
-              <label className={styles.filterLabel}>Type:</label>
-              <button
-                className={`${styles.filterButton} ${typeFilter === 'all' ? styles.active : ''}`}
-                onClick={() => setTypeFilter('all')}
-              >
-                All Types
-              </button>
-              {notificationTypes.map(type => (
-                <button
-                  key={type.id}
-                  className={`${styles.filterButton} ${typeFilter === type.id ? styles.active : ''}`}
-                  onClick={() => setTypeFilter(type.id)}
-                >
-                  {type.label}
-                </button>
-              ))}
-            </div>
-          </div>
-        </>
-      )}
-
-      <div className={styles.notificationsContainer}>
-        {loading ? (
-          <div className={styles.loadingState}>
-            <div className={styles.spinner}></div>
-          </div>
-        ) : filteredNotifications.length === 0 ? (
-          <div className={styles.emptyState}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-            </svg>
-            <p>{filter === 'all' ? 'No notifications yet' : `No ${filter} notifications`}</p>
-          </div>
-        ) : (
-          filteredNotifications.map(notification => (
-            <div
-              key={notification.id}
-              className={`${styles.notification} ${!notification.is_read ? styles.unread : ''}`}
+      <div className={styles.settingsBody}>
+        {/* Sidebar bên trái */}
+        <div className={styles.sidebar}>
+          <div className={styles.sidebarTitle}>{t('settings_page')}</div>
+          <div className={styles.menuList}>
+            <button
+              type="button"
+              className={`${styles.menuItem} ${
+                activeSection === 'notifications' ? styles.menuItemActive : ''
+              }`}
+              onClick={() => setActiveSection('notifications')}
             >
-              <div className={styles.notificationIcon}>
-                {getNotificationIcon(notification.type)}
-              </div>
+              <span>{t('notifications_settings')}</span>
+            </button>
 
-              <div className={styles.notificationContent}>
-                <div className={styles.notificationHeader}>
-                  <h3 className={styles.notificationTitle}>{notification.title}</h3>
-                  <span className={styles.notificationTime}>
-                    {formatDate(notification.created_at)}
-                  </span>
-                </div>
+            <button
+              type="button"
+              className={`${styles.menuItem} ${
+                activeSection === 'privacy' ? styles.menuItemActive : ''
+              }`}
+              onClick={() => setActiveSection('privacy')}
+            >
+              <span>{t('privacy_settings')}</span>
+            </button>
 
-                <p className={styles.notificationBody}>
-                  {notification.body}
-                </p>
+            <button
+              type="button"
+              className={`${styles.menuItem} ${
+                activeSection === 'security' ? styles.menuItemActive : ''
+              }`}
+              onClick={() => setActiveSection('security')}
+            >
+              <span>{t('security')}</span>
+            </button>
+          </div>
+        </div>
 
-                {notification.data && (
-                  <div className={styles.notificationData}>
-                    {notification.data.workspace_id && (
-                      <span className={`${styles.dataTag} ${styles.workspace}`}>
-                        Workspace ID: {notification.data.workspace_id}
-                      </span>
-                    )}
-                    {notification.data.survey_id && (
-                      <span className={`${styles.dataTag} ${styles.survey}`}>
-                        Survey ID: {notification.data.survey_id}
-                      </span>
-                    )}
-                  </div>
-                )}
-
-                <div className={styles.notificationActions}>
-                  {!notification.is_read && (
-                    <button
-                      className={styles.actionButton}
-                      onClick={() => handleMarkAsRead(notification.id)}
-                    >
-                      Mark as read
-                    </button>
-                  )}
-
-                  {notification.type === 'workspace_invitation' && notification.data?.token && (
-                    <button
-                      className={styles.actionButton}
-                      onClick={() => handleAcceptWorkspaceInvitation(notification.id, notification.data)}
-                    >
-                      Accept Invitation
-                    </button>
-                  )}
-
-                  <button
-                    className={styles.deleteButton}
-                    onClick={() => handleDelete(notification.id)}
-                  >
-                    Delete
-                  </button>
-                </div>
-              </div>
-            </div>
-          ))
-        )}
+        {/* Nội dung bên phải */}
+        <div className={styles.content}>
+          {activeSection === 'notifications' && renderNotificationsSection()}
+          {activeSection === 'privacy' && renderPrivacySection()}
+          {activeSection === 'security' && renderSecuritySection()}
+        </div>
       </div>
+
+      {/* Modal confirm delete personal data */}
+      <Modal
+        isOpen={isDeleteModalOpen}
+        title={t('privacy_delete_confirmation_title')}
+        onClose={() => setIsDeleteModalOpen(false)}
+        actions={
+          <>
+            <Button
+              type="button"
+              disabled={deletingPersonalData}
+              onClick={() => setIsDeleteModalOpen(false)}
+            >
+              {t('cancel')}
+            </Button>
+            <Button
+              type="button"
+              disabled={deletingPersonalData}
+              onClick={handleConfirmDeletePersonalData}
+            >
+              {deletingPersonalData ? t('deleting') : t('confirm')}
+            </Button>
+          </>
+        }
+      >
+        <p>{t('privacy_delete_confirmation_message')}</p>
+      </Modal>
     </div>
   );
 };
 
-export default Notifications;
+export default Settings;

@@ -69,6 +69,29 @@ const UserService = {
     const response = await http.patch(`/modules/users/${id}/role`, { role });
     return response.data;
   },
+   /**
+   * Get settings for current user
+   */
+  async getMySettings() {
+    const response = await http.get('/modules/users/me/settings');
+    return response.data;
+  },
+
+  /**
+   * Update settings for current user
+   */
+  async updateMySettings(payload) {
+    const response = await http.put('/modules/users/me/settings', payload);
+    return response.data;
+  },
+
+  /**
+   * Delete personal data for current user
+   */
+  async deletePersonalData() {
+    const response = await http.post('/modules/users/me/delete-personal-data');
+    return response.data;
+  },
 
   /**
    * Get user role statistics (admin only)

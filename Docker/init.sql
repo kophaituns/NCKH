@@ -20,6 +20,13 @@ CREATE TABLE users (
     password VARCHAR(255) NOT NULL,
     full_name VARCHAR(100) NOT NULL,
     role ENUM('admin', 'creator', 'user') NOT NULL DEFAULT 'user',
+
+    -- User settings (Notifications & Privacy)
+    email_notifications_enabled TINYINT(1) NOT NULL DEFAULT 1,
+    email_reminders_enabled TINYINT(1) NOT NULL DEFAULT 1,
+    save_survey_history TINYINT(1) NOT NULL DEFAULT 1,
+    anonymous_survey_responses TINYINT(1) NOT NULL DEFAULT 0,
+
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
@@ -456,7 +463,7 @@ CREATE TABLE chat_messages (
     conversation_id INT NOT NULL,
     sender_type ENUM('user','ai') NOT NULL,
     message TEXT NOT NULL,
-    api_provider ENUM('super_dev','gemini') NULL COMMENT 'API provider used for AI responses',
+    api_provider ENUM('super_dev','gemini','serper','fallback') NULL COMMENT 'API provider used for AI responses',
     response_time INT NULL COMMENT 'Response time in milliseconds',
     tokens_used INT NULL COMMENT 'Number of tokens used for AI response',
     status ENUM('sent','delivered','error') NOT NULL DEFAULT 'sent',

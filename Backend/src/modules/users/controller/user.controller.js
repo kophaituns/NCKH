@@ -174,6 +174,94 @@ class UserController {
       });
     }
   }
+   /**
+   * Get settings of current user
+   */
+  async getMySettings(req, res) {
+    try {
+      if (!req.user) {
+        return res.status(401).json({
+          error: true,
+          message: 'Unauthorized',
+        });
+      }
+
+      const settings = await userService.getSettings(req.user.id);
+
+      return res.status(200).json({
+        error: false,
+        message: 'User settings fetched successfully',
+        data: { settings },
+      });
+    } catch (error) {
+      logger.error('Error fetching user settings:', error);
+      const status = error.statusCode || 500;
+
+      return res.status(status).json({
+        error: true,
+        message: error.message || 'An error occurred while fetching settings',
+      });
+    }
+  }
+
+  /**
+   * Update settings of current user
+   */
+  async updateMySettings(req, res) {
+    try {
+      if (!req.user) {
+        return res.status(401).json({
+          error: true,
+          message: 'Unauthorized',
+        });
+      }
+
+      const settings = await userService.updateSettings(req.user.id, req.body);
+
+      return res.status(200).json({
+        error: false,
+        message: 'User settings updated successfully',
+        data: { settings },
+      });
+    } catch (error) {
+      logger.error('Error updating user settings:', error);
+      const status = error.statusCode || 500;
+
+      return res.status(status).json({
+        error: true,
+        message: error.message || 'An error occurred while updating settings',
+      });
+    }
+  }
+
+  /**
+   * Delete personal data of current user
+   */
+  async deletePersonalData(req, res) {
+    try {
+      if (!req.user) {
+        return res.status(401).json({
+          error: true,
+          message: 'Unauthorized',
+        });
+      }
+
+      await userService.deletePersonalData(req.user.id);
+
+      return res.status(200).json({
+        error: false,
+        message: 'Your personal data has been deleted successfully',
+      });
+    } catch (error) {
+      logger.error('Error deleting personal data:', error);
+      const status = error.statusCode || 500;
+
+      return res.status(status).json({
+        error: true,
+        message: error.message || 'An error occurred while deleting personal data',
+      });
+    }
+  }
 
   /**
    * Delete user

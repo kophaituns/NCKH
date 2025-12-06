@@ -3,45 +3,39 @@ import { translations } from '../utils/translations';
 
 const LanguageContext = createContext();
 
-export const useLanguage = () => {
-    return useContext(LanguageContext);
-};
+export const useLanguage = () => useContext(LanguageContext);
 
 export const LanguageProvider = ({ children }) => {
-    // Get language from local storage or default to 'vi' (Vietnamese) as requested
-    const [language, setLanguage] = useState(() => {
-        const savedLanguage = localStorage.getItem('language');
-        return savedLanguage || 'vi';
-    });
+  // Lấy language từ localStorage, mặc định 'vi'
+  const [language, setLanguage] = useState(() => {
+    if (typeof window === 'undefined') return 'vi';
+    const saved = localStorage.getItem('language');
+    return saved || 'vi';
+  });
 
-    useEffect(() => {
-        localStorage.setItem('language', language);
-    }, [language]);
+  // Lưu lại mỗi khi đổi ngôn ngữ
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('language', language);
+    }
+  }, [language]);
 
-    const t = (key) => {
-        const keys = key.split('.');
-        let value = translations[language];
+  // Hàm dịch: ưu tiên language hiện tại -> fallback sang en -> nếu không có thì trả lại key
+  const t = (key) => {
+    const current = translations[language] || {};
+    const fallback = translations.en || {};
+    return current[key] ?? fallback[key] ?? key;
+  };
 
-        for (const k of keys) {
-            if (value && value[k]) {
-                value = value[k];
-            } else {
-                return key; // Return key if translation not found
-            }
-        }
+  const value = {
+    language,
+    setLanguage,
+    t,
+  };
 
-        return value;
-    };
-
-    const value = {
-        language,
-        setLanguage,
-        t
-    };
-
-    return (
-        <LanguageContext.Provider value={value}>
-            {children}
-        </LanguageContext.Provider>
-    );
+  return (
+    <LanguageContext.Provider value={value}>
+      {children}
+    </LanguageContext.Provider>
+  );
 };
