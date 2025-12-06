@@ -24,6 +24,12 @@ const PublicResponseForm = () => {
       setLoading(true);
       const response = await ResponseService.getSurveyByToken(token);
 
+      console.log('=== DEBUG: API Response ===');
+      console.log('Full response:', response);
+      console.log('Response data:', response.data);
+      console.log('Survey data:', response.data?.survey);
+      console.log('Survey questions:', response.data?.survey?.questions);
+
       if (!response.ok) {
         setError(response.message || 'Invalid or inactive survey link');
         return;
@@ -67,6 +73,20 @@ const PublicResponseForm = () => {
 
       setSurvey(surveyData);
       // setCollectorId(response.data.collector_id);
+
+      console.log('=== DEBUG: Survey Questions ===');
+      console.log('Questions array:', surveyData.questions);
+      console.log('Questions length:', surveyData.questions?.length);
+      surveyData.questions?.forEach((q, index) => {
+        console.log(`Question ${index + 1}:`, {
+          id: q.id,
+          type: q.type,
+          label: q.label,
+          options: q.options,
+          hasOptions: q.options && q.options.length > 0
+        });
+      });
+      console.log('=========================');
 
       // Initialize answers based on question type
       const initialAnswers = {};
@@ -117,7 +137,7 @@ const PublicResponseForm = () => {
   const getQuestionTypeDisplay = (question) => {
     const typeMap = {
       'open_ended': 'Text Response',
-      'multiple_choice': 'Single Choice',
+      'multiple_choice': 'Multiple Choice',
       'checkbox': 'Multiple Choice',
       'dropdown': 'Dropdown',
       'rating': 'Rating Scale',
@@ -155,8 +175,8 @@ const PublicResponseForm = () => {
   };
 
   const handleAnswerChange = (questionId, value, questionType) => {
-    // For checkbox type - handle multiple selections
-    if (questionType === 'checkbox') {
+    // For checkbox and multiple_choice types - handle multiple selections
+    if (questionType === 'checkbox' || questionType === 'multiple_choice') {
       const currentAnswers = answers[questionId] || [];
       const newAnswers = currentAnswers.includes(value)
         ? currentAnswers.filter(v => v !== value)
@@ -217,6 +237,13 @@ const PublicResponseForm = () => {
     const answer = answers[question.id];
     const hasError = errors[question.id];
 
+    console.log(`=== RENDER Question ${index + 1} ===`);
+    console.log('Question object:', question);
+    console.log('Question type:', question.type);
+    console.log('Question options:', question.options);
+    console.log('Should render input for type:', question.type);
+    console.log('=====================================');
+
     return (
       <div key={question.id} className={styles.questionBlock}>
         <div className={styles.questionHeader}>
@@ -241,8 +268,11 @@ const PublicResponseForm = () => {
           </div>
         </div>
 
-        {/* Open Ended - Text area */}
-        {question.type === 'open_ended' && (
+        {/* Open Ended - Text area - Handle multiple type names */}
+        {(question.type === 'open_ended' || 
+          question.type === 'response' || 
+          question.type === 'text' || 
+          question.type === 'textarea') && (
           <textarea
             value={answer || ''}
             onChange={(e) => handleAnswerChange(question.id, e.target.value, question.type)}
@@ -250,25 +280,6 @@ const PublicResponseForm = () => {
             placeholder="Your answer..."
             rows={4}
           />
-        )}
-
-        {/* Multiple Choice - Radio buttons (single selection) */}
-        {question.type === 'multiple_choice' && (
-          <div className={styles.optionsList}>
-            {(question.options || []).map((option) => (
-              <label key={option.id} className={styles.optionLabel}>
-                <input
-                  type="radio"
-                  name={`question-${question.id}`}
-                  value={option.id}
-                  checked={String(answer) === String(option.id)}
-                  onChange={(e) => handleAnswerChange(question.id, option.id, question.type)}
-                  className={styles.radioInput}
-                />
-                <span>{option.text}</span>
-              </label>
-            ))}
-          </div>
         )}
 
         {/* Checkbox - Multiple selections */}
@@ -305,8 +316,55 @@ const PublicResponseForm = () => {
           </select>
         )}
 
-        {/* Likert Scale - Rating 1-5 */}
-        {question.type === 'likert_scale' && (
+        {/* Multiple Choice - Checkboxes for multiple selections */}
+        {question.type === 'multiple_choice' && (
+          <div className={styles.optionsList}>
+            {question.options && question.options.length > 0 ? (
+              question.options.map((option) => (
+                <label key={option.id} className={styles.optionLabel}>
+                  <input
+                    type="checkbox"
+                    value={option.id}
+                    checked={(answer || []).includes(option.id)}
+                    onChange={(e) => handleAnswerChange(question.id, option.id, question.type)}
+                    className={styles.checkboxInput}
+                  />
+                  <span>{option.text}</span>
+                </label>
+              ))
+            ) : (
+              <div style={{padding: '1rem', background: '#fff3cd', border: '1px solid #ffeaa7', borderRadius: '0.5rem', color: '#856404'}}>
+                <p><strong>No options available for this multiple choice question.</strong></p>
+                <p>Please contact the survey administrator.</p>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Yes/No Questions */}
+        {question.type === 'yes_no' && (
+          <div className={styles.yesNoButtons}>
+            <button
+              type="button"
+              onClick={() => handleAnswerChange(question.id, 'yes', question.type)}
+              className={`${styles.yesNoButton} ${answer === 'yes' ? styles.yesNoSelected : ''}`}
+            >
+              Yes
+            </button>
+            <button
+              type="button"
+              onClick={() => handleAnswerChange(question.id, 'no', question.type)}
+              className={`${styles.yesNoButton} ${answer === 'no' ? styles.yesNoSelected : ''}`}
+            >
+              No
+            </button>
+          </div>
+        )}
+
+        {/* Likert Scale - Rating 1-5 - Handle multiple type names */}
+        {(question.type === 'likert_scale' || 
+          question.type === 'rating_scale' || 
+          question.type === 'rating') && (
           <div className={styles.ratingScale}>
             {[1, 2, 3, 4, 5].map((rating) => (
               <button
@@ -318,6 +376,22 @@ const PublicResponseForm = () => {
                 {rating}
               </button>
             ))}
+          </div>
+        )}
+
+        {/* Fallback for unknown types - render as text input */}
+        {!['open_ended', 'response', 'text', 'textarea', 'multiple_choice', 'checkbox', 'dropdown', 'likert_scale', 'rating_scale', 'rating', 'yes_no'].includes(question.type) && (
+          <div className={styles.fallbackInput}>
+            <p style={{color: '#666', fontSize: '0.9em', marginBottom: '8px'}}>
+              Unknown question type: {question.type} - defaulting to text input
+            </p>
+            <textarea
+              value={answer || ''}
+              onChange={(e) => handleAnswerChange(question.id, e.target.value, question.type)}
+              className={`${styles.textarea} ${hasError ? styles.inputError : ''}`}
+              placeholder="Your answer..."
+              rows={4}
+            />
           </div>
         )}
 
@@ -422,6 +496,7 @@ const PublicResponseForm = () => {
 
         <div className={styles.footer}>
           <p>Powered by LLM Survey System</p>
+          <p>           ALLMTAGS       </p>
         </div>
       </div>
     </div>

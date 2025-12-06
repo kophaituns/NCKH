@@ -7,7 +7,7 @@ class NotificationService {
    */
   async getUnreadNotifications(limit = 20) {
     try {
-      const response = await http.get(`/notifications/unread`, {
+      const response = await http.get(`/modules/notifications/unread`, {
         params: { limit }
       });
       return response.data || { ok: false, notifications: [] };
@@ -26,7 +26,7 @@ class NotificationService {
    */
   async getNotifications(limit = 50, offset = 0) {
     try {
-      const response = await http.get(`/notifications`, {
+      const response = await http.get(`/modules/notifications`, {
         params: { limit, offset }
       });
       return response.data || { ok: false, notifications: [] };
@@ -45,7 +45,7 @@ class NotificationService {
    */
   async markAsRead(notificationId) {
     try {
-      const response = await http.put(`/notifications/${notificationId}/read`);
+      const response = await http.put(`/modules/notifications/${notificationId}/read`);
       return response.data || { ok: false };
     } catch (error) {
       console.error('[NotificationService.markAsRead] ERROR:', error);
@@ -61,7 +61,7 @@ class NotificationService {
    */
   async markAllAsRead() {
     try {
-      const response = await http.put(`/notifications/read-all`);
+      const response = await http.put(`/modules/notifications/read-all`);
       return response.data || { ok: false };
     } catch (error) {
       console.error('[NotificationService.markAllAsRead] ERROR:', error);
@@ -77,7 +77,7 @@ class NotificationService {
    */
   async deleteNotification(notificationId) {
     try {
-      const response = await http.delete(`/notifications/${notificationId}`);
+      const response = await http.delete(`/modules/notifications/${notificationId}`);
       return response.data || { ok: false };
     } catch (error) {
       console.error('[NotificationService.deleteNotification] ERROR:', error);
@@ -93,7 +93,7 @@ class NotificationService {
    */
   async getUnreadCount() {
     try {
-      const response = await http.get(`/notifications/unread-count`);
+      const response = await http.get(`/modules/notifications/unread-count`);
       return response.data || { ok: false, count: 0 };
     } catch (error) {
       console.error('[NotificationService.getUnreadCount] ERROR:', error);

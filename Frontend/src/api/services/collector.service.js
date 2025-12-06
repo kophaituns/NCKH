@@ -6,7 +6,7 @@ const CollectorService = {
    * Get all collectors for a survey
    */
   async getBySurvey(surveyId) {
-    const response = await http.get(`/collectors/survey/${surveyId}`);
+    const response = await http.get(`/modules/collectors/survey/${surveyId}`);
     return response.data.collectors || response.data.data?.collectors || [];
   },
 
@@ -18,7 +18,7 @@ const CollectorService = {
     if (!surveyId) {
       throw new Error('surveyId is required to create a collector');
     }
-    const response = await http.post(`/collectors/survey/${surveyId}`, data);
+    const response = await http.post(`/modules/collectors/survey/${surveyId}`, data);
     return response.data.collector || response.data.data?.collector || response.data.data;
   },
 
@@ -35,7 +35,7 @@ const CollectorService = {
    * Get collector by token (public access - no auth needed)
    */
   async getCollectorByToken(token) {
-    const response = await http.get(`/collectors/token/${token}`);
+    const response = await http.get(`/modules/collectors/token/${token}`);
     return response.data;
   },
 
@@ -43,7 +43,7 @@ const CollectorService = {
    * Get collector by ID (authenticated)
    */
   async getCollectorById(id) {
-    const response = await http.get(`/collectors/${id}`);
+    const response = await http.get(`/modules/collectors/${id}`);
     return response.data;
   },
 
@@ -51,7 +51,7 @@ const CollectorService = {
    * Update collector
    */
   async updateCollector(id, collectorData) {
-    const response = await http.put(`/collectors/${id}`, collectorData);
+    const response = await http.put(`/modules/collectors/${id}`, collectorData);
     return response.data;
   },
 
@@ -59,7 +59,7 @@ const CollectorService = {
    * Delete collector
    */
   async deleteCollector(id) {
-    const response = await http.delete(`/collectors/${id}`);
+    const response = await http.delete(`/modules/collectors/${id}`);
     return response.data;
   },
 
@@ -82,7 +82,7 @@ const CollectorService = {
    * Create workspace collector for a survey
    */
   async createWorkspaceCollector(surveyId, collectorData) {
-    const response = await http.post(`/collectors/survey/${surveyId}`, collectorData);
+    const response = await http.post(`/modules/collectors/survey/${surveyId}`, collectorData);
     return response.data;
   },
 };

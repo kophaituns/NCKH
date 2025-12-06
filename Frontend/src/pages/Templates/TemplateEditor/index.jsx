@@ -249,6 +249,147 @@ const TemplateEditor = () => {
     });
   };
 
+  const handleExportToPDF = async () => {
+    if (!isEditMode || !id) {
+      showToast('Please save the template first before exporting to PDF', 'error');
+      return;
+    }
+
+    try {
+      // First save the template if there are unsaved changes
+      await handleSaveTemplate();
+      
+      // Then export to PDF
+      const htmlContent = await TemplateService.exportTemplatePDF(id);
+      
+      // Create a new window and write the HTML content
+      const printWindow = window.open('', '_blank');
+      printWindow.document.write(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="UTF-8">
+          <title>Template: ${template.title}</title>
+          <style>
+            body {
+              font-family: Arial, sans-serif;
+              line-height: 1.6;
+              color: #333;
+              background: white;
+              margin: 0;
+              padding: 20px;
+            }
+            .header {
+              text-align: center;
+              margin-bottom: 30px;
+              padding-bottom: 20px;
+              border-bottom: 1px solid #ddd;
+            }
+            .title {
+              font-size: 24px;
+              font-weight: 600;
+              color: #333;
+              margin: 0 0 10px 0;
+            }
+            .description {
+              font-size: 16px;
+              color: #666;
+              margin: 0 0 10px 0;
+            }
+            .meta {
+              font-size: 12px;
+              color: #666;
+              margin: 0;
+            }
+            .question {
+              margin-bottom: 25px;
+              page-break-inside: avoid;
+              border-left: 2px solid #ddd;
+              padding-left: 15px;
+            }
+            .question-number {
+              font-size: 16px;
+              font-weight: 500;
+              color: #333;
+              margin-bottom: 8px;
+            }
+            .question-type {
+              font-size: 12px;
+              color: #666;
+              font-style: italic;
+              margin-bottom: 12px;
+            }
+            .options {
+              margin: 15px 0;
+            }
+            .option {
+              display: flex;
+              align-items: center;
+              margin-bottom: 8px;
+              padding: 6px 0;
+            }
+            .checkbox {
+              display: inline-block;
+              width: 12px;
+              height: 12px;
+              border: 1px solid #666;
+              margin-right: 8px;
+              background: white;
+              flex-shrink: 0;
+            }
+            .rating {
+              margin: 15px 0;
+              display: flex;
+              align-items: center;
+              gap: 8px;
+            }
+            .rating-box {
+              display: inline-block;
+              width: 24px;
+              height: 24px;
+              border: 1px solid #666;
+              text-align: center;
+              line-height: 22px;
+              font-size: 12px;
+              background: white;
+              border-radius: 3px;
+            }
+            .text-answer {
+              border-bottom: 1px solid #ddd;
+              height: 25px;
+              margin-bottom: 12px;
+              background: transparent;
+            }
+            .no-questions {
+              text-align: center;
+              padding: 40px 20px;
+              color: #666;
+            }
+            @media print {
+              body { margin: 0; padding: 15px; }
+              .question { page-break-inside: avoid; }
+            }
+          </style>
+        </head>
+        <body>
+          ${htmlContent}
+        </body>
+        </html>
+      `);
+      printWindow.document.close();
+      
+      // Auto print
+      setTimeout(() => {
+        printWindow.print();
+      }, 100);
+
+      showToast('PDF export ready for printing', 'success');
+    } catch (error) {
+      console.error('Export PDF error:', error);
+      showToast(error.response?.data?.message || 'Failed to export PDF', 'error');
+    }
+  };
+
   const openAddOptionModal = (questionId) => {
     const question = questions.find(q => q.id === questionId);
     const optionCount = question?.options?.length || 0;
@@ -350,13 +491,33 @@ const TemplateEditor = () => {
               />
             </div>
 
-            <button 
-              onClick={handleSaveTemplate}
-              disabled={saving}
-              className={styles.saveButton}
-            >
-              {saving ? 'Saving...' : isEditMode ? 'Update Template' : 'Create Template'}
-            </button>
+            <div className={styles.buttonGroup}>
+              <button 
+                onClick={handleSaveTemplate}
+                disabled={saving}
+                className={styles.saveButton}
+              >
+                {saving ? 'Saving...' : isEditMode ? 'Update Template' : 'Create Template'}
+              </button>
+              
+              {isEditMode && (
+                <button 
+                  onClick={handleExportToPDF}
+                  disabled={!isEditMode || saving}
+                  className={styles.exportButton}
+                  title="Export template to PDF"
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                    <polyline points="14,2 14,8 20,8"/>
+                    <line x1="16" y1="13" x2="8" y2="13"/>
+                    <line x1="16" y1="17" x2="8" y2="17"/>
+                    <polyline points="10,9 9,9 8,9"/>
+                  </svg>
+                  Export PDF
+                </button>
+              )}
+            </div>
           </div>
         </div>
 

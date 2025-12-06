@@ -24,8 +24,6 @@ import Workspaces from '../pages/Workspaces/index.jsx';
 import WorkspaceDetail from '../pages/Workspaces/WorkspaceDetail/index.jsx';
 import ManageInvitations from '../pages/Workspaces/ManageInvitations/index.jsx';
 import Notifications from '../pages/User/Notifications/index.jsx';
-import UserSettings from '../pages/User/Settings/index.jsx';
-import AdminSettings from '../pages/Admin/Settings/index.jsx';
 import Chat from '../pages/Chat/index.jsx';
 import LLM from '../pages/LLM/index.jsx';
 import PublicResponseForm from '../pages/Public/ResponseForm/index.jsx';
@@ -376,23 +374,7 @@ const AppRoutes = () => {
         element={
           <ProtectedRoute>
             <DefaultLayout>
-<<<<<<< HEAD
-              <UserSettings />
-            </DefaultLayout>
-          </ProtectedRoute>
-        }
-      />
-      
-      {/* Admin Settings (Admin only) */}
-      <Route
-        path="/admin/settings"
-        element={
-          <ProtectedRoute allowedRoles={['admin']}>
-            <DefaultLayout>
-              <AdminSettings />
-=======
               <Settings />
->>>>>>> 5ceab3f2f7fb42e906e0ed60e1a1e12fe75b065f
             </DefaultLayout>
           </ProtectedRoute>
         }

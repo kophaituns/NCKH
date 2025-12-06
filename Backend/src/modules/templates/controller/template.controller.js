@@ -172,14 +172,24 @@ class TemplateController {
     try {
       const { id } = req.params;
 
-      await templateService.deleteTemplate(id, req.user);
+      const result = await templateService.deleteTemplate(id, req.user);
 
       res.status(200).json({
         success: true,
-        message: 'Template deleted successfully'
+        message: result.message,
+        data: null
       });
     } catch (error) {
       logger.error('Delete template error:', error);
+
+      // Handle foreign key constraint errors
+      if (error.name === 'SequelizeForeignKeyConstraintError' || error.message.includes('foreign key constraint fails')) {
+        return res.status(409).json({
+          success: false,
+          message: 'Cannot delete template because it is being used by surveys. Please delete or reassign the surveys first.',
+          error: 'FOREIGN_KEY_CONSTRAINT'
+        });
+      }
 
       if (error.message.includes('not found')) {
         return res.status(404).json({
@@ -302,6 +312,26 @@ class TemplateController {
       res.status(500).json({
         success: false,
         message: error.message || 'Error fetching question types'
+      });
+    }
+  }
+
+  /**
+   * Export template to PDF
+   */
+  async exportTemplateToPDF(req, res) {
+    try {
+      const { id } = req.params;
+      const userId = req.user.id;
+
+      const result = await templateService.exportTemplateToPDF(id, userId);
+
+      res.status(200).send(result.htmlContent);
+    } catch (error) {
+      logger.error('Export template to PDF error:', error);
+      res.status(500).json({
+        success: false,
+        message: error.message || 'Error exporting template to PDF'
       });
     }
   }

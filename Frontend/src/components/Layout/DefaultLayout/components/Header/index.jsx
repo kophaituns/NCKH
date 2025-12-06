@@ -66,21 +66,12 @@ function Header() {
                     </div>
                     <hr className={styles.divider} />
                     <button 
-                      onClick={() => navigate('/settings')}
+                      onClick={() => navigate('/profile')}
                       className={styles.dropdownItem}
                     >
                       <FontAwesomeIcon icon={faCog} className={styles.icon} />
                       Settings
                     </button>
-                    {state.user?.role === 'admin' && (
-                      <button 
-                        onClick={() => navigate('/admin/settings')}
-                        className={styles.dropdownItem}
-                      >
-                        <FontAwesomeIcon icon={faCog} className={styles.icon} />
-                        Admin Settings
-                      </button>
-                    )}
                     <button 
                       onClick={handleLogout}
                       className={`${styles.dropdownItem} ${styles.logoutItem}`}

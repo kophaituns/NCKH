@@ -8,7 +8,7 @@ const WorkspaceService = {
    */
   async getMyWorkspaces() {
     try {
-      const response = await http.get('/workspaces/my');
+      const response = await http.get('/modules/workspaces/my');
       console.log('[WorkspaceService.getMyWorkspaces] Response:', response.data);
 
       // Handle multiple possible response formats from backend
@@ -57,7 +57,7 @@ const WorkspaceService = {
         throw new Error('Workspace ID is required');
       }
 
-      const response = await http.get(`/workspaces/${id}`);
+      const response = await http.get(`/modules/workspaces/${id}`);
       console.log(`[WorkspaceService.getWorkspaceById] Retrieved workspace ${id}:`, response.data);
 
       const responseData = response.data || {};
@@ -92,7 +92,7 @@ const WorkspaceService = {
         throw new Error('Workspace name is required');
       }
 
-      const response = await http.post('/workspaces', payload);
+      const response = await http.post('/modules/workspaces', payload);
       console.log('[WorkspaceService.createWorkspace] Created workspace:', response.data);
 
       const responseData = response.data || {};
@@ -127,7 +127,7 @@ const WorkspaceService = {
         throw new Error('Workspace ID is required');
       }
 
-      const response = await http.get(`/workspaces/${workspaceId}/members`);
+      const response = await http.get(`/modules/workspaces/${workspaceId}/members`);
       console.log(`[WorkspaceService.getWorkspaceMembers] Retrieved members for workspace ${workspaceId}:`, response.data);
 
       const responseData = response.data || {};
@@ -175,7 +175,7 @@ const WorkspaceService = {
         throw new Error('User ID and role are required');
       }
 
-      const response = await http.post(`/workspaces/${workspaceId}/members`, payload);
+      const response = await http.post(`/modules/workspaces/${workspaceId}/members`, payload);
       console.log(`[WorkspaceService.addWorkspaceMember] Added member to workspace ${workspaceId}:`, response.data);
 
       const responseData = response.data || {};
@@ -213,7 +213,7 @@ const WorkspaceService = {
         throw new Error('Member ID is required');
       }
 
-      const response = await http.delete(`/workspaces/${workspaceId}/members/${memberId}`);
+      const response = await http.delete(`/modules/workspaces/${workspaceId}/members/${memberId}`);
       console.log(`[WorkspaceService.removeWorkspaceMember] Removed member ${memberId} from workspace ${workspaceId}:`, response.data);
 
       const responseData = response.data || {};
@@ -241,7 +241,7 @@ const WorkspaceService = {
    */
   async inviteToWorkspace(workspaceId, email, role = 'member') {
     try {
-      const response = await http.post(`/workspaces/${workspaceId}/invite`, {
+      const response = await http.post(`/modules/workspaces/${workspaceId}/invite`, {
         email,
         role
       });
@@ -269,7 +269,7 @@ const WorkspaceService = {
    */
   async acceptInvitation(token) {
     try {
-      const response = await http.post(`/workspaces/accept-invitation`, {
+      const response = await http.post(`/modules/workspaces/accept-invitation`, {
         token
       });
       console.log('[WorkspaceService.acceptInvitation] Response:', response.data);
@@ -299,7 +299,7 @@ const WorkspaceService = {
    */
   async getWorkspaceActivities(workspaceId, limit = 20) {
     try {
-      const response = await http.get(`/workspaces/${workspaceId}/activities?limit=${limit}`);
+      const response = await http.get(`/modules/workspaces/${workspaceId}/activities?limit=${limit}`);
       console.log('[WorkspaceService.getWorkspaceActivities] Response:', response.data);
 
       const activities = response.data.activities || [];
@@ -330,7 +330,7 @@ const WorkspaceService = {
    */
   async updateWorkspace(workspaceId, data) {
     try {
-      const response = await http.put(`/workspaces/${workspaceId}`, data);
+      const response = await http.put(`/modules/workspaces/${workspaceId}`, data);
       console.log('[WorkspaceService.updateWorkspace] Response:', response.data);
 
       return {
@@ -354,7 +354,7 @@ const WorkspaceService = {
    */
   async deleteWorkspace(workspaceId) {
     try {
-      const response = await http.delete(`/workspaces/${workspaceId}`);
+      const response = await http.delete(`/modules/workspaces/${workspaceId}`);
       console.log('[WorkspaceService.deleteWorkspace] Response:', response.data);
 
       return {
@@ -378,7 +378,7 @@ const WorkspaceService = {
    */
   async acceptInvitation(token) {
     try {
-      const response = await http.post('/workspaces/accept-invitation', { token });
+      const response = await http.post('/modules/workspaces/accept-invitation', { token });
       console.log('[WorkspaceService.acceptInvitation] Response:', response.data);
 
       return {
@@ -403,7 +403,7 @@ const WorkspaceService = {
    */
   async getPendingInvitations(workspaceId) {
     try {
-      const response = await http.get(`/workspaces/${workspaceId}/invitations/pending`);
+      const response = await http.get(`/modules/workspaces/${workspaceId}/invitations/pending`);
       console.log('[WorkspaceService.getPendingInvitations] Response:', response.data);
 
       return {
@@ -428,7 +428,7 @@ const WorkspaceService = {
    */
   async getReceivedInvitations() {
     try {
-      const response = await http.get('/workspaces/invitations/received');
+      const response = await http.get('/modules/workspaces/invitations/received');
       console.log('[WorkspaceService.getReceivedInvitations] Response:', response.data);
 
       return {
@@ -454,7 +454,7 @@ const WorkspaceService = {
    */
   async cancelInvitation(invitationId) {
     try {
-      const response = await http.delete(`/workspaces/invitations/${invitationId}`);
+      const response = await http.delete(`/modules/workspaces/invitations/${invitationId}`);
       console.log('[WorkspaceService.cancelInvitation] Response:', response.data);
 
       return {
@@ -478,7 +478,7 @@ const WorkspaceService = {
    */
   async resendInvitation(invitationId) {
     try {
-      const response = await http.post(`/workspaces/invitations/${invitationId}/resend`);
+      const response = await http.post(`/modules/workspaces/invitations/${invitationId}/resend`);
       console.log('[WorkspaceService.resendInvitation] Response:', response.data);
 
       return {
@@ -518,7 +518,7 @@ const WorkspaceService = {
       if (params.limit) queryParams.append('limit', params.limit);
       if (params.search) queryParams.append('search', params.search);
 
-      const response = await http.get(`/workspaces/my?${queryParams.toString()}`);
+      const response = await http.get(`/modules/workspaces/my?${queryParams.toString()}`);
       console.log('[WorkspaceService.getMyWorkspacesPaginated] Response:', response.data);
 
       const responseData = response.data || {};
@@ -558,7 +558,7 @@ const WorkspaceService = {
         throw new Error('Workspace IDs array is required');
       }
 
-      const response = await http.delete('/workspaces/bulk', {
+      const response = await http.delete('/modules/workspaces/bulk', {
         data: { workspaceIds }
       });
       console.log('[WorkspaceService.deleteMultipleWorkspaces] Response:', response.data);

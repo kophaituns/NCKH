@@ -1,8 +1,56 @@
 // src/modules/users/service/user.service.js
 const { User } = require('../../../models');
 const { Op } = require('sequelize');
+const bcrypt = require('bcrypt'); // Nếu project dùng bcryptjs thì đổi lại require('bcryptjs')
 
 class UserService {
+  /**
+   * Create new user (for admin panel)
+   */
+  async createUser(data) {
+    const { username, email, password, full_name, role = 'user' } = data;
+
+    // Basic validation
+    if (!username || !email || !password || !full_name) {
+      const err = new Error('Missing required fields');
+      err.statusCode = 400;
+      throw err;
+    }
+
+    // Check duplicate username or email
+    const existing = await User.findOne({
+      where: {
+        [Op.or]: [{ username }, { email }]
+      }
+    });
+
+    if (existing) {
+      const err = new Error('Username or Email already exists');
+      err.statusCode = 400;
+      throw err;
+    }
+
+    // Hash password
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    // Ensure role is valid
+    const allowedRoles = ['admin', 'creator', 'user'];
+    const finalRole = allowedRoles.includes(role) ? role : 'user';
+
+    const user = await User.create({
+      username,
+      email,
+      password: hashedPassword,
+      full_name,
+      role: finalRole
+    });
+
+    const plainUser = user.get({ plain: true });
+    delete plainUser.password;
+
+    return plainUser;
+  }
+
   /**
    * Get all users with pagination
    */
@@ -35,7 +83,9 @@ class UserService {
     });
 
     if (!user) {
-      throw new Error('User not found');
+      const err = new Error('User not found');
+      err.statusCode = 404;
+      throw err;
     }
 
     return user;
@@ -48,31 +98,49 @@ class UserService {
     const user = await User.findByPk(userId);
 
     if (!user) {
-      throw new Error('User not found');
+      const err = new Error('User not found');
+      err.statusCode = 404;
+      throw err;
     }
 
-    // Update user fields
     const fieldsToUpdate = {};
-    
-    if (updateData.email) fieldsToUpdate.email = updateData.email;
+
+    if (updateData.email && updateData.email !== user.email) {
+      // Check duplicate email when changing
+      const existingEmail = await User.findOne({
+        where: {
+          email: updateData.email,
+          id: { [Op.ne]: userId }
+        }
+      });
+      if (existingEmail) {
+        const err = new Error('Email already in use');
+        err.statusCode = 400;
+        throw err;
+      }
+      fieldsToUpdate.email = updateData.email;
+    }
+
     if (updateData.full_name) fieldsToUpdate.full_name = updateData.full_name;
-    if (updateData.faculty) fieldsToUpdate.faculty = updateData.faculty;
-    if (updateData.class_name) fieldsToUpdate.class_name = updateData.class_name;
-    if (updateData.student_id) fieldsToUpdate.student_id = updateData.student_id;
-    if (updateData.role) fieldsToUpdate.role = updateData.role;
+
+    if (updateData.role) {
+      const allowedRoles = ['admin', 'creator', 'user'];
+      if (!allowedRoles.includes(updateData.role)) {
+        const err = new Error('Invalid role');
+        err.statusCode = 400;
+        throw err;
+      }
+      fieldsToUpdate.role = updateData.role;
+    }
 
     await user.update(fieldsToUpdate);
 
-    // Return user without password
     return {
       id: user.id,
       username: user.username,
       email: user.email,
       full_name: user.full_name,
-      role: user.role,
-      student_id: user.student_id,
-      faculty: user.faculty,
-      class_name: user.class_name
+      role: user.role
     };
   }
 
@@ -83,7 +151,9 @@ class UserService {
     const user = await User.findByPk(userId);
 
     if (!user) {
-      throw new Error('User not found');
+      const err = new Error('User not found');
+      err.statusCode = 404;
+      throw err;
     }
 
     await user.destroy();
@@ -98,9 +168,9 @@ class UserService {
     if (requestingUser.role === 'admin' || requestingUser.role === 'creator') {
       return true;
     }
-    
+
     // Users can only view themselves
-    return requestingUser.id === parseInt(targetUserId);
+    return requestingUser.id === parseInt(targetUserId, 10);
   }
 
   /**
@@ -111,9 +181,9 @@ class UserService {
     if (requestingUser.role === 'admin') {
       return true;
     }
-    
+
     // Users can only update themselves
-    return requestingUser.id === parseInt(targetUserId);
+    return requestingUser.id === parseInt(targetUserId, 10);
   }
 
   /**

@@ -60,4 +60,11 @@ router.delete('/:id', authenticate, isTeacherOrAdmin, templateController.deleteT
  */
 router.post('/:id/questions', authenticate, isTeacherOrAdmin, templateController.addQuestion);
 
+/**
+ * @route   GET /api/templates/:id/export-pdf
+ * @desc    Export template to PDF
+ * @access  Private
+ */
+router.get('/:id/export-pdf', authenticate, templateController.exportTemplateToPDF);
+
 module.exports = router;

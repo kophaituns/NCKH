@@ -7,7 +7,7 @@ const SurveyService = {
    */
   async getAll(params = {}) {
     try {
-      const response = await http.get('/surveys', { params });
+      const response = await http.get('/modules/surveys', { params });
       // Backend returns { success: true, data: { surveys: [...], pagination: {...} } }
       const data = response.data.data || response.data || {};
       return {
@@ -28,7 +28,7 @@ const SurveyService = {
    * Get survey by ID
    */
   async getById(id) {
-    const response = await http.get(`/surveys/${id}`);
+    const response = await http.get(`/modules/surveys/${id}`);
     // Backend returns { success: true, data: { survey: {...} } }
     return response.data.data?.survey || null;
   },
@@ -41,7 +41,7 @@ const SurveyService = {
    * Create new survey
    */
   async create(surveyData) {
-    const response = await http.post('/surveys', surveyData);
+    const response = await http.post('/modules/surveys', surveyData);
     // Backend returns { success: true, data: { survey } }
     return response.data.data?.survey || response.data.data;
   },
@@ -54,7 +54,7 @@ const SurveyService = {
    * Update survey
    */
   async update(id, surveyData) {
-    const response = await http.put(`/surveys/${id}`, surveyData);
+    const response = await http.put(`/modules/surveys/${id}`, surveyData);
     // Backend returns { success: true, data: { survey } }  
     return response.data.data?.survey || response.data.data;
   },
@@ -67,7 +67,7 @@ const SurveyService = {
    * Delete survey
    */
   async delete(id) {
-    const response = await http.delete(`/surveys/${id}`);
+    const response = await http.delete(`/modules/surveys/${id}`);
     return response.data;
   },
 
@@ -75,7 +75,7 @@ const SurveyService = {
    * Bulk delete surveys
    */
   async deleteMany(ids) {
-    const response = await http.delete('/surveys/bulk', { data: { ids } });
+    const response = await http.delete('/modules/surveys/bulk', { data: { ids } });
     return response.data;
   },
 
@@ -87,7 +87,7 @@ const SurveyService = {
    * Publish survey (draft -> active)
    */
   async publishSurvey(id) {
-    const response = await http.post(`/surveys/${id}/publish`);
+    const response = await http.post(`/modules/surveys/${id}/publish`);
     return response.data;
   },
 
@@ -95,7 +95,7 @@ const SurveyService = {
    * Close survey (active -> closed)
    */
   async closeSurvey(id) {
-    const response = await http.post(`/surveys/${id}/close`);
+    const response = await http.post(`/modules/surveys/${id}/close`);
     return response.data;
   },
 
@@ -103,7 +103,7 @@ const SurveyService = {
    * Update survey status
    */
   async updateStatus(id, status) {
-    const response = await http.patch(`/surveys/${id}/status`, { status });
+    const response = await http.patch(`/modules/surveys/${id}/status`, { status });
     return response.data;
   },
 
@@ -111,7 +111,7 @@ const SurveyService = {
    * Get survey statistics
    */
   async getSurveyStats(id) {
-    const response = await http.get(`/surveys/${id}/stats`);
+    const response = await http.get(`/modules/surveys/${id}/stats`);
     return response.data;
   },
 

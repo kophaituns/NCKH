@@ -6,7 +6,7 @@ const UserService = {
    * Get all users (admin only)
    */
   async getAll(params = {}) {
-    const response = await http.get('/users', { params });
+    const response = await http.get('/modules/users', { params });
     return response.data;
   },
 
@@ -19,7 +19,7 @@ const UserService = {
    * Get user by ID
    */
   async getById(id) {
-    const response = await http.get(`/users/${id}`);
+    const response = await http.get(`/modules/users/${id}`);
     return response.data;
   },
 
@@ -32,7 +32,7 @@ const UserService = {
    * Create new user
    */
   async create(userData) {
-    const response = await http.post('/users', userData);
+    const response = await http.post('/modules/users', userData);
     return response.data;
   },
 
@@ -40,7 +40,7 @@ const UserService = {
    * Update user
    */
   async update(id, userData) {
-    const response = await http.put(`/users/${id}`, userData);
+    const response = await http.put(`/modules/users/${id}`, userData);
     return response.data;
   },
 
@@ -53,7 +53,7 @@ const UserService = {
    * Delete user (admin only)
    */
   async delete(id) {
-    const response = await http.delete(`/users/${id}`);
+    const response = await http.delete(`/modules/users/${id}`);
     return response.data;
   },
 
@@ -66,7 +66,7 @@ const UserService = {
    * Update user role (admin only)
    */
   async updateUserRole(id, role) {
-    const response = await http.patch(`/users/${id}/role`, { role });
+    const response = await http.patch(`/modules/users/${id}/role`, { role });
     return response.data;
   },
 
@@ -74,7 +74,7 @@ const UserService = {
    * Get user role statistics (admin only)
    */
   async getRoleStats() {
-    const response = await http.get('/users/role-stats');
+    const response = await http.get('/modules/users/role-stats');
     return response.data;
   },
 
@@ -82,7 +82,7 @@ const UserService = {
    * Get user statistics (admin only)
    */
   async getUserStats() {
-    const response = await http.get('/users/stats');
+    const response = await http.get('/modules/users/stats');
     return response.data;
   },
 };

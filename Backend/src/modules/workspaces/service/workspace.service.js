@@ -276,7 +276,7 @@ class WorkspaceService {
         {
           model: Survey,
           as: 'surveys',
-          attributes: ['id', 'title', 'status', 'visibility', 'created_by']
+          attributes: ['id', 'title', 'status', 'access_type', 'created_by']
         }
       ]
     });
@@ -562,7 +562,7 @@ class WorkspaceService {
         id: s.id,
         title: s.title,
         status: s.status,
-        visibility: s.visibility || null,
+        visibility: s.access_type || null,
         access_scope: s.access_scope || null,
         created_at: s.created_at,
         updated_at: s.updated_at,

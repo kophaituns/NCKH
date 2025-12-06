@@ -6,10 +6,17 @@ const { Op } = require('sequelize');
 class ChatService {
     constructor() {
         this.superDevApiKey = process.env.SUPER_DEV_API_KEY || 'ae948cd99dc0254d6a33cb38d00112d7a04963a4';
-        this.geminiApiKey = process.env.GEMINI_API_KEY || 'AIzaSyAi1bfxyJ59znqHOrVDVV5kzdf5AmtaL3I';
-        this.defaultProvider = process.env.CHAT_DEFAULT_PROVIDER || 'auto';
-        this.superDevApiUrl = 'https://api.superdev.ai/v1/chat';
+        this.geminiApiKey = process.env.GEMINI_API_KEY || 'AIzaSyAjBABJxT7FCDy8zIOSUBcMrQYQoKiVN3M';
+        this.serperApiKey = process.env.SERPER_API_KEY || 'ebb93c8f37924c0ebb979860e8409e39b275b6d2';
+        this.defaultProvider = process.env.CHAT_DEFAULT_PROVIDER || 'serper';
+        this.superDevApiUrl = 'https://api.superdev.ai/v1/chat'; // Not working
+        this.serperApiUrl = 'https://google.serper.dev/search';
         this.geminiApiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent';
+        
+        console.log('ChatService initialized with:');
+        console.log('- Gemini API Key:', this.geminiApiKey ? 'configured' : 'missing');
+        console.log('- Serper API Key:', this.serperApiKey ? 'configured' : 'missing');
+        console.log('- Default Provider:', this.defaultProvider);
     }
 
     async getConversations(userId, options = {}) {
@@ -55,14 +62,18 @@ class ChatService {
 
     async createConversation(userId, title = 'New Chat') {
         try {
+            console.log('ChatService.createConversation called with userId:', userId, 'title:', title);
+            
             const conversation = await ChatConversation.create({
                 user_id: userId,
                 title: title,
                 status: 'active'
             });
 
+            console.log('Conversation created in database:', conversation.id);
             return conversation;
         } catch (error) {
+            console.error('ChatService.createConversation error:', error);
             logger.error('Error creating conversation:', error);
             throw error;
         }
@@ -248,6 +259,83 @@ class ChatService {
         }
     }
 
+    // AI Chat Methods
+    async chatWithSerper(conversationId, userId, userMessage) {
+        try {
+            // Save user message first
+            await this.sendMessage(conversationId, userId, userMessage);
+
+            const startTime = Date.now();
+
+            // Use Serper for search-based responses
+            const searchResponse = await axios.post(this.serperApiUrl, {
+                q: userMessage,
+                num: 3
+            }, {
+                timeout: 30000,
+                headers: {
+                    'X-API-KEY': this.serperApiKey,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            const responseTime = Date.now() - startTime;
+            
+            // Format search results into a readable response
+            const searchResults = searchResponse.data.organic || [];
+            let aiMessage = `Based on your question: "${userMessage}"\n\n`;
+            
+            if (searchResults.length > 0) {
+                aiMessage += 'Here are some relevant search results:\n\n';
+                searchResults.slice(0, 3).forEach((result, index) => {
+                    aiMessage += `${index + 1}. **${result.title}**\n`;
+                    aiMessage += `   ${result.snippet}\n`;
+                    aiMessage += `   Source: ${result.link}\n\n`;
+                });
+            } else {
+                aiMessage += 'I couldn\'t find specific search results for your question, but I\'m here to help with any other questions you might have.';
+            }
+
+            const aiChatMessage = await ChatMessage.create({
+                conversation_id: conversationId,
+                sender_type: 'ai',
+                message: aiMessage,
+                api_provider: 'serper',
+                response_time: responseTime,
+                status: 'delivered'
+            });
+
+            // Update conversation timestamp
+            const conversation = await ChatConversation.findByPk(conversationId);
+            conversation.last_message_at = new Date();
+            await conversation.save();
+
+            return {
+                success: true,
+                userMessage: await ChatMessage.findOne({
+                    where: { conversation_id: conversationId, sender_type: 'user' },
+                    order: [['created_at', 'DESC']]
+                }),
+                aiMessage: aiChatMessage
+            };
+
+        } catch (error) {
+            logger.error('Error in Serper chat:', error);
+            
+            // Create error message
+            await ChatMessage.create({
+                conversation_id: conversationId,
+                sender_type: 'ai',
+                message: 'Sorry, I encountered an error while processing your request. Please try again.',
+                api_provider: 'serper',
+                status: 'error',
+                error_message: error.message
+            });
+
+            throw error;
+        }
+    }
+
     async chatWithSuperDev(conversationId, userId, userMessage) {
         try {
             await this.sendMessage(conversationId, userId, userMessage);
@@ -356,16 +444,30 @@ class ChatService {
 
     async chatWithAuto(conversationId, userId, userMessage) {
         try {
-            const provider = this.defaultProvider === 'auto' ? 'gemini' : this.defaultProvider;
-
-            if (provider === 'gemini') {
-                return await this.chatWithGemini(conversationId, userId, userMessage);
-            } else {
-                return await this.chatWithSuperDev(conversationId, userId, userMessage);
-            }
+            // Always use Serper since it's the only working API
+            return await this.chatWithSerper(conversationId, userId, userMessage);
         } catch (error) {
             logger.error('Error in Auto chat:', error);
-            throw error;
+            
+            // Create fallback message
+            const fallbackMessage = await ChatMessage.create({
+                conversation_id: conversationId,
+                sender_type: 'ai',
+                message: `I apologize, but I'm currently unable to process your request due to a technical issue. Your message "${userMessage}" was received, but I cannot provide a proper response at the moment. Please try again later.`,
+                api_provider: 'fallback',
+                status: 'error',
+                error_message: error.message
+            });
+
+            return {
+                success: false,
+                userMessage: await ChatMessage.findOne({
+                    where: { conversation_id: conversationId, sender_type: 'user' },
+                    order: [['created_at', 'DESC']]
+                }),
+                aiMessage: fallbackMessage,
+                error: error.message
+            };
         }
     }
 }

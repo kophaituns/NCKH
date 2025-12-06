@@ -12,32 +12,13 @@ const Sidebar = ({ isOpen, onClose }) => {
   // Define menu items based on roles
   const getMenuItems = () => {
     const baseItems = [
-<<<<<<< HEAD
-      { path: '/notifications', label: 'Notifications', icon: 'notifications' },
-      { path: '/chat', label: 'Chat', icon: 'chat' },
-      { path: '/settings', label: 'Settings', icon: 'settings' },
-=======
       { path: '/notifications', label: t('notifications') || 'Notifications', icon: 'notifications' },
       { path: '/my-responses', label: t('responses'), icon: 'responses' },
       { path: '/chat', label: t('chat'), icon: 'chat' },
->>>>>>> 5ceab3f2f7fb42e906e0ed60e1a1e12fe75b065f
     ];
 
     if (userRole === 'admin') {
       return [
-<<<<<<< HEAD
-        { path: '/dashboard', label: 'Dashboard', icon: 'dashboard' },
-        { path: '/users', label: 'Users', icon: 'users' },
-        { path: '/workspaces', label: 'Workspaces', icon: 'workspaces' },
-        { path: '/templates', label: 'Templates', icon: 'templates' },
-        { path: '/surveys', label: 'Surveys', icon: 'surveys' },
-        { path: '/collectors', label: 'Collectors', icon: 'collectors' },
-        { path: '/analytics', label: 'Analytics', icon: 'analytics' },
-        { path: '/llm', label: 'AI Generation', icon: 'llm' },
-        { path: '/chat', label: 'Chat', icon: 'chat' },
-        { path: '/settings', label: 'Settings', icon: 'settings' },
-        { path: '/admin/settings', label: 'Admin Settings', icon: 'admin-settings' },
-=======
         { path: '/dashboard', label: t('dashboard'), icon: 'dashboard' },
         { path: '/users', label: t('users'), icon: 'users' },
         { path: '/workspaces', label: t('workspaces'), icon: 'workspaces' },
@@ -48,23 +29,11 @@ const Sidebar = ({ isOpen, onClose }) => {
         { path: '/llm', label: t('llm'), icon: 'llm' },
         { path: '/my-responses', label: t('responses'), icon: 'responses' },
         { path: '/chat', label: t('chat'), icon: 'chat' },
->>>>>>> 5ceab3f2f7fb42e906e0ed60e1a1e12fe75b065f
       ];
     }
 
     if (userRole === 'creator') {
       return [
-<<<<<<< HEAD
-        { path: '/dashboard', label: 'Dashboard', icon: 'dashboard' },
-        { path: '/workspaces', label: 'Workspaces', icon: 'workspaces' },
-        { path: '/templates', label: 'Templates', icon: 'templates' },
-        { path: '/surveys', label: 'Surveys', icon: 'surveys' },
-        { path: '/collectors', label: 'Collectors', icon: 'collectors' },
-        { path: '/analytics', label: 'Analytics', icon: 'analytics' },
-        { path: '/llm', label: 'AI Generation', icon: 'llm' },
-        { path: '/chat', label: 'Chat', icon: 'chat' },
-        { path: '/settings', label: 'Settings', icon: 'settings' },
-=======
         { path: '/dashboard', label: t('dashboard'), icon: 'dashboard' },
         { path: '/workspaces', label: t('workspaces'), icon: 'workspaces' },
         { path: '/templates', label: t('templates'), icon: 'templates' },
@@ -74,20 +43,13 @@ const Sidebar = ({ isOpen, onClose }) => {
         { path: '/llm', label: t('llm'), icon: 'llm' },
         { path: '/my-responses', label: t('responses'), icon: 'responses' },
         { path: '/chat', label: t('chat'), icon: 'chat' },
->>>>>>> 5ceab3f2f7fb42e906e0ed60e1a1e12fe75b065f
       ];
     }
 
     if (userRole === 'user') {
       return [
-<<<<<<< HEAD
-        { path: '/surveys', label: 'My Surveys', icon: 'surveys' },
-        { path: '/responses', label: 'My Responses', icon: 'responses' },
-        { path: '/settings', label: 'Settings', icon: 'settings' },
-=======
         { path: '/surveys', label: t('surveys'), icon: 'surveys' },
         { path: '/responses', label: t('responses'), icon: 'responses' },
->>>>>>> 5ceab3f2f7fb42e906e0ed60e1a1e12fe75b065f
       ];
     }
 
@@ -168,20 +130,6 @@ const Sidebar = ({ isOpen, onClose }) => {
           <path d="M18 11c0 4.97-4.03 9-9 9H5l-3.5 2.5V11c0-4.97 4.03-9 9-9s9 4.03 9 9z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
       ),
-      settings: (
-        <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-          <path d="M10 12a2 2 0 100-4 2 2 0 000 4z" stroke="currentColor" strokeWidth="1.5"/>
-          <path d="M10 1v6m0 6v6M4.22 6l5.05 2.5m6.36 3l5.05 2.5M4.22 14l5.05-2.5m6.36-3l5.05-2.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-        </svg>
-      ),
-      'admin-settings': (
-        <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-          <path d="M10 12a2 2 0 100-4 2 2 0 000 4z" stroke="currentColor" strokeWidth="1.5"/>
-          <path d="M10 1v6m0 6v6M4.22 6l5.05 2.5m6.36 3l5.05 2.5M4.22 14l5.05-2.5m6.36-3l5.05-2.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-          <circle cx="15" cy="5" r="3" stroke="#dc3545" strokeWidth="1.5" fill="none"/>
-          <path d="M13.5 5h3M15 3.5v3" stroke="#dc3545" strokeWidth="1.5" strokeLinecap="round"/>
-        </svg>
-      ),
     };
 
     return icons[iconName] || icons.dashboard;
@@ -200,7 +148,7 @@ const Sidebar = ({ isOpen, onClose }) => {
       {/* Sidebar */}
       <aside className={`${styles.sidebar} ${isOpen ? styles.sidebarOpen : ''}`}>
         <div className={styles.sidebarHeader}>
-          <h2 className={styles.sidebarTitle}>Navigation</h2>
+          <h2 className={styles.sidebarTitle}>{t('navigation') || 'Navigation'}</h2>
           <button
             className={styles.closeButton}
             onClick={onClose}
@@ -237,7 +185,7 @@ const Sidebar = ({ isOpen, onClose }) => {
               {userRole === 'user' && '👤'}
             </div>
             <div className={styles.roleInfo}>
-              <span className={styles.roleLabel}>Logged in as</span>
+              <span className={styles.roleLabel}>{t('logged_in_as') || 'Logged in as'}</span>
               <span className={styles.roleName}>{userRole}</span>
             </div>
           </div>

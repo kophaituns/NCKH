@@ -56,7 +56,7 @@ const Navbar = ({ onToggleSidebar }) => {
             <rect width="32" height="32" rx="8" fill="#10b981" />
             <path d="M8 12h16M8 16h16M8 20h10" stroke="white" strokeWidth="2" strokeLinecap="round" />
           </svg>
-          <span className={styles.brandName}>{state.systemName}</span>
+          <span className={styles.brandName}>ALLMTAGS</span>
         </div>
       </div>
 
@@ -88,55 +88,8 @@ const Navbar = ({ onToggleSidebar }) => {
                   viewBox="0 0 16 16"
                   fill="none"
                 >
-<<<<<<< HEAD
-                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                    <path d="M8 8a3 3 0 100-6 3 3 0 000 6zM3 14a5 5 0 0110 0" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-                  </svg>
-                  Profile
-                </button>
-                <button 
-                  className={styles.dropdownItem}
-                  onClick={() => {
-                    setShowUserMenu(false);
-                    navigate('/settings');
-                  }}
-                >
-                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                    <circle cx="8" cy="8" r="2" stroke="currentColor" strokeWidth="1.5"/>
-                    <path d="M12.5 8a4.5 4.5 0 00-.5-2M3.5 8a4.5 4.5 0 01.5-2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-                  </svg>
-                  Settings
-                </button>
-                {state.user?.role === 'admin' && (
-                  <button 
-                    className={styles.dropdownItem}
-                    onClick={() => {
-                      setShowUserMenu(false);
-                      navigate('/admin/settings');
-                    }}
-                  >
-                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                      <circle cx="8" cy="8" r="2" stroke="currentColor" strokeWidth="1.5"/>
-                      <path d="M12.5 8a4.5 4.5 0 00-.5-2M3.5 8a4.5 4.5 0 01.5-2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-                      <path d="M6 3l1.5 1.5L11 1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                    </svg>
-                    Admin Settings
-                  </button>
-                )}
-                <div className={styles.dropdownDivider}></div>
-                <button 
-                  className={`${styles.dropdownItem} ${styles.logoutButton}`}
-                  onClick={handleLogout}
-                >
-                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                    <path d="M6 14H3a1 1 0 01-1-1V3a1 1 0 011-1h3M11 11l3-3-3-3M14 8H6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                  </svg>
-                  Logout
-                </button>
-=======
                   <path d="M4 6L8 10L12 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
                 </svg>
->>>>>>> 5ceab3f2f7fb42e906e0ed60e1a1e12fe75b065f
               </div>
 
               {showUserMenu && (

@@ -18,6 +18,7 @@ router.put('/messages/:id', chatController.updateMessage);
 router.delete('/messages/:id', chatController.deleteMessage);
 
 router.post('/ai/super-dev', chatController.chatWithSuperDev);
+router.post('/ai/serper', chatController.chatWithSerper);
 router.post('/ai/gemini', chatController.chatWithGemini);
 router.post('/ai/auto', chatController.chatWithAuto);
 

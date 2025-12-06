@@ -670,13 +670,13 @@ class LLMService {
    */
   _getQuestionTypeId(typeName) {
     const typeMapping = {
-      'multiple_choice': 1,
+      'multiple_choice': 2, // map to checkbox type for multiple selections
       'checkbox': 2,
       'likert_scale': 3,
       'open_ended': 4,
       'dropdown': 5,
       'text': 4, // map text to open_ended
-      'yes_no': 1, // map yes_no to multiple_choice
+      'yes_no': 1, // map yes_no to single choice type
       'rating': 3, // map rating to likert_scale
       'email': 4, // map email to open_ended
       'date': 4 // map date to open_ended

@@ -1,0 +1,235 @@
+/* PDF Export Styles */
+/* These styles are for PDF export functionality across the application */
+
+.pdf-container {
+  font-family: Arial, sans-serif;
+  line-height: 1.6;
+  color: #333;
+  background: white;
+  margin: 0;
+  padding: 20px;
+
+  /* Header Section */
+  .header {
+    text-align: center;
+    margin-bottom: 30px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid #ddd;
+
+    .title {
+      font-size: 24px;
+      font-weight: 600;
+      color: #333;
+      margin: 0 0 10px 0;
+    }
+
+    .description {
+      font-size: 16px;
+      color: #666;
+      margin: 0 0 10px 0;
+    }
+
+    .meta {
+      font-size: 12px;
+      color: #666;
+      margin: 0;
+    }
+  }
+
+  /* No Questions Message */
+  .no-questions {
+    text-align: center;
+    padding: 40px 20px;
+    color: #666;
+    
+    p {
+      margin: 10px 0;
+      
+      strong {
+        color: #333;
+      }
+    }
+  }
+
+  /* Question Block */
+  .question {
+    margin-bottom: 25px;
+    page-break-inside: avoid;
+    border-left: 2px solid #ddd;
+    padding-left: 15px;
+
+    .question-number {
+      font-size: 16px;
+      font-weight: 500;
+      color: #333;
+      margin-bottom: 8px;
+    }
+
+    .question-type {
+      font-size: 12px;
+      color: #666;
+      font-style: italic;
+      margin-bottom: 12px;
+    }
+  }
+
+  /* Options Section */
+  .options {
+    margin: 15px 0;
+
+    .option {
+      display: flex;
+      align-items: center;
+      margin-bottom: 8px;
+      padding: 6px 0;
+
+      .checkbox {
+        display: inline-block;
+        width: 12px;
+        height: 12px;
+        border: 1px solid #666;
+        margin-right: 8px;
+        background: white;
+        flex-shrink: 0;
+
+        /* For radio buttons */
+        &.radio {
+          border-radius: 50%;
+        }
+
+        /* For checkboxes */
+        &.square {
+          border-radius: 2px;
+        }
+      }
+    }
+  }
+
+  /* Rating Scale */
+  .rating {
+    margin: 15px 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    
+    .rating-box {
+      display: inline-block;
+      width: 24px;
+      height: 24px;
+      border: 1px solid #666;
+      text-align: center;
+      line-height: 22px;
+      font-size: 12px;
+      background: white;
+      border-radius: 3px;
+    }
+  }
+
+  /* Text Answer Areas */
+  .text-answer {
+    border-bottom: 1px solid #ddd;
+    height: 25px;
+    margin-bottom: 12px;
+    background: transparent;
+  }
+}
+
+/* Print-specific styles */
+@media print {
+  .pdf-container {
+    margin: 0;
+    padding: 15px;
+    
+    .question {
+      page-break-inside: avoid;
+    }
+    
+    .header {
+      margin-bottom: 20px;
+    }
+  }
+}
+
+/* Template-specific styles */
+.template-pdf {
+  @extend .pdf-container;
+  
+  /* Override for template styling */
+  .header {
+    .title {
+      color: #2c3e50;
+    }
+    
+    .description {
+      color: #7f8c8d;
+    }
+  }
+  
+  .question {
+    border-left-color: #3498db;
+    
+    .question-number {
+      color: #3498db;
+    }
+  }
+}
+
+/* Survey-specific styles */
+.survey-pdf {
+  @extend .pdf-container;
+  
+  /* Override for survey styling */
+  .header {
+    .title {
+      color: #27ae60;
+    }
+    
+    .description {
+      color: #95a5a6;
+    }
+  }
+  
+  .question {
+    border-left-color: #27ae60;
+    
+    .question-number {
+      color: #27ae60;
+    }
+  }
+}
+
+/* LLM-specific styles (for AI-generated content) */
+.llm-pdf {
+  @extend .pdf-container;
+  
+  /* Override for LLM styling */
+  .header {
+    .title {
+      color: #e74c3c;
+    }
+    
+    .description {
+      color: #95a5a6;
+    }
+  }
+  
+  .question {
+    border-left-color: #e74c3c;
+    
+    .question-number {
+      color: #e74c3c;
+    }
+  }
+  
+  /* AI Badge */
+  .ai-badge {
+    display: inline-block;
+    background: linear-gradient(135deg, #e74c3c, #c0392b);
+    color: white;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 10px;
+    font-weight: 600;
+    margin-left: 8px;
+  }
+}

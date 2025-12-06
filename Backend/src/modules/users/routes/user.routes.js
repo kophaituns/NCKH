@@ -4,6 +4,10 @@ const router = express.Router();
 const userController = require('../controller/user.controller');
 const { authenticate, isTeacherOrAdmin, isAdmin } = require('../../../middleware/auth.middleware');
 
+
+router.post('/', authenticate, isAdmin, userController.createUser);
+
+
 // Protected routes
 router.get('/', authenticate, isTeacherOrAdmin, userController.getAllUsers);
 router.get('/:id', authenticate, userController.getUserById);

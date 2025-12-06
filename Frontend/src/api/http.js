@@ -2,7 +2,7 @@
 import axios from 'axios';
 
 // API base URL
-const API_BASE_URL = process.env.VITE_API_URL || 'http://localhost:5000/api/modules';
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5001/api';
 
 // Create axios instance
 const http = axios.create({
@@ -35,29 +35,69 @@ http.interceptors.response.use(
     if (contentType.includes('text/html') || response.config.responseType === 'text') {
       return response;
     }
-    // Safely extract data, handle cases where response might not have expected structure
-    const data = response.data;
+    
+    // Handle cases where response might be empty or malformed
+    try {
+      const data = response.data;
 
-    // Handle empty or undefined responses
-    if (!data || typeof data !== 'object') {
+      // Handle empty or undefined responses
+      if (data === null || data === undefined || data === '') {
+        return {
+          ...response,
+          data: {
+            success: response.status >= 200 && response.status < 300,
+            message: 'Success'
+          }
+        };
+      }
+
+      // If data is already parsed and is an object
+      if (typeof data === 'object') {
+        // Ensure we always return an object with ok/success flag
+        if (!('ok' in data) && 'success' in data) {
+          data.ok = data.success;
+        }
+        if (!('success' in data) && 'ok' in data) {
+          data.success = data.ok;
+        }
+        return response;
+      }
+
+      // If data is a string, try to parse it as JSON
+      if (typeof data === 'string') {
+        try {
+          const parsedData = JSON.parse(data);
+          return {
+            ...response,
+            data: parsedData
+          };
+        } catch (parseError) {
+          // If JSON parsing fails, return the string as-is
+          console.warn('[HTTP] Failed to parse JSON response:', parseError);
+          return {
+            ...response,
+            data: {
+              success: response.status >= 200 && response.status < 300,
+              message: data,
+              raw: data
+            }
+          };
+        }
+      }
+
+      // For any other data type, wrap it
       return {
         ...response,
         data: {
-          ok: response.status >= 200 && response.status < 300,
-          message: 'Success'
+          success: response.status >= 200 && response.status < 300,
+          data: data
         }
       };
+    } catch (error) {
+      console.warn('[HTTP] Error processing response:', error);
+      // Return original response if processing fails
+      return response;
     }
-
-    // Ensure we always return an object with ok/success flag
-    if (!('ok' in data) && 'success' in data) {
-      data.ok = data.success;
-    }
-    if (!('success' in data) && 'ok' in data) {
-      data.success = data.ok;
-    }
-
-    return response;
   },
   async (error) => {
     console.error('[HTTP] Response error:', error.response?.status, error.response?.data || error.message);
@@ -80,7 +120,7 @@ http.interceptors.response.use(
         }
 
         // Try to refresh token
-        const response = await axios.post(`${API_BASE_URL}/auth/refresh`, {
+        const response = await axios.post(`${API_BASE_URL}/modules/auth/refresh`, {
           refreshToken,
         });
 

@@ -7,7 +7,7 @@ class InviteService {
      */
     async createInvites(surveyId, emails) {
         try {
-            const response = await http.post(`/surveys/${surveyId}/invites`, {
+            const response = await http.post(`/modules/surveys/${surveyId}/invites`, {
                 emails
             });
             return response.data;
@@ -22,7 +22,7 @@ class InviteService {
      */
     async getInvites(surveyId) {
         try {
-            const response = await http.get(`/surveys/${surveyId}/invites`);
+            const response = await http.get(`/modules/surveys/${surveyId}/invites`);
             return response.data?.data?.invites || [];
         } catch (error) {
             console.error('[InviteService] Get invites error:', error);
@@ -35,7 +35,7 @@ class InviteService {
      */
     async validateToken(token) {
         try {
-            const response = await http.get(`/invites/${token}/validate`);
+            const response = await http.get(`/modules/invites/${token}/validate`);
             return response.data?.data || null;
         } catch (error) {
             console.error('[InviteService] Validate token error:', error);
@@ -48,7 +48,7 @@ class InviteService {
      */
     async revokeInvite(inviteId) {
         try {
-            const response = await http.delete(`/invites/${inviteId}`);
+            const response = await http.delete(`/modules/invites/${inviteId}`);
             return response.data;
         } catch (error) {
             console.error('[InviteService] Revoke invite error:', error);
@@ -61,7 +61,7 @@ class InviteService {
      */
     async getInviteStats(surveyId) {
         try {
-            const response = await http.get(`/surveys/${surveyId}/invites/stats`);
+            const response = await http.get(`/modules/surveys/${surveyId}/invites/stats`);
             return response.data?.data || {};
         } catch (error) {
             console.error('[InviteService] Get stats error:', error);

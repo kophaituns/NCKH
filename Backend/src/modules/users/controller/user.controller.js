@@ -25,6 +25,55 @@ class UserController {
       });
     }
   }
+  /**
+   * Create new user (Admin)
+   */
+  async createUser(req, res) {
+    try {
+      const { full_name, username, email, password, role } = req.body;
+
+      // Validate input
+      if (!full_name || !username || !email || !password) {
+        return res.status(400).json({
+          error: true,
+          message: 'Full name, username, email và password là bắt buộc'
+        });
+      }
+
+      // Chỉ Admin mới được set role; còn lại mặc định là 'user'
+      const finalRole =
+        userService.canChangeRole(req.user) && role ? role : 'user';
+
+      const user = await userService.createUser({
+        full_name,
+        username,
+        email,
+        password,
+        role: finalRole
+      });
+
+      return res.status(201).json({
+        error: false,
+        message: 'User created successfully',
+        data: { user }
+      });
+    } catch (error) {
+      logger.error('Error creating user:', error);
+
+      // Lỗi validate (trùng email/username, thiếu field, …)
+      if (error.statusCode === 400) {
+        return res.status(400).json({
+          error: true,
+          message: error.message
+        });
+      }
+
+      return res.status(500).json({
+        error: true,
+        message: 'An error occurred while creating user'
+      });
+    }
+  }
 
   /**
    * Get user by ID

@@ -6,7 +6,7 @@ const ResponseService = {
    * Submit response (authenticated user)
    */
   async submitResponse(responseData) {
-    const response = await http.post('/responses', responseData);
+    const response = await http.post('/modules/responses', responseData);
     return response.data;
   },
 
@@ -15,7 +15,7 @@ const ResponseService = {
    * Uses collector token instead of authentication
    */
   async submitPublicResponse(token, responseData) {
-    const response = await http.post(`/responses/public/${token}`, responseData);
+    const response = await http.post(`/modules/responses/public/${token}`, responseData);
     return response.data;
   },
 
@@ -23,15 +23,22 @@ const ResponseService = {
    * Get survey by public token (anonymous - no auth)
    */
   async getSurveyByToken(token) {
-    const response = await http.get(`/collectors/token/${token}`);
-    return response.data;
+    const response = await http.get(`/modules/collectors/token/${token}`);
+    const data = response.data;
+    
+    // Return format that matches frontend expectations
+    return {
+      ok: data.success,
+      data: data.data,
+      message: data.message
+    };
   },
 
   /**
    * Get user's own responses with enhanced filtering
    */
   async getUserResponses(params = {}) {
-    const response = await http.get('/responses/my-responses', { params });
+    const response = await http.get('/modules/responses/my-responses', { params });
     return response.data;
   },
 
@@ -39,7 +46,7 @@ const ResponseService = {
    * Get detailed user response with all answers
    */
   async getUserResponseDetail(id) {
-    const response = await http.get(`/responses/my-responses/${id}`);
+    const response = await http.get(`/modules/responses/my-responses/${id}`);
     return response.data;
   },
 
@@ -47,7 +54,7 @@ const ResponseService = {
    * Get response by ID
    */
   async getResponseById(id) {
-    const response = await http.get(`/responses/${id}`);
+    const response = await http.get(`/modules/responses/${id}`);
     return response.data;
   },
 
@@ -55,7 +62,7 @@ const ResponseService = {
    * Get all responses for a survey (creator/admin only)
    */
   async getResponsesBySurvey(surveyId, params = {}) {
-    const response = await http.get(`/responses/survey/${surveyId}`, { params });
+    const response = await http.get(`/modules/responses/survey/${surveyId}`, { params });
     return response.data;
   },
 
@@ -63,7 +70,7 @@ const ResponseService = {
    * Delete response
    */
   async deleteResponse(id) {
-    const response = await http.delete(`/responses/${id}`);
+    const response = await http.delete(`/modules/responses/${id}`);
     return response.data;
   },
 
@@ -71,7 +78,7 @@ const ResponseService = {
    * Check if user already submitted response to survey
    */
   async checkExistingResponse(surveyId) {
-    const response = await http.get(`/responses/check/${surveyId}`);
+    const response = await http.get(`/modules/responses/check/${surveyId}`);
     return response.data;
   },
 };

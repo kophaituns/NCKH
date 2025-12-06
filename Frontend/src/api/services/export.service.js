@@ -6,7 +6,7 @@ const ExportService = {
    * Get export metadata for a survey
    */
   async getExportMetadata(surveyId) {
-    const response = await http.get(`/export/surveys/${surveyId}/metadata`);
+    const response = await http.get(`/modules/export/surveys/${surveyId}/metadata`);
     return response.data;
   },
 
@@ -14,7 +14,7 @@ const ExportService = {
    * Export survey responses to CSV
    */
   async exportToCSV(surveyId, params = {}) {
-    const response = await http.get(`/export/surveys/${surveyId}/csv`, {
+    const response = await http.get(`/modules/export/surveys/${surveyId}/csv`, {
       params,
       responseType: 'blob', // Important for file download
     });
@@ -35,7 +35,7 @@ const ExportService = {
    * Export survey responses to JSON
    */
   async exportToJSON(surveyId, params = {}) {
-    const response = await http.get(`/export/surveys/${surveyId}/json`, {
+    const response = await http.get(`/modules/export/surveys/${surveyId}/json`, {
       params,
       responseType: 'blob', // Important for file download
     });
@@ -56,7 +56,7 @@ const ExportService = {
    * Get preview of export data
    */
   async getExportPreview(surveyId, format = 'csv', params = {}) {
-    const response = await http.get(`/export/surveys/${surveyId}/preview`, {
+    const response = await http.get(`/modules/export/surveys/${surveyId}/preview`, {
       params: { ...params, format },
     });
     return response.data;

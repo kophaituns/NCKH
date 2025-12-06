@@ -18,6 +18,6 @@ router.use('/notifications', modules.notifications.routes);
 router.use('/workspaces', modules.workspaces.routes);
 router.use('/llm', modules.llm.routes);
 router.use('/chat', modules.chat.routes);
-router.use('/settings', modules.settings.routes);
+router.use('/options', modules.options.routes);
 
 module.exports = router;

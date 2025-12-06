@@ -6,7 +6,7 @@ const SurveyAccessService = {
    * Grant access to a survey
    */
   async grantAccess(surveyId, userId, accessData) {
-    const response = await http.post(`/surveys/${surveyId}/access`, {
+    const response = await http.post(`/modules/surveys/${surveyId}/access`, {
       user_id: userId,
       ...accessData
     });
@@ -17,7 +17,7 @@ const SurveyAccessService = {
    * Revoke access to a survey
    */
   async revokeAccess(surveyId, userId) {
-    const response = await http.delete(`/surveys/${surveyId}/access/${userId}`);
+    const response = await http.delete(`/modules/surveys/${surveyId}/access/${userId}`);
     return response.data;
   },
 
@@ -25,7 +25,7 @@ const SurveyAccessService = {
    * Get access grants for a survey
    */
   async getSurveyAccess(surveyId) {
-    const response = await http.get(`/surveys/${surveyId}/access`);
+    const response = await http.get(`/modules/surveys/${surveyId}/access`);
     return response.data?.data || [];
   },
 
@@ -40,7 +40,7 @@ const SurveyAccessService = {
    * Get surveys user has access to
    */
   async getMyAccessibleSurveys() {
-    const response = await http.get('/surveys/my-accessible');
+    const response = await http.get('/modules/surveys/my-accessible');
     return response.data?.data || [];
   },
 
@@ -48,7 +48,7 @@ const SurveyAccessService = {
    * Get user's access level for a specific survey
    */
   async getMyAccess(surveyId) {
-    const response = await http.get(`/surveys/${surveyId}/my-access`);
+    const response = await http.get(`/modules/surveys/${surveyId}/my-access`);
     return response.data?.data;
   }
 };

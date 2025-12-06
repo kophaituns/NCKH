@@ -548,6 +548,73 @@
   flex-shrink: 0;
 }
 
+.yesNoButtons {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  margin: 1.5rem 0;
+}
+
+.yesNoButton {
+  padding: 1rem 2rem;
+  border: 2px solid #e5e7eb;
+  background: white;
+  border-radius: 0.75rem;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #6b7280;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  position: relative;
+  overflow: hidden;
+  min-width: 100px;
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(135deg, #14B8A6, #0F766E);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    z-index: 0;
+  }
+
+  &:hover {
+    border-color: #14B8A6;
+    color: #14B8A6;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(20, 184, 166, 0.2);
+  }
+
+  span {
+    position: relative;
+    z-index: 1;
+  }
+}
+
+.yesNoSelected {
+  background: linear-gradient(135deg, #14B8A6, #0F766E);
+  border-color: #14B8A6;
+  color: white;
+  transform: scale(1.05);
+  box-shadow: 0 6px 16px rgba(20, 184, 166, 0.25);
+
+  &::before {
+    opacity: 1;
+  }
+
+  &:hover {
+    background: linear-gradient(135deg, #0F766E, #14B8A6);
+    border-color: #0F766E;
+    color: white;
+    transform: translateY(-2px) scale(1.05);
+  }
+}
+
 .ratingScale {
   display: flex;
   gap: 0.75rem;

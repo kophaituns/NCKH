@@ -27,13 +27,25 @@ class TemplateService {
         {
           model: User,
           attributes: ['id', 'username', 'full_name']
+        },
+        {
+          model: Question,
+          as: 'Questions',
+          attributes: ['id'], // Only need ID for counting
+          required: false // LEFT JOIN để cả templates không có questions cũng được lấy
         }
       ],
       order: [['created_at', 'DESC']]
     });
 
+    // Add question count to each template
+    const templatesWithCount = rows.map(template => ({
+      ...template.toJSON(),
+      question_count: template.Questions ? template.Questions.length : 0
+    }));
+
     return {
-      templates: rows,
+      templates: templatesWithCount,
       pagination: {
         total: count,
         page: parseInt(page),
@@ -151,20 +163,72 @@ class TemplateService {
    * Delete template
    */
   async deleteTemplate(templateId, user) {
-    const template = await SurveyTemplate.findByPk(templateId);
+    const { Survey } = require('../../../models');
+    
+    try {
+      const template = await SurveyTemplate.findByPk(templateId);
 
-    if (!template) {
-      throw new Error('Template not found');
+      if (!template) {
+        throw new Error('Template not found');
+      }
+
+      // Check ownership
+      if (user.role !== 'admin' && template.created_by !== user.id) {
+        throw new Error('Access denied. You do not own this template.');
+      }
+
+      // Check for dependent surveys
+      const surveysUsingTemplate = await Survey.findAll({
+        where: { template_id: templateId },
+        attributes: ['id', 'title']
+      });
+
+      if (surveysUsingTemplate.length > 0) {
+        const surveyTitles = surveysUsingTemplate.map(s => s.title || `Survey #${s.id}`).join(', ');
+        throw new Error(`Cannot delete template. It is being used by ${surveysUsingTemplate.length} survey(s): ${surveyTitles}. Please delete or reassign these surveys first.`);
+      }
+
+      // Delete related questions and options first
+      const questions = await Question.findAll({
+        where: { template_id: templateId },
+        include: [{ 
+          model: QuestionOption, 
+          as: 'QuestionOptions', 
+          required: false 
+        }]
+      });
+
+      // Delete options first
+      for (const question of questions) {
+        if (question.QuestionOptions && question.QuestionOptions.length > 0) {
+          await QuestionOption.destroy({
+            where: { question_id: question.id }
+          });
+        }
+      }
+
+      // Delete questions
+      if (questions.length > 0) {
+        await Question.destroy({
+          where: { template_id: templateId }
+        });
+      }
+
+      // Finally delete the template
+      await template.destroy();
+
+      return { message: 'Template deleted successfully' };
+    } catch (error) {
+      console.error('Delete template error:', error);
+      
+      // Handle Sequelize foreign key constraint errors
+      if (error.name === 'SequelizeForeignKeyConstraintError') {
+        throw new Error('Cannot delete template because it is being used by surveys. Please delete or reassign the surveys first.');
+      }
+      
+      // Re-throw other errors as-is
+      throw error;
     }
-
-    // Check ownership
-    if (user.role !== 'admin' && template.created_by !== user.id) {
-      throw new Error('Access denied. You do not own this template.');
-    }
-
-    await template.destroy();
-
-    return { message: 'Template deleted successfully' };
   }
 
   /**
@@ -296,6 +360,137 @@ class TemplateService {
     });
 
     return types;
+  }
+
+  /**
+   * Export template to PDF
+   */
+  async exportTemplateToPDF(templateId, userId) {
+    try {
+      // Get template with questions and options
+      const template = await SurveyTemplate.findByPk(templateId, {
+        include: [
+          {
+            model: User,
+            attributes: ['username', 'full_name']
+          },
+          {
+            model: Question,
+            as: 'Questions',
+            attributes: ['id', 'question_text', 'question_type_id', 'required', 'display_order'],
+            include: [
+              {
+                model: QuestionType,
+                as: 'QuestionType',
+                attributes: ['type_name', 'description']
+              },
+              {
+                model: QuestionOption,
+                as: 'QuestionOptions',
+                attributes: ['option_text', 'display_order'],
+                order: [['display_order', 'ASC']]
+              }
+            ],
+            order: [['display_order', 'ASC']]
+          }
+        ]
+      });
+
+      if (!template) {
+        throw new Error('Template not found');
+      }
+
+      // Check if user has access (for now, allow all authenticated users)
+      if (!userId) {
+        throw new Error('Access denied - authentication required');
+      }
+
+      // Create HTML content for PDF
+      let htmlContent = `
+        <div class="header">
+          <div class="title">${template.title}</div>
+          <div class="description">${template.description || 'Không có mô tả'}</div>
+          <div class="meta">Ngày tạo: ${new Date(template.created_at).toLocaleDateString('vi-VN')}</div>
+        </div>
+      `;
+
+      // Add questions - use the alias 'Questions'
+      const questions = template.Questions || [];
+
+      if (questions.length === 0) {
+        htmlContent += `
+          <div class="no-questions">
+            <p><strong>Chưa có câu hỏi nào trong template này.</strong></p>
+            <p>Vui lòng thêm câu hỏi vào template trước khi xuất PDF.</p>
+          </div>
+        `;
+      } else {
+        questions.forEach((question, index) => {
+          const questionType = question.QuestionType?.type_name || 'text';
+          const options = question.QuestionOptions || [];
+
+          htmlContent += `
+            <div class="question">
+              <div class="question-number">${index + 1}. ${question.question_text}</div>
+              <div class="question-type">[${questionType}]</div>
+          `;
+
+          if (questionType === 'multiple_choice' && options.length > 0) {
+            htmlContent += '<div class="options">';
+            options.forEach((option) => {
+              htmlContent += `<div class="option"><span class="checkbox"></span> ${option.option_text}</div>`;
+            });
+            htmlContent += '</div>';
+          } else if (questionType === 'checkbox' && options.length > 0) {
+            htmlContent += '<div class="options">';
+            options.forEach((option) => {
+              htmlContent += `<div class="option"><span class="checkbox"></span> ${option.option_text}</div>`;
+            });
+            htmlContent += '</div>';
+          } else if (questionType === 'dropdown' && options.length > 0) {
+            htmlContent += '<div class="options"><strong>Tùy chọn:</strong><br>';
+            options.forEach((option) => {
+              htmlContent += `<div class="option">• ${option.option_text}</div>`;
+            });
+            htmlContent += '</div>';
+          } else if (questionType === 'yes_no') {
+            htmlContent += `
+              <div class="options">
+                <div class="option"><span class="checkbox"></span> Có</div>
+                <div class="option"><span class="checkbox"></span> Không</div>
+              </div>
+            `;
+          } else if (questionType === 'likert_scale' || questionType === 'rating') {
+            htmlContent += `
+              <div class="rating">
+                Đánh giá từ 1 đến 5: 
+                <span class="rating-box">1</span>
+                <span class="rating-box">2</span>
+                <span class="rating-box">3</span>
+                <span class="rating-box">4</span>
+                <span class="rating-box">5</span>
+              </div>
+            `;
+          } else {
+            htmlContent += '<div class="text-answer"></div><div class="text-answer"></div><div class="text-answer"></div>';
+          }
+
+          htmlContent += '</div>';
+        });
+      }
+
+      return {
+        htmlContent,
+        template: {
+          title: template.title,
+          questionCount: questions.length
+        }
+      };
+
+    } catch (error) {
+      console.error('Error exporting template to PDF:', error);
+      throw new Error(`Failed to export PDF: ${error.message}`);
+    }
   }
 }
 

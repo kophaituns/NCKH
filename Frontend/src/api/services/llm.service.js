@@ -6,7 +6,7 @@ const LLMService = {
    * Generate survey using AI
    */
   async generateSurvey(generationData) {
-    const response = await http.post('/llm/generate-survey', generationData);
+    const response = await http.post('/modules/llm/generate-survey', generationData);
     return response.data;
   },
 
@@ -14,7 +14,7 @@ const LLMService = {
    * Analyze survey responses using AI
    */
   async analyzeSurveyResponses(surveyId, analysisData = {}) {
-    const response = await http.post(`/llm/analyze-responses`, { survey_id: surveyId, ...analysisData });
+    const response = await http.post(`/modules/llm/analyze-responses`, { survey_id: surveyId, ...analysisData });
     return response.data;
   },
 
@@ -22,7 +22,7 @@ const LLMService = {
    * Get all prompts
    */
   async getLlmPrompts(type = null) {
-    const response = await http.get('/llm/prompts', { params: { type } });
+    const response = await http.get('/modules/llm/prompts', { params: { type } });
     return response.data;
   },
 
@@ -30,7 +30,7 @@ const LLMService = {
    * Create new prompt
    */
   async createPrompt(promptData) {
-    const response = await http.post('/llm/prompts', promptData);
+    const response = await http.post('/modules/llm/prompts', promptData);
     return response.data;
   },
 
@@ -38,7 +38,7 @@ const LLMService = {
    * Get prompt by ID
    */
   async getPromptById(id) {
-    const response = await http.get(`/llm/prompts/${id}`);
+    const response = await http.get(`/modules/llm/prompts/${id}`);
     return response.data;
   },
 
@@ -46,7 +46,7 @@ const LLMService = {
    * Update prompt
    */
   async updatePrompt(id, promptData) {
-    const response = await http.put(`/llm/prompts/${id}`, promptData);
+    const response = await http.put(`/modules/llm/prompts/${id}`, promptData);
     return response.data;
   },
 
@@ -54,7 +54,7 @@ const LLMService = {
    * Delete prompt
    */
   async deletePrompt(id) {
-    const response = await http.delete(`/llm/prompts/${id}`);
+    const response = await http.delete(`/modules/llm/prompts/${id}`);
     return response.data;
   },
 
@@ -62,7 +62,7 @@ const LLMService = {
    * Get analysis results for a survey
    */
   async getAnalysisResults(surveyId) {
-    const response = await http.get(`/llm/analysis/${surveyId}`);
+    const response = await http.get(`/modules/llm/analysis/${surveyId}`);
     return response.data;
   },
 
@@ -70,7 +70,7 @@ const LLMService = {
    * Generate questions using AI
    */
   async generateQuestions(data) {
-    const response = await http.post('/llm/generate-questions', data);
+    const response = await http.post('/modules/llm/generate-questions', data);
     return response.data;
   },
 
@@ -78,7 +78,7 @@ const LLMService = {
    * Predict category for keyword
    */
   async predictCategory(data) {
-    const response = await http.post('/llm/predict-category', data);
+    const response = await http.post('/modules/llm/predict-category', data);
     return response.data;
   },
 
@@ -86,7 +86,7 @@ const LLMService = {
    * Get available categories
    */
   async getCategories() {
-    const response = await http.get('/llm/categories');
+    const response = await http.get('/modules/llm/categories');
     return response.data;
   },
 
@@ -94,7 +94,7 @@ const LLMService = {
    * Check Hugging Face API health
    */
   async checkHuggingFaceHealth() {
-    const response = await http.get('/llm/health');
+    const response = await http.get('/modules/llm/health');
     return response.data;
   },
 
@@ -102,7 +102,7 @@ const LLMService = {
    * Test prompt with sample data
    */
   async testPrompt(promptId, testData) {
-    const response = await http.post(`/llm/prompts/${promptId}/test`, testData);
+    const response = await http.post(`/modules/llm/prompts/${promptId}/test`, testData);
     return response.data;
   },
 
@@ -110,7 +110,7 @@ const LLMService = {
    * Create survey from generated questions
    */
   async createSurveyFromQuestions(surveyData) {
-    const response = await http.post('/llm/create-survey', surveyData);
+    const response = await http.post('/modules/llm/create-survey', surveyData);
     return response.data;
   },
 
@@ -118,7 +118,7 @@ const LLMService = {
    * Export survey as PDF
    */
   async exportSurveyPDF(surveyId) {
-    const response = await http.get(`/llm/export-pdf/${surveyId}`, {
+    const response = await http.get(`/modules/llm/export-pdf/${surveyId}`, {
       responseType: 'text'
     });
     
@@ -143,7 +143,7 @@ const LLMService = {
    * Generate public link for survey
    */
   async generatePublicLink(surveyId, expiryDays = 30) {
-    const response = await http.post(`/llm/generate-link/${surveyId}`, { expiryDays });
+    const response = await http.post(`/modules/llm/generate-link/${surveyId}`, { expiryDays });
     return response.data;
   },
 
@@ -151,7 +151,7 @@ const LLMService = {
    * Get survey results and analytics
    */
   async getSurveyResults(surveyId) {
-    const response = await http.get(`/llm/surveys/${surveyId}/results`);
+    const response = await http.get(`/modules/llm/surveys/${surveyId}/results`);
     return response.data;
   },
 
@@ -159,7 +159,7 @@ const LLMService = {
    * Get survey for editing
    */
   async getSurveyForEditing(surveyId) {
-    const response = await http.get(`/llm/surveys/${surveyId}/edit`);
+    const response = await http.get(`/modules/llm/surveys/${surveyId}/edit`);
     return response.data;
   },
 
@@ -167,7 +167,7 @@ const LLMService = {
    * Update survey settings
    */
   async updateSurveySettings(surveyId, settingsData) {
-    const response = await http.put(`/llm/surveys/${surveyId}/settings`, settingsData);
+    const response = await http.put(`/modules/llm/surveys/${surveyId}/settings`, settingsData);
     return response.data;
   },
 
@@ -175,7 +175,7 @@ const LLMService = {
    * Update survey question
    */
   async updateSurveyQuestion(surveyId, questionId, questionData) {
-    const response = await http.put(`/llm/surveys/${surveyId}/questions/${questionId}`, questionData);
+    const response = await http.put(`/modules/llm/surveys/${surveyId}/questions/${questionId}`, questionData);
     return response.data;
   },
 
@@ -183,7 +183,7 @@ const LLMService = {
    * Delete survey question
    */
   async deleteSurveyQuestion(surveyId, questionId) {
-    const response = await http.delete(`/llm/surveys/${surveyId}/questions/${questionId}`);
+    const response = await http.delete(`/modules/llm/surveys/${surveyId}/questions/${questionId}`);
     return response.data;
   },
 
@@ -191,7 +191,7 @@ const LLMService = {
    * Add new question to survey
    */
   async addSurveyQuestion(surveyId, questionData) {
-    const response = await http.post(`/llm/surveys/${surveyId}/questions`, questionData);
+    const response = await http.post(`/modules/llm/surveys/${surveyId}/questions`, questionData);
     return response.data;
   },
 };

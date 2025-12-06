@@ -6,7 +6,7 @@ const AuthService = {
    * Register new user
    */
   async register(userData) {
-    const response = await http.post('/auth/register', userData);
+    const response = await http.post('/modules/auth/register', userData);
     const { user, token, refreshToken } = response.data.data;
 
     // Store tokens
@@ -30,7 +30,7 @@ const AuthService = {
       ? { email: identifier, password }
       : { username: identifier, password };
 
-    const response = await http.post('/auth/login', loginPayload);
+    const response = await http.post('/modules/auth/login', loginPayload);
 
     const { user, token, refreshToken } = response.data.data;
 
@@ -49,7 +49,7 @@ const AuthService = {
    * Refresh access token
    */
   async refreshToken(refreshToken) {
-    const response = await http.post('/auth/refresh', { refreshToken });
+    const response = await http.post('/modules/auth/refresh', { refreshToken });
     const { token: newToken, refreshToken: newRefreshToken } = response.data.data;
 
     if (newToken) {
@@ -67,7 +67,7 @@ const AuthService = {
    * Get current user profile
    */
   async getProfile() {
-    const response = await http.get('/auth/profile');
+    const response = await http.get('/modules/auth/profile');
     const user = response.data.data.user;
 
     // Update stored user data
@@ -81,7 +81,7 @@ const AuthService = {
    */
   async logout() {
     try {
-      await http.post('/auth/logout');
+      await http.post('/modules/auth/logout');
     } catch (error) {
       console.error('Logout error:', error);
     } finally {
@@ -93,7 +93,7 @@ const AuthService = {
    * Change password
    */
   async changePassword(passwordData) {
-    const response = await http.post('/auth/change-password', passwordData);
+    const response = await http.post('/modules/auth/change-password', passwordData);
     return response.data;
   },
 

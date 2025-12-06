@@ -181,18 +181,51 @@ class CollectorService {
         access_type: survey.access_type,
         require_login: survey.access_type === 'public_with_login' || survey.access_type === 'internal',
         workspace_id: survey.access_type === 'internal' ? survey.workspace_id : null,
-        questions: survey.template.Questions.map(q => ({
-          id: q.id,
-          label: q.question_text,
-          type: q.QuestionType.type_name,
-          required: q.required,
-          display_order: q.display_order,
-          options: q.QuestionOptions.map(opt => ({
-            id: opt.id,
-            text: opt.option_text,
-            display_order: opt.display_order
-          }))
-        }))
+        questions: survey.template.Questions.map(q => {
+          // Debug log để kiểm tra question data
+          console.log(`🔍 Processing Question ID ${q.id}:`, {
+            question_text: q.question_text,
+            question_type: q.QuestionType?.type_name,
+            has_options: q.QuestionOptions?.length > 0,
+            options_count: q.QuestionOptions?.length || 0,
+            options: q.QuestionOptions?.map(opt => opt.option_text) || []
+          });
+
+          // Map question type names to frontend expected values
+          let questionType = q.QuestionType.type_name;
+          const typeMapping = {
+            'response': 'open_ended',
+            'rating_scale': 'likert_scale', 
+            'rating': 'likert_scale',
+            'text': 'open_ended',
+            'textarea': 'open_ended',
+            'yes_no': 'yes_no',
+            'multiple_choice': 'multiple_choice'
+          };
+          
+          if (typeMapping[questionType]) {
+            questionType = typeMapping[questionType];
+          }
+
+          // Auto-fix: If question has 'text' type but has options, convert to multiple_choice
+          if ((questionType === 'open_ended' || questionType === 'text') && q.QuestionOptions && q.QuestionOptions.length > 0) {
+            console.log(`🔧 Auto-converting question ${q.id} from '${questionType}' to 'multiple_choice' because it has options`);
+            questionType = 'multiple_choice';
+          }
+
+          return {
+            id: q.id,
+            label: q.question_text,
+            type: questionType,
+            required: q.required,
+            display_order: q.display_order,
+            options: q.QuestionOptions ? q.QuestionOptions.map(opt => ({
+              id: opt.id,
+              text: opt.option_text,
+              display_order: opt.display_order
+            })) : []
+          };
+        })
       }
     };
   }

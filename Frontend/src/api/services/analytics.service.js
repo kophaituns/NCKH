@@ -16,6 +16,9 @@ const AnalyticsService = {
         });
     },
 
+    getAdminDashboard: () => {
+        return http.get('/modules/analytics/admin/dashboard');
+    }
 
 };
 

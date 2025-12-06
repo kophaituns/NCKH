@@ -14,6 +14,7 @@ import {
 } from 'chart.js';
 import { Bar, Line, Pie } from 'react-chartjs-2';
 import { useToast } from '../../../contexts/ToastContext';
+import { useLanguage } from '../../../contexts/LanguageContext';
 import AnalyticsService from '../../../api/services/analytics.service';
 // ❌ NO LONGER NEEDED: UserService, SurveyService
 // import UserService from '../../../api/services/user.service';
@@ -39,6 +40,7 @@ ChartJS.register(
 const AdminDashboard = () => {
   const navigate = useNavigate();
   const { showError } = useToast();
+  const { t } = useLanguage();
   
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({
@@ -66,7 +68,10 @@ const AdminDashboard = () => {
     try {
       // ✅ CALL NEW ADMIN DASHBOARD API
       // AnalyticsService.getAdminDashboard() is already defined in src/api/services/analytics.service.js
-      const payload = await AnalyticsService.getAdminDashboard();
+      const response = await AnalyticsService.getAdminDashboard();
+
+      // Extract data from response (backend returns { success: true, data: {...} })
+      const payload = response.data.data || response.data;
 
       // payload = { totals, roleStats, responsesPerSurvey, surveyActivity }
       const totals = payload.totals || {};
@@ -74,7 +79,7 @@ const AdminDashboard = () => {
       const responses = payload.responsesPerSurvey || {};
       const activity = payload.surveyActivity || {};
 
-      // Set 4 ô stat
+      // Set 4 stat boxes
       setStats({
         totalUsers: totals.totalUsers ?? 0,
         totalSurveys: totals.totalSurveys ?? 0,
@@ -216,7 +221,7 @@ const AdminDashboard = () => {
         <div className={styles.header}>
           <h1 className={styles.title}>Admin Dashboard</h1>
         </div>
-        <Loader fullScreen message="Loading dashboard data..." />
+        <Loader fullScreen message={t('loading_dashboard') || 'Loading dashboard data...'} />
       </div>
     );
   }
@@ -226,7 +231,7 @@ const AdminDashboard = () => {
       <div className={styles.header}>
         <div>
           <h1 className={styles.title}>Admin Dashboard</h1>
-          <p className={styles.subtitle}>Overview of system statistics and analytics</p>
+          <p className={styles.subtitle}>{t('overview_subtitle') || 'Overview of system statistics and analytics'}</p>
         </div>
         <div className={styles.actions}>
           <button 
@@ -237,7 +242,7 @@ const AdminDashboard = () => {
               <circle cx="10" cy="7" r="3" stroke="currentColor" strokeWidth="1.5"/>
               <path d="M4 17a6 6 0 0112 0" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
             </svg>
-            Manage Users
+            {t('manage_users') || 'Manage Users'}
           </button>
           <button 
             className={styles.primaryButton}
@@ -246,7 +251,7 @@ const AdminDashboard = () => {
             <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
               <path d="M10 5v10M5 10h10" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
             </svg>
-            Create Template
+            {t('create_template') || 'Create Template'}
           </button>
         </div>
       </div>

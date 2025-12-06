@@ -6,7 +6,7 @@ const QuestionService = {
    * Create new question
    */
   async create(questionData) {
-    const response = await http.post('/questions', questionData);
+    const response = await http.post('/modules/questions', questionData);
     return response.data;
   },
 
@@ -14,7 +14,7 @@ const QuestionService = {
    * Update question
    */
   async update(questionId, questionData) {
-    const response = await http.put(`/questions/${questionId}`, questionData);
+    const response = await http.put(`/modules/questions/${questionId}`, questionData);
     return response.data;
   },
 
@@ -22,7 +22,7 @@ const QuestionService = {
    * Delete question
    */
   async delete(questionId) {
-    const response = await http.delete(`/questions/${questionId}`);
+    const response = await http.delete(`/modules/questions/${questionId}`);
     return response.data;
   },
 
@@ -30,7 +30,7 @@ const QuestionService = {
    * Add option to question
    */
   async addOption(optionData) {
-    const response = await http.post('/options', optionData);
+    const response = await http.post('/modules/options', optionData);
     return response.data;
   },
 
@@ -38,7 +38,7 @@ const QuestionService = {
    * Update option
    */
   async updateOption(optionId, optionData) {
-    const response = await http.put(`/options/${optionId}`, optionData);
+    const response = await http.put(`/modules/options/${optionId}`, optionData);
     return response.data;
   },
 
@@ -46,7 +46,7 @@ const QuestionService = {
    * Delete option
    */
   async deleteOption(optionId) {
-    const response = await http.delete(`/options/${optionId}`);
+    const response = await http.delete(`/modules/options/${optionId}`);
     return response.data;
   },
 };

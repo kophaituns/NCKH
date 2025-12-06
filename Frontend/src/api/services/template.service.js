@@ -7,7 +7,7 @@ const TemplateService = {
    */
   async getAll(params = {}) {
     try {
-      const response = await http.get('/templates', { params });
+      const response = await http.get('/modules/templates', { params });
       // Backend returns { success: true, data: { templates: [...], pagination: {...} } }
       const data = response.data.data || response.data || {};
       return {
@@ -30,7 +30,7 @@ const TemplateService = {
    */
   async getById(id) {
     try {
-      const response = await http.get(`/templates/${id}`);
+      const response = await http.get(`/modules/templates/${id}`);
       // Backend returns { success: true, ok: true, template: {...}, questions: [...] }
       const data = response.data;
       return {
@@ -54,7 +54,7 @@ const TemplateService = {
    */
   async getQuestions(templateId) {
     try {
-      const response = await http.get(`/templates/${templateId}/questions`);
+      const response = await http.get(`/modules/templates/${templateId}/questions`);
       const data = response.data;
       return {
         ok: data.ok || data.success || false,
@@ -71,7 +71,7 @@ const TemplateService = {
    */
   async create(templateData) {
     try {
-      const response = await http.post('/templates', templateData);
+      const response = await http.post('/modules/templates', templateData);
       const data = response.data;
       // Backend returns { success: true, ok: true, id: X, data: { template, template_id } }
       return {
@@ -95,7 +95,7 @@ const TemplateService = {
    * Update template
    */
   async update(id, templateData) {
-    const response = await http.put(`/templates/${id}`, templateData);
+    const response = await http.put(`/modules/templates/${id}`, templateData);
     return response.data.data;
   },
 
@@ -108,15 +108,48 @@ const TemplateService = {
    * Delete template
    */
   async delete(id) {
-    const response = await http.delete(`/templates/${id}`);
-    return response.data;
+    try {
+      const response = await http.delete(`/modules/templates/${id}`);
+      return response.data;
+    } catch (error) {
+      console.error('Delete template error:', error);
+      
+      // Handle specific error cases
+      if (error.response) {
+        const { status, data } = error.response;
+        
+        if (status === 409) {
+          throw new Error(data?.message || 'Template is being used by surveys and cannot be deleted');
+        }
+        
+        if (status === 403) {
+          throw new Error(data?.message || 'Access denied');
+        }
+        
+        if (status === 404) {
+          throw new Error(data?.message || 'Template not found');
+        }
+        
+        // Try to extract message from response
+        let errorMessage = 'Error deleting template';
+        if (data && typeof data === 'object') {
+          errorMessage = data.message || data.error || errorMessage;
+        } else if (typeof data === 'string') {
+          errorMessage = data;
+        }
+        
+        throw new Error(errorMessage);
+      }
+      
+      throw new Error(error.message || 'Network error occurred');
+    }
   },
 
   /**
    * Bulk delete templates
    */
   async deleteMany(ids) {
-    const response = await http.delete('/templates/bulk', { data: { ids } });
+    const response = await http.delete('/modules/templates/bulk', { data: { ids } });
     return response.data;
   },
 
@@ -129,7 +162,7 @@ const TemplateService = {
    * Get question types
    */
   async getQuestionTypes() {
-    const response = await http.get('/templates/question-types');
+    const response = await http.get('/modules/templates/question-types');
     return response.data;
   },
 
@@ -141,7 +174,7 @@ const TemplateService = {
       if (!templateId || templateId === 'undefined') {
         throw new Error('Invalid template ID');
       }
-      const response = await http.post(`/templates/${templateId}/questions`, questionData);
+      const response = await http.post(`/modules/templates/${templateId}/questions`, questionData);
       const data = response.data;
       return {
         ok: data.ok || data.success || false,
@@ -159,7 +192,7 @@ const TemplateService = {
    * Update question
    */
   async updateQuestion(templateId, questionId, questionData) {
-    const response = await http.put(`/templates/${templateId}/questions/${questionId}`, questionData);
+    const response = await http.put(`/modules/templates/${templateId}/questions/${questionId}`, questionData);
     return response.data;
   },
 
@@ -167,8 +200,23 @@ const TemplateService = {
    * Delete question
    */
   async deleteQuestion(templateId, questionId) {
-    const response = await http.delete(`/templates/${templateId}/questions/${questionId}`);
+    const response = await http.delete(`/modules/templates/${templateId}/questions/${questionId}`);
     return response.data;
+  },
+
+  /**
+   * Export template to PDF
+   */
+  async exportTemplatePDF(templateId) {
+    try {
+      const response = await http.get(`/modules/templates/${templateId}/export-pdf`, {
+        responseType: 'text'
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Error exporting template to PDF:', error);
+      throw error;
+    }
   },
 };
 

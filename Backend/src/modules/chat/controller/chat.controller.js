@@ -33,13 +33,18 @@ class ChatController {
             const { title } = req.body;
             const userId = req.user.id;
 
+            console.log('Creating conversation for user:', userId, 'with title:', title);
+
             const conversation = await chatService.createConversation(userId, title);
+
+            console.log('Conversation created successfully:', conversation.id);
 
             res.status(201).json({
                 success: true,
                 data: conversation
             });
         } catch (error) {
+            console.error('Error creating conversation:', error);
             logger.error('Error creating conversation:', error);
             res.status(500).json({
                 success: false,
@@ -243,6 +248,27 @@ class ChatController {
             });
         } catch (error) {
             logger.error('Error in Gemini chat:', error);
+            res.status(500).json({
+                success: false,
+                message: 'Failed to process chat',
+                error: error.message
+            });
+        }
+    }
+
+    async chatWithSerper(req, res) {
+        try {
+            const { conversationId, message } = req.body;
+            const userId = req.user.id;
+
+            const result = await chatService.chatWithSerper(conversationId, userId, message);
+
+            res.json({
+                success: true,
+                data: result
+            });
+        } catch (error) {
+            logger.error('Error in Serper chat:', error);
             res.status(500).json({
                 success: false,
                 message: 'Failed to process chat',
