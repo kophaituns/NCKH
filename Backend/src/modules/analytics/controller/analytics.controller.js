@@ -124,10 +124,67 @@ const getAdminDashboard = async (req, res) => {
     });
   }
 };
+/**
+ * Get active surveys list for analytics page
+ */
+/**
+ * Get active surveys list for analytics page
+ */
+const getActiveSurveys = async (req, res) => {
+  try {
+    const user = req.user || null;
+
+    const surveys = await analyticsService.getActiveSurveysOverview(user);
+
+    res.status(200).json({
+      success: true,
+      data: surveys
+    });
+  } catch (error) {
+    logger.error('Error getting active surveys for analytics:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+      error: error.message
+    });
+  }
+};
+
+/**
+ * Get top answers for a given survey
+ */
+const getSurveyTopAnswers = async (req, res) => {
+  try {
+    const { surveyId } = req.params;
+
+    if (!surveyId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Survey ID is required'
+      });
+    }
+
+    const result = await analyticsService.getTopAnswersForSurvey(surveyId);
+
+    res.status(200).json({
+      success: true,
+      data: result
+    });
+  } catch (error) {
+    logger.error('Error getting survey top answers:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+      error: error.message
+    });
+  }
+};
 
 module.exports = {
   getQualityScore,
   getDropOffAnalysis,
   getCrossTabAnalysis,
-  getAdminDashboard
+  getAdminDashboard,
+  getActiveSurveys,
+  getSurveyTopAnswers
 };

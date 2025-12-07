@@ -277,6 +277,143 @@ const getSurveyActivityTrend = async () => {
     logger.error('Error getting survey activity trend:', error);
     throw error;
   }
+  
+};
+
+/**
+ * Get detailed list of active surveys for analytics page
+ * - If userId + role provided and role !== 'admin' -> only surveys created by that user
+ * - Otherwise -> all active surveys
+ */
+const getActiveSurveyList = async (userId = null, role = null) => {
+  try {
+    let query = `
+      SELECT 
+        s.id,
+        s.title,
+        s.description,
+        s.start_date,
+        s.end_date,
+        s.status,
+        s.created_by,
+        COUNT(DISTINCT sr.id) AS total_responses,
+        COUNT(DISTINCT CASE WHEN sr.status = 'completed' THEN sr.id END) AS completed_responses
+      FROM surveys s
+      LEFT JOIN survey_responses sr ON s.id = sr.survey_id
+      WHERE s.status = 'active'
+        AND s.deleted_at IS NULL
+    `;
+
+    const replacements = [];
+
+    // Only filter by creator for non-admin users AND when userId is available
+    if (userId && role && role !== 'admin') {
+      query += ' AND s.created_by = ?';
+      replacements.push(userId);
+    }
+
+    query += `
+      GROUP BY s.id
+      ORDER BY s.created_at DESC
+    `;
+
+    const [rows] = await sequelize.query(query, { replacements });
+    return rows;
+  } catch (error) {
+    logger.error('Error getting active survey list:', error);
+    throw error;
+  }
+};
+
+/**
+ * Get top choice options for each question in a survey
+ * (multiple choice / checkbox / likert_scale / dropdown)
+ */
+const getTopChoiceAnswersForSurvey = async (surveyId) => {
+  try {
+    const query = `
+      SELECT
+        q.id AS question_id,
+        q.question_text,
+        qt.type_name AS question_type,
+        qo.id AS option_id,
+        qo.option_text,
+        COUNT(a.id) AS answer_count
+      FROM survey_responses sr
+      JOIN answers a
+        ON a.survey_response_id = sr.id
+      JOIN questions q
+        ON q.id = a.question_id
+      JOIN question_types qt
+        ON qt.id = q.question_type_id
+      LEFT JOIN question_options qo
+        ON qo.id = a.option_id
+      WHERE
+        sr.survey_id = ?
+        AND sr.status = 'completed'
+        AND qt.type_name IN ('multiple_choice', 'checkbox', 'likert_scale', 'dropdown')
+      GROUP BY
+        q.id,
+        q.question_text,
+        qt.type_name,
+        qo.id,
+        qo.option_text
+      ORDER BY
+        q.display_order ASC,
+        answer_count DESC
+    `;
+
+    const [rows] = await sequelize.query(query, {
+      replacements: [surveyId],
+    });
+
+    return rows;
+  } catch (error) {
+    logger.error('Error getting top choice answers for survey:', error);
+    throw error;
+  }
+};
+
+/**
+ * Get top open-ended answers for each question in a survey
+ */
+const getTopOpenEndedAnswersForSurvey = async (surveyId) => {
+  try {
+    const query = `
+      SELECT
+        q.id AS question_id,
+        q.question_text,
+        qt.type_name AS question_type,
+        TRIM(a.text_answer) AS answer_text,
+        COUNT(a.id) AS answer_count
+      FROM questions q
+      JOIN question_types qt ON q.question_type_id = qt.id
+      JOIN answers a ON a.question_id = q.id
+      JOIN survey_responses sr ON sr.id = a.survey_response_id
+      WHERE q.survey_id = ?
+        AND qt.type_name = 'open_ended'
+        AND a.text_answer IS NOT NULL
+        AND a.text_answer <> ''
+        AND sr.status = 'completed'
+      GROUP BY
+        q.id,
+        q.question_text,
+        qt.type_name,
+        answer_text
+      ORDER BY
+        q.display_order ASC,
+        answer_count DESC
+    `;
+
+    const [rows] = await sequelize.query(query, {
+      replacements: [surveyId]
+    });
+
+    return rows;
+  } catch (error) {
+    logger.error('Error getting top open-ended answers for survey:', error);
+    throw error;
+  }
 };
 
 module.exports = {
@@ -288,5 +425,8 @@ module.exports = {
   getActiveSurveys,
   getUserRoleStats,
   getResponsesPerSurvey,
-  getSurveyActivityTrend
+  getSurveyActivityTrend,
+  getActiveSurveyList,
+  getTopChoiceAnswersForSurvey,
+  getTopOpenEndedAnswersForSurvey
 };

@@ -192,10 +192,124 @@ const processCrossTabData = (crossTabData) => {
     totalResponses: crossTabData.totalResponses || 0
   };
 };
+/**
+ * Get list of active surveys with basic stats
+ */
+/**
+ * Get list of active surveys with basic stats (scoped by user)
+ */
+const getActiveSurveysOverview = async (user) => {
+  try {
+    logger.info('Getting active surveys overview for analytics');
+
+    // Safety: if for some reason user is missing, fall back to "all active"
+    if (!user || !user.id) {
+      logger.warn(
+        'getActiveSurveysOverview called without user, returning all active surveys'
+      );
+      return analyticsRepository.getActiveSurveyList();
+    }
+
+    const surveys = await analyticsRepository.getActiveSurveyList(
+      user.id,
+      user.role
+    );
+    return surveys;
+  } catch (error) {
+    logger.error('Error getting active surveys overview:', error);
+    throw error;
+  }
+};
+
+
+/**
+ * Get top answers for a survey (for each question)
+ */
+const getTopAnswersForSurvey = async (surveyId) => {
+  try {
+    logger.info(`Getting top answers for survey ${surveyId}`);
+
+    const [choiceRows, openEndedRows] = await Promise.all([
+      analyticsRepository.getTopChoiceAnswersForSurvey(surveyId),
+      analyticsRepository.getTopOpenEndedAnswersForSurvey(surveyId)
+    ]);
+
+    const questionsMap = new Map();
+
+    // Choice-type questions (multiple_choice, checkbox, likert_scale, dropdown)
+    for (const row of choiceRows) {
+      const questionId = row.question_id;
+      if (!questionsMap.has(questionId)) {
+        questionsMap.set(questionId, {
+          questionId,
+          questionText: row.question_text,
+          questionType: row.question_type,
+          topOptions: [],
+          topTextAnswers: []
+        });
+      }
+
+      if (row.option_id) {
+        questionsMap.get(questionId).topOptions.push({
+          optionId: row.option_id,
+          optionText: row.option_text,
+          count: Number(row.answer_count) || 0
+        });
+      }
+    }
+
+    // Sort & keep top 5 options for each question
+    for (const q of questionsMap.values()) {
+      if (q.topOptions && q.topOptions.length > 0) {
+        q.topOptions.sort((a, b) => b.count - a.count);
+        q.topOptions = q.topOptions.slice(0, 5);
+      }
+    }
+
+    // Open-ended questions
+    for (const row of openEndedRows) {
+      const questionId = row.question_id;
+      if (!questionsMap.has(questionId)) {
+        questionsMap.set(questionId, {
+          questionId,
+          questionText: row.question_text,
+          questionType: row.question_type,
+          topOptions: [],
+          topTextAnswers: []
+        });
+      }
+
+      if (row.answer_text) {
+        questionsMap.get(questionId).topTextAnswers.push({
+          text: row.answer_text,
+          count: Number(row.answer_count) || 0
+        });
+      }
+    }
+
+    // Sort & keep top 5 text answers
+    for (const q of questionsMap.values()) {
+      if (q.topTextAnswers && q.topTextAnswers.length > 0) {
+        q.topTextAnswers.sort((a, b) => b.count - a.count);
+        q.topTextAnswers = q.topTextAnswers.slice(0, 5);
+      }
+    }
+
+    return {
+      surveyId,
+      questions: Array.from(questionsMap.values())
+    };
+  } catch (error) {
+    logger.error(`Error getting top answers for survey ${surveyId}:`, error);
+    throw error;
+  }
+};
 
 module.exports = {
   getQualityScore,
   getDropOffAnalysis,
   getCrossTabAnalysis,
-  getAdminDashboard
+  getAdminDashboard,
+  getActiveSurveysOverview,
+  getTopAnswersForSurvey
 };

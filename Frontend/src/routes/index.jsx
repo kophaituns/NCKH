@@ -26,6 +26,7 @@ import ManageInvitations from '../pages/Workspaces/ManageInvitations/index.jsx';
 import Notifications from '../pages/User/Notifications/index.jsx';
 import Chat from '../pages/Chat/index.jsx';
 import LLM from '../pages/LLM/index.jsx';
+import AnalyticsPage from '../pages/Analytics/index.jsx';
 import PublicResponseForm from '../pages/Public/ResponseForm/index.jsx';
 import WorkspaceInvitationAccept from '../pages/Public/WorkspaceInvitationAccept/index.jsx';
 import UserResponses from '../pages/User/Responses/index.jsx';
@@ -294,17 +295,18 @@ const AppRoutes = () => {
         }
       />
 
-      {/* Analytics Routes */}
-      <Route
-        path="/analytics"
-        element={
-          <ProtectedRoute allowedRoles={['admin', 'creator']}>
-            <DefaultLayout>
-              <ComingSoon title="Analytics" />
-            </DefaultLayout>
-          </ProtectedRoute>
-        }
-      />
+     {/* Analytics Routes */}
+<Route
+  path="/analytics"
+  element={
+    <ProtectedRoute allowedRoles={['admin', 'creator']}>
+      <DefaultLayout>
+        <AnalyticsPage />
+      </DefaultLayout>
+    </ProtectedRoute>
+  }
+/>
+
 
       {/* LLM/AI Routes - Admin/Creator */}
       <Route

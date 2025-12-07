@@ -18,8 +18,17 @@ const AnalyticsService = {
 
     getAdminDashboard: () => {
         return http.get('/modules/analytics/admin/dashboard');
-    }
+    },
 
+    // list active surveys
+    getActiveSurveys: () => {
+        return http.get('/modules/analytics/active-surveys');
+    },
+
+    // top answers for a survey
+    getSurveyTopAnswers: (surveyId) => {
+        return http.get(`/modules/analytics/survey/${surveyId}/top-answers`);
+    }
 };
 
 export default AnalyticsService;
