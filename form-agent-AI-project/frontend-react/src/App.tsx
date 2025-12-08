@@ -17,7 +17,9 @@ import {
   Select,
   MenuItem,
   Avatar,
-  LinearProgress
+  LinearProgress,
+  Checkbox,          
+  FormControlLabel   
 } from '@mui/material';
 import {
   Psychology as BrainIcon,
@@ -42,6 +44,16 @@ const App: React.FC = () => {
   const [modelInfo, setModelInfo] = useState<ModelInfo | null>(null);
   const [isConnected, setIsConnected] = useState(false);
   const [executionTime, setExecutionTime] = useState<number>(0);
+
+  // lưu index các câu đã chọn
+  const [selectedQuestionIndices, setSelectedQuestionIndices] = useState<number[]>([]);
+  //lỗi khi chọn quá số cho phép
+  const [selectionError, setSelectionError] = useState<string>('');
+
+  // Derived: danh sách câu hỏi đã chọn để đưa qua SurveyBuilder
+  const selectedQuestions: Question[] = selectedQuestionIndices
+    .map((i) => questions[i])
+    .filter((q): q is Question => !!q);
 
   // Check connection and load model info on mount
   useEffect(() => {
@@ -72,7 +84,7 @@ const App: React.FC = () => {
 
     setLoading(true);
     setError('');
-    setQuestions([]);
+    setSelectionError('');          // clear lỗi chọn khi generate
 
     try {
       const response = await questionApi.generateQuestions({
@@ -81,7 +93,7 @@ const App: React.FC = () => {
         ...(selectedCategory && { category: selectedCategory })
       });
 
-      setQuestions(response.questions);
+      setQuestions((prev) => [...prev, ...response.questions]);
       setExecutionTime(response.execution_time);
     } catch (err: any) {
       setError(`Failed to generate questions: ${err.message}`);
@@ -111,6 +123,45 @@ const App: React.FC = () => {
       default:
         return '⚡';
     }
+  };
+
+  // khi đổi Number of Questions, đảm bảo không cho chọn quá
+  const handleNumQuestionsChange = (value: number) => {
+    setNumQuestions(value);
+    setSelectionError('');
+
+    // Nếu đã chọn nhiều hơn số mới => cắt bớt cho đúng giới hạn
+    if (selectedQuestionIndices.length > value) {
+      setSelectedQuestionIndices((prev) => prev.slice(0, value));
+    }
+  };
+
+  //  check 1 câu có đang được chọn không
+  const isQuestionSelected = (index: number) =>
+    selectedQuestionIndices.includes(index);
+
+  // toggle chọn / bỏ chọn câu hỏi + giới hạn tối đa = numQuestions
+  const toggleQuestionSelection = (index: number) => {
+    const alreadySelected = isQuestionSelected(index);
+
+    if (alreadySelected) {
+      // Bỏ chọn
+      setSelectedQuestionIndices((prev) => prev.filter((i) => i !== index));
+      setSelectionError('');
+      return;
+    }
+
+    // Nếu chưa chọn và đã đủ numQuestions -> không cho chọn thêm
+    if (selectedQuestionIndices.length >= numQuestions) {
+      setSelectionError(
+        `You can only select up to ${numQuestions} questions.`
+      );
+      return;
+    }
+
+    // Chọn thêm
+    setSelectedQuestionIndices((prev) => [...prev, index]);
+    setSelectionError('');
   };
 
   return (
@@ -155,36 +206,6 @@ const App: React.FC = () => {
             {isConnected ? 'Connected - Model Ready' : 'Connection Issues'}
           </Typography>
         </Box>
-
-        {/* Model Statistics - Hidden */}
-        {/* {modelInfo && (
-          <Grid container spacing={2} sx={{ mt: 2 }}>
-            <Grid item xs={12} sm={4}>
-              <Box textAlign="center">
-                <Typography variant="h4" fontWeight="bold">
-                  {modelInfo.total_questions?.toLocaleString()}
-                </Typography>
-                <Typography variant="body2">Questions</Typography>
-              </Box>
-            </Grid>
-            <Grid item xs={12} sm={4}>
-              <Box textAlign="center">
-                <Typography variant="h4" fontWeight="bold">
-                  {modelInfo.categories?.length}
-                </Typography>
-                <Typography variant="body2">Categories</Typography>
-              </Box>
-            </Grid>
-            <Grid item xs={12} sm={4}>
-              <Box textAlign="center">
-                <Typography variant="h4" fontWeight="bold">
-                  {modelInfo.total_keywords?.toLocaleString()}
-                </Typography>
-                <Typography variant="body2">Keywords</Typography>
-              </Box>
-            </Grid>
-          </Grid>
-        )} */}
       </Paper>
 
       {/* Main Form */}
@@ -216,7 +237,7 @@ const App: React.FC = () => {
               <InputLabel>Number of Questions</InputLabel>
               <Select
                 value={numQuestions}
-                onChange={(e) => setNumQuestions(e.target.value as number)}
+                onChange={(e) => handleNumQuestionsChange(e.target.value as number)}
                 label="Number of Questions"
               >
                 {[1, 3, 5, 7, 10, 15, 20].map((num) => (
@@ -226,6 +247,9 @@ const App: React.FC = () => {
                 ))}
               </Select>
             </FormControl>
+            <Typography variant="caption" color="text.secondary">
+              Selected {selectedQuestionIndices.length}/{numQuestions} questions
+            </Typography>
           </Grid>
 
           <Grid item xs={12} sm={6}>
@@ -250,6 +274,11 @@ const App: React.FC = () => {
             {error && (
               <Alert severity="error" sx={{ mb: 2 }}>
                 {error}
+              </Alert>
+            )}
+            {selectionError && (
+              <Alert severity="warning" sx={{ mb: 2 }}>
+                {selectionError}
               </Alert>
             )}
 
@@ -290,8 +319,9 @@ const App: React.FC = () => {
               Generated Questions ({questions.length})
             </Typography>
             <Box display="flex" alignItems="center" gap={2}>
+              {/* CHỈ GỬI CÁC CÂU ĐÃ CHỌN SANG SurveyBuilder */}
               <SurveyBuilder 
-                questions={questions} 
+                questions={selectedQuestions} 
                 keyword={keyword} 
                 category={selectedCategory || 'general'} 
               />
@@ -305,85 +335,102 @@ const App: React.FC = () => {
           </Box>
 
           <Grid container spacing={3}>
-            {questions.map((question, index) => (
-              <Grid item xs={12} md={6} key={index}>
-                <Card 
-                  elevation={1} 
-                  sx={{ 
-                    height: '100%',
-                    transition: 'transform 0.2s ease-in-out',
-                    '&:hover': {
-                      transform: 'translateY(-2px)',
-                      boxShadow: 3,
-                    },
-                  }}
-                >
-                  <CardContent>
-                    {/* Header */}
-                    <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+            {questions.map((question, index) => {
+              const checked = isQuestionSelected(index);
+              const disableCheckbox =
+                !checked && selectedQuestionIndices.length >= numQuestions;
+
+              return (
+                <Grid item xs={12} md={6} key={index}>
+                  <Card 
+                    elevation={1} 
+                    sx={{ 
+                      height: '100%',
+                      transition: 'transform 0.2s ease-in-out',
+                      '&:hover': {
+                        transform: 'translateY(-2px)',
+                        boxShadow: 3,
+                      },
+                    }}
+                  >
+                    <CardContent>
+                      {/* Header */}
+                      <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+                        <Box display="flex" alignItems="center" gap={1}>
+                          <Typography 
+                            variant="h6" 
+                            color="primary" 
+                            sx={{ fontWeight: 'bold' }}
+                          >
+                            #{index + 1}
+                          </Typography>
+                          {/* Checkbox chọn câu hỏi */}
+                          <Checkbox
+                            checked={checked}
+                            disabled={disableCheckbox}
+                            onChange={() => toggleQuestionSelection(index)}
+                            size="small"
+                            color="primary"
+                          />
+                        </Box>
+                        <Box display="flex" gap={1} alignItems="center">
+                          <Chip
+                            label={question.category}
+                            size="small"
+                            sx={{
+                              backgroundColor: getCategoryColor(question.category),
+                              color: 'white',
+                              fontWeight: 'bold',
+                            }}
+                          />
+                          <Chip
+                            label={`${Math.round(question.confidence * 100)}%`}
+                            size="small"
+                            variant="outlined"
+                            color="success"
+                          />
+                        </Box>
+                      </Box>
+
+                      {/* Question */}
                       <Typography 
-                        variant="h6" 
-                        color="primary" 
-                        sx={{ fontWeight: 'bold' }}
+                        variant="body1" 
+                        sx={{ 
+                          mb: 2, 
+                          fontWeight: 500,
+                          lineHeight: 1.6,
+                          minHeight: '3em'
+                        }}
                       >
-                        #{index + 1}
+                        {question.question}
                       </Typography>
-                      <Box display="flex" gap={1} alignItems="center">
-                        <Chip
-                          label={question.category}
-                          size="small"
-                          sx={{
-                            backgroundColor: getCategoryColor(question.category),
-                            color: 'white',
-                            fontWeight: 'bold',
-                          }}
-                        />
-                        <Chip
-                          label={`${Math.round(question.confidence * 100)}%`}
-                          size="small"
-                          variant="outlined"
-                          color="success"
-                        />
-                      </Box>
-                    </Box>
 
-                    {/* Question */}
-                    <Typography 
-                      variant="body1" 
-                      sx={{ 
-                        mb: 2, 
-                        fontWeight: 500,
-                        lineHeight: 1.6,
-                        minHeight: '3em'
-                      }}
-                    >
-                      {question.question}
-                    </Typography>
-
-                    {/* Metadata */}
-                    <Box 
-                      display="flex" 
-                      justifyContent="space-between" 
-                      alignItems="center"
-                      pt={2}
-                      borderTop={1}
-                      borderColor="grey.200"
-                    >
-                      <Box display="flex" alignItems="center">
-                        <Typography variant="body2" color="text.secondary">
-                          {getMethodIcon(question.method)} {question.method.replace('_', ' ')}
-                        </Typography>
+                      {/* Metadata */}
+                      <Box 
+                        display="flex" 
+                        justifyContent="space-between" 
+                        alignItems="center"
+                        pt={2}
+                        borderTop={1}
+                        borderColor="grey.200"
+                      >
+                        <Box display="flex" alignItems="center">
+                          <Typography variant="body2" color="text.secondary">
+                            {getMethodIcon(question.method)}{' '}
+                            {question.method.replace('_', ' ')}
+                          </Typography>
+                        </Box>
+                        {question.source_keyword && (
+                          <Typography variant="body2" color="text.secondary">
+                            From: "{question.source_keyword}"
+                          </Typography>
+                        )}
                       </Box>
-                      {question.source_keyword && (
-                        <Typography variant="body2" color="text.secondary">
-                          From: "{question.source_keyword}"
-                        </Typography>
-                      )}
-                    </Box>
-                  </CardContent>
-                </Card>
-              </Grid>
-            ))}
+                    </CardContent>
+                  </Card>
+                </Grid>
+              );
+            })}
           </Grid>
         </Paper>
       )}

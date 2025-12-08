@@ -11,7 +11,7 @@ import LLMService from '../../api/services/llm.service';
 import WorkspaceService from '../../api/services/workspace.service';
 import styles from './SurveyCreator.module.scss';
 
-const SurveyCreator = ({ generatedQuestions, onSurveyCreated }) => {
+const SurveyCreator = ({ generatedQuestions, onSurveyCreated, onRemoveQuestion }) => {
   const { showToast } = useToast();
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('select');
@@ -27,7 +27,8 @@ const SurveyCreator = ({ generatedQuestions, onSurveyCreated }) => {
     workspaceId: '', // Add workspaceId to state
   });
 
-  const [selectedQuestions, setSelectedQuestions] = useState([]);
+  // ❌ Bỏ selectedQuestions nội bộ – danh sách câu hỏi đã chọn
+  // được truyền từ ngoài qua prop generatedQuestions
   const [customQuestions, setCustomQuestions] = useState([]);
   const [shareSettings, setShareSettings] = useState({
     isPublic: true, // Default to true for 'public' targetAudience
@@ -48,19 +49,6 @@ const SurveyCreator = ({ generatedQuestions, onSurveyCreated }) => {
       }
     } catch (error) {
       console.error('Failed to fetch workspaces:', error);
-    }
-  };
-
-  const handleQuestionSelect = (question, isSelected) => {
-    if (isSelected) {
-      setSelectedQuestions([...selectedQuestions, {
-        ...question,
-        id: Date.now() + Math.random(),
-        required: false,
-        type: getQuestionType(question.question)
-      }]);
-    } else {
-      setSelectedQuestions(selectedQuestions.filter(q => q.question !== question.question));
     }
   };
 
@@ -131,7 +119,8 @@ const SurveyCreator = ({ generatedQuestions, onSurveyCreated }) => {
       return;
     }
 
-    if (selectedQuestions.length === 0 && customQuestions.length === 0) {
+    // ✅ Kiểm tra theo generatedQuestions (câu đã chọn từ tab trước)
+    if (generatedQuestions.length === 0 && customQuestions.length === 0) {
       showToast('Please select or add at least one question', 'error');
       return;
     }
@@ -145,11 +134,14 @@ const SurveyCreator = ({ generatedQuestions, onSurveyCreated }) => {
     try {
       const response = await LLMService.createSurveyFromQuestions({
         ...surveyData,
-        selectedQuestions: selectedQuestions.map(q => ({
+        // ✅ Dùng generatedQuestions để tạo survey
+        selectedQuestions: generatedQuestions.map(q => ({
           question: q.question,
-          type: q.type,
-          required: q.required,
-          options: q.type === 'multiple_choice' ? ['Option 1', 'Option 2', 'Option 3'] : undefined
+          type: getQuestionType(q.question),
+          required: false,
+          options: getQuestionType(q.question) === 'multiple_choice'
+            ? ['Option 1', 'Option 2', 'Option 3']
+            : undefined
         })),
         customQuestions: customQuestions.filter(q => q.question_text.trim()),
         shareSettings
@@ -162,10 +154,6 @@ const SurveyCreator = ({ generatedQuestions, onSurveyCreated }) => {
     } finally {
       setLoading(false);
     }
-  };
-
-  const isQuestionSelected = (question) => {
-    return selectedQuestions.some(q => q.question === question.question);
   };
 
   return (
@@ -276,7 +264,7 @@ const SurveyCreator = ({ generatedQuestions, onSurveyCreated }) => {
           className={`${styles.tab} ${activeTab === 'select' ? styles.active : ''}`}
           onClick={() => setActiveTab('select')}
         >
-          Select Questions ({selectedQuestions.length})
+          Select Questions ({generatedQuestions.length})
         </button>
         <button
           className={`${styles.tab} ${activeTab === 'custom' ? styles.active : ''}`}
@@ -294,24 +282,61 @@ const SurveyCreator = ({ generatedQuestions, onSurveyCreated }) => {
 
       {/* Tab Content */}
       <Card className={styles.tabContent}>
+        {/* 🔹 Tab Select: chỉ hiển thị danh sách câu đã chọn + nút X xoá */}
         {activeTab === 'select' && (
           <div className={styles.questionSelection}>
             <h4>Select from {generatedQuestions.length} generated questions</h4>
             <div className={styles.questionList}>
               {generatedQuestions.map((question, index) => (
                 <div key={index} className={styles.questionItem}>
-                  <Checkbox
-                    checked={isQuestionSelected(question)}
-                    onChange={(checked) => handleQuestionSelect(question, checked)}
-                  />
-                  <div className={styles.questionContent}>
-                    <p className={styles.questionText}>{question.question}</p>
-                    <small className={styles.questionMeta}>
-                      Type: {getQuestionType(question.question)} • Source: {question.source}
-                    </small>
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'flex-start',
+                      gap: '8px',
+                    }}
+                  >
+                    <div
+                      className={styles.questionContent}
+                      style={{ flex: 1 }}
+                    >
+                      <p className={styles.questionText}>{question.question}</p>
+                      <small className={styles.questionMeta}>
+                        Type: {getQuestionType(question.question)} • Source: {question.source}
+                      </small>
+                    </div>
+
+                    {/* Nút X xoá câu hỏi khỏi survey */}
+                    <button
+                    type="button"
+                    onClick={() => onRemoveQuestion && onRemoveQuestion(question)}
+                    style={{
+                      border: 'none',
+                      background: 'transparent',
+                      color: '#ff0000ff',
+                      cursor: 'pointer',
+                      fontWeight: 'bold',
+                      fontSize: 30,
+                      lineHeight: 1,
+                      padding: 0,
+                      marginLeft: 8,
+                      transform: 'translateY(-3px)',  
+                    }}
+                    title="Remove question"
+                  >
+                    ×
+                  </button>
+
+
                   </div>
                 </div>
               ))}
+
+              {generatedQuestions.length === 0 && (
+                <div className={styles.emptyState}>
+                  <p>No AI questions selected. Go back to "Generate Questions" to choose more.</p>
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -454,7 +479,11 @@ const SurveyCreator = ({ generatedQuestions, onSurveyCreated }) => {
       <div className={styles.actions}>
         <Button
           onClick={handleCreateSurvey}
-          disabled={loading || !surveyData.title.trim() || (selectedQuestions.length === 0 && customQuestions.length === 0)}
+          disabled={
+            loading ||
+            !surveyData.title.trim() ||
+            (generatedQuestions.length === 0 && customQuestions.length === 0)
+          }
           className={styles.createBtn}
           loading={loading}
         >

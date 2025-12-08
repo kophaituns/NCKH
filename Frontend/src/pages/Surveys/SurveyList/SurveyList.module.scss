@@ -249,11 +249,31 @@
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
+  max-width: 360px;          
+}
 
-  .title {
-    font-weight: 500;
-    color: #111827;
-  }
+.surveyTitle .title {
+  font-size: 1rem;         
+  line-height: 1.35;
+  font-weight: 600;
+  color: #111827;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;    
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  word-break: break-word;    
+}
+
+.surveyTitle .description {
+  font-size: var(--font-size-sm);
+  color: #6b7280;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
 
   .description {
     font-size: var(--font-size-sm);
@@ -264,7 +284,7 @@
     -webkit-box-orient: vertical;
     overflow: hidden;
   }
-}
+
 
 .responseCount {
   font-weight: 600;

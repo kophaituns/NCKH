@@ -25,6 +25,8 @@ const LLM = () => {
   });
   const [generatedQuestions, setGeneratedQuestions] = useState([]);
   // const [categories, setCategories] = useState([]); // Unused
+  const [selectedQuestions, setSelectedQuestions] = useState([]);
+  const [selectionError, setSelectionError] = useState('');
   const [prompts, setPrompts] = useState([]);
   const [selectedPrompt, setSelectedPrompt] = useState('');
   const [createdSurvey, setCreatedSurvey] = useState(null);
@@ -61,6 +63,7 @@ const LLM = () => {
     }));
   };
 
+  // Generate AI questions (append, not replace)
   const handleGenerateQuestions = async () => {
     if (!formData.keyword.trim()) {
       showToast('Please enter a keyword', 'error');
@@ -69,24 +72,93 @@ const LLM = () => {
 
     try {
       setLoading(true);
+      setSelectionError('');
+
       const response = await LLMService.generateQuestions({
         keyword: formData.keyword,
         category: formData.category,
         count: formData.questionCount
       });
-
       setGeneratedQuestions(response.data.questions || []);
       showToast('Questions generated successfully!', 'success');
     } catch (error) {
       console.error('Error generating questions:', error);
       showToast(
         'Error while generating questions: ' +
-        (error.response?.data?.message || error.message),
+          (error.response?.data?.message || error.message),
         'error'
       );
     } finally {
       setLoading(false);
     }
+  };
+
+
+
+  // Thay đổi số lượng câu được phép chọn
+  const handleQuestionCountChange = (value) => {
+    const count = parseInt(value, 10);
+    setFormData(prev => ({
+      ...prev,
+      questionCount: count
+    }));
+    setSelectionError('');
+
+    // Nếu đang chọn quá số mới -> cắt bớt
+    if (selectedQuestions.length > count) {
+      setSelectedQuestions(prev => prev.slice(0, count));
+    }
+  };
+
+  const isQuestionSelected = (q) =>
+    selectedQuestions.some(
+      item =>
+        item.question === q.question &&
+        item.source === q.source
+    );
+
+  // Xoá 1 câu khỏi danh sách đã chọn (dùng cho tab Generate Survey)
+  const handleRemoveSelectedQuestion = (questionToRemove) => {
+    setSelectedQuestions(prev =>
+      prev.filter(
+        q =>
+          !(
+            q.question === questionToRemove.question &&
+            q.source === questionToRemove.source
+          )
+      )
+    );
+  };
+
+  const toggleQuestionSelection = (q) => {
+    const already = isQuestionSelected(q);
+
+    if (already) {
+      // Bỏ chọn
+      setSelectedQuestions(prev =>
+        prev.filter(
+          item =>
+            !(
+              item.question === q.question &&
+              item.source === q.source
+            )
+        )
+      );
+      setSelectionError('');
+      return;
+    }
+
+    // Đang chọn thêm câu mới → kiểm tra giới hạn
+    if (selectedQuestions.length >= formData.questionCount) {
+      setSelectionError(
+        `You can only select up to ${formData.questionCount} questions.`
+      );
+      return;
+    }
+
+    // Chọn thêm
+    setSelectedQuestions(prev => [...prev, q]);
+    setSelectionError('');
   };
 
   const handlePredictCategory = async () => {
@@ -141,7 +213,7 @@ const LLM = () => {
       console.error('Error generating survey:', error);
       showToast(
         'Error while generating survey: ' +
-        (error.response?.data?.message || error.message),
+          (error.response?.data?.message || error.message),
         'error'
       );
     } finally {
@@ -178,19 +250,20 @@ const LLM = () => {
           </div>
         </div>
 
-
-
         <div className={styles.formGroup}>
           <label>Number of questions</label>
           <Select
             value={formData.questionCount}
-            onChange={(value) => handleInputChange('questionCount', parseInt(value))}
+            onChange={handleQuestionCountChange}
           >
             <option value={3}>3 questions</option>
             <option value={5}>5 questions</option>
             <option value={10}>10 questions</option>
             <option value={15}>15 questions</option>
           </Select>
+          <p style={{ marginTop: '4px', fontSize: '12px', color: '#6b7280' }}>
+            Selected {selectedQuestions.length}/{formData.questionCount} questions
+          </p>
         </div>
 
         <Button
@@ -206,18 +279,37 @@ const LLM = () => {
         <Card className={styles.resultsCard}>
           <h3>Generated Questions ({generatedQuestions.length})</h3>
           <div className={styles.questionsList}>
-            {generatedQuestions.map((q, index) => (
-              <div key={index} className={styles.questionItem}>
-                <div className={styles.questionNumber}>{index + 1}</div>
-                <div className={styles.questionContent}>
-                  <p className={styles.questionText}>{q.question}</p>
-                  <small className={styles.questionMeta}>
-                    Type: {q.type || 'text'} • Source: {q.source}{' '}
-                    {q.confidence && `• Confidence: ${q.confidence}%`}
-                  </small>
+            {generatedQuestions.map((q, index) => {
+              const selected = isQuestionSelected(q);
+              const atLimit =
+                !selected && selectedQuestions.length >= formData.questionCount;
+
+              return (
+                <div key={index} className={styles.questionItem}>
+                  <div className={styles.questionNumber}>{index + 1}</div>
+                  <div className={styles.questionContent}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <input
+                        type="checkbox"
+                        checked={selected}
+                        disabled={atLimit}
+                        onChange={() => toggleQuestionSelection(q)}
+                      />
+                      <p className={styles.questionText}>{q.question}</p>
+                    </div>
+                    <small className={styles.questionMeta}>
+                      Type: {q.type || 'text'} • Source: {q.source}{' '}
+                      {q.confidence && `• Confidence: ${q.confidence}%`}
+                    </small>
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
+            {selectionError && (
+              <p style={{ marginTop: '8px', fontSize: '12px', color: '#ef4444' }}>
+                {selectionError}
+              </p>
+            )}
           </div>
         </Card>
       )}
@@ -300,10 +392,11 @@ const LLM = () => {
         <button
           className={`${styles.tab} ${activeTab === 'survey' ? styles.active : ''}`}
           onClick={() => setActiveTab('survey')}
-          disabled={generatedQuestions.length === 0}
+          disabled={selectedQuestions.length === 0}
         >
-          Generate Survey ({generatedQuestions.length})
+          Generate Survey ({selectedQuestions.length})
         </button>
+
         <button
           className={`${styles.tab} ${activeTab === 'prompt' ? styles.active : ''}`}
           onClick={() => setActiveTab('prompt')}
@@ -332,13 +425,15 @@ const LLM = () => {
       </div>
 
       {activeTab === 'generate' && renderQuestionGeneration()}
-      {activeTab === 'survey' && generatedQuestions.length > 0 && (
+      {activeTab === 'survey' && selectedQuestions.length > 0 && (
         <SurveyCreator
-          generatedQuestions={generatedQuestions}
+          generatedQuestions={selectedQuestions}
           onSurveyCreated={(survey) => {
             setCreatedSurvey(survey);
             setActiveTab('result');
           }}
+          // callback xoá câu khỏi danh sách đã chọn
+          onRemoveQuestion={handleRemoveSelectedQuestion}
         />
       )}
       {activeTab === 'prompt' && renderSurveyGeneration()}
