@@ -200,11 +200,28 @@ class CollectorService {
             'text': 'open_ended',
             'textarea': 'open_ended',
             'yes_no': 'yes_no',
-            'multiple_choice': 'multiple_choice'
+            'multiple_choice': 'multiple_choice',
+            'single_choice': 'multiple_choice', // Some databases use single_choice for yes_no
+            'checkbox': 'checkbox',
+            'dropdown': 'dropdown',
+            'multiple_select': 'multiple_select'
           };
           
           if (typeMapping[questionType]) {
             questionType = typeMapping[questionType];
+          }
+
+          // Detect Yes/No questions: If question has exactly 2 options that are "Yes" and "No" (case insensitive)
+          // and question_type_id is 1 (single choice), treat it as yes_no
+          if (q.QuestionOptions && q.QuestionOptions.length === 2) {
+            const optionTexts = q.QuestionOptions.map(opt => opt.option_text.trim().toLowerCase()).sort();
+            const yesNoOptions = ['yes', 'no'].sort();
+            
+            if (optionTexts[0] === yesNoOptions[0] && optionTexts[1] === yesNoOptions[1]) {
+              // This is a Yes/No question
+              questionType = 'yes_no';
+              console.log(`✅ Detected Yes/No question for question ${q.id} based on options`);
+            }
           }
 
           // Auto-fix: If question has 'text' type but has options, convert to multiple_choice

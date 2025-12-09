@@ -130,6 +130,12 @@ const LLM = () => {
     );
   };
 
+  const handleUpdateSelectedQuestion = (index, updatedQuestion) => {
+    setSelectedQuestions(prev =>
+      prev.map((q, i) => (i === index ? { ...q, ...updatedQuestion } : q))
+    );
+  };
+
   const toggleQuestionSelection = (q) => {
     const already = isQuestionSelected(q);
 
@@ -434,6 +440,7 @@ const LLM = () => {
           }}
           // callback xoá câu khỏi danh sách đã chọn
           onRemoveQuestion={handleRemoveSelectedQuestion}
+          onUpdateQuestion={handleUpdateSelectedQuestion}
         />
       )}
       {activeTab === 'prompt' && renderSurveyGeneration()}

@@ -667,8 +667,24 @@ class LLMService {
 
   /**
    * Helper method to get question type ID from type name
+   * This should query the database to get the correct ID, but for now uses a mapping
    */
-  _getQuestionTypeId(typeName) {
+  async _getQuestionTypeId(typeName) {
+    // Try to get from database first
+    try {
+      const { QuestionType } = require('../../../models');
+      const questionType = await QuestionType.findOne({
+        where: { type_name: typeName }
+      });
+      
+      if (questionType) {
+        return questionType.id;
+      }
+    } catch (error) {
+      console.warn(`Could not fetch question type from DB for ${typeName}, using fallback mapping`);
+    }
+
+    // Fallback mapping if database lookup fails
     const typeMapping = {
       'multiple_choice': 2, // map to checkbox type for multiple selections
       'checkbox': 2,
@@ -676,10 +692,11 @@ class LLMService {
       'open_ended': 4,
       'dropdown': 5,
       'text': 4, // map text to open_ended
-      'yes_no': 1, // map yes_no to single choice type
+      'yes_no': 1, // map yes_no to single choice type (but will be detected by options in collector)
       'rating': 3, // map rating to likert_scale
       'email': 4, // map email to open_ended
-      'date': 4 // map date to open_ended
+      'date': 4, // map date to open_ended
+      'multiple_select': 2 // map multiple_select to checkbox type
     };
 
     return typeMapping[typeName] || 4; // default to open_ended
@@ -734,7 +751,7 @@ class LLMService {
       // Add selected questions from generation
       for (const selectedQ of surveyData.selectedQuestions) {
         const questionType = this._getQuestionType(selectedQ);
-        const questionTypeId = this._getQuestionTypeId(questionType);
+        const questionTypeId = await this._getQuestionTypeId(questionType);
 
         const question = await Question.create({
           template_id: template.id,
@@ -747,15 +764,50 @@ class LLMService {
           required: selectedQ.required || false
         });
 
-        // Add options for multiple choice questions
-        if (questionType === 'multiple_choice' && selectedQ.options) {
-          for (let i = 0; i < selectedQ.options.length; i++) {
-            await QuestionOption.create({
-              question_id: question.id,
-              option_text: selectedQ.options[i],
-              option_order: i + 1
-            });
+        // Add options for question types that require options
+        // Multiple Choice, Multiple Select, Dropdown, Checkbox, and Yes/No all need options
+        const questionTypesWithOptions = ['multiple_choice', 'multiple_select', 'dropdown', 'checkbox', 'yes_no'];
+        if (questionTypesWithOptions.includes(questionType) && selectedQ.options) {
+          // Handle both string arrays and object arrays
+          const optionsArray = Array.isArray(selectedQ.options) ? selectedQ.options : [];
+          
+          for (let i = 0; i < optionsArray.length; i++) {
+            const option = optionsArray[i];
+            let optionText;
+            
+            // Handle string options
+            if (typeof option === 'string') {
+              optionText = option.trim();
+            } 
+            // Handle object options
+            else if (option && typeof option === 'object') {
+              optionText = (option.option_text || option.text || option.label || option.value || '').trim();
+            } else {
+              continue; // Skip invalid options
+            }
+            
+            if (optionText.length > 0) {
+              await QuestionOption.create({
+                question_id: question.id,
+                option_text: optionText,
+                display_order: i + 1
+              });
+            }
           }
+        }
+        
+        // Handle Yes/No predefined options if not provided
+        if (questionType === 'yes_no' && (!selectedQ.options || selectedQ.options.length === 0)) {
+          await QuestionOption.create({
+            question_id: question.id,
+            option_text: 'Yes',
+            display_order: 1
+          });
+          await QuestionOption.create({
+            question_id: question.id,
+            option_text: 'No',
+            display_order: 2
+          });
         }
 
         createdQuestions.push(question);
@@ -765,7 +817,7 @@ class LLMService {
       if (surveyData.customQuestions && surveyData.customQuestions.length > 0) {
         for (const customQ of surveyData.customQuestions) {
           const questionType = customQ.question_type || 'text';
-          const questionTypeId = this._getQuestionTypeId(questionType);
+          const questionTypeId = await this._getQuestionTypeId(questionType);
 
           const question = await Question.create({
             template_id: template.id,
@@ -778,15 +830,50 @@ class LLMService {
             required: customQ.is_required || false
           });
 
-          // Add options for multiple choice questions
-          if (customQ.question_type === 'multiple_choice' && customQ.options) {
-            for (let i = 0; i < customQ.options.length; i++) {
-              await QuestionOption.create({
-                question_id: question.id,
-                option_text: customQ.options[i],
-                option_order: i + 1
-              });
+          // Add options for question types that require options
+          // Multiple Choice, Multiple Select, Dropdown, Checkbox, and Yes/No all need options
+          const questionTypesWithOptions = ['multiple_choice', 'multiple_select', 'dropdown', 'checkbox', 'yes_no'];
+          if (questionTypesWithOptions.includes(questionType) && customQ.options) {
+            // Handle both string arrays and object arrays
+            const optionsArray = Array.isArray(customQ.options) ? customQ.options : [];
+            
+            for (let i = 0; i < optionsArray.length; i++) {
+              const option = optionsArray[i];
+              let optionText;
+              
+              // Handle string options
+              if (typeof option === 'string') {
+                optionText = option.trim();
+              } 
+              // Handle object options
+              else if (option && typeof option === 'object') {
+                optionText = (option.option_text || option.text || option.label || option.value || '').trim();
+              } else {
+                continue; // Skip invalid options
+              }
+              
+              if (optionText.length > 0) {
+                await QuestionOption.create({
+                  question_id: question.id,
+                  option_text: optionText,
+                  display_order: i + 1
+                });
+              }
             }
+          }
+          
+          // Handle Yes/No predefined options if not provided
+          if (questionType === 'yes_no' && (!customQ.options || customQ.options.length === 0)) {
+            await QuestionOption.create({
+              question_id: question.id,
+              option_text: 'Yes',
+              display_order: 1
+            });
+            await QuestionOption.create({
+              question_id: question.id,
+              option_text: 'No',
+              display_order: 2
+            });
           }
 
           createdQuestions.push(question);
