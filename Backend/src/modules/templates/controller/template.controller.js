@@ -211,7 +211,7 @@ class TemplateController {
       });
     }
   }
-
+  
   /**
    * Bulk delete templates
    */
@@ -248,7 +248,7 @@ class TemplateController {
       });
     }
   }
-
+  
   /**
    * Add question to template
    */
@@ -292,6 +292,75 @@ class TemplateController {
       res.status(500).json({
         success: false,
         message: error.message || 'Error adding question'
+      });
+    }
+  }
+     /**
+   * Update a question in a template
+   */
+  async updateQuestion(req, res) {
+    try {
+      const { templateId, questionId } = req.params;
+
+      const updatedQuestion = await templateService.updateQuestion(
+        templateId,
+        questionId,
+        req.body,
+        req.user
+      );
+
+      res.status(200).json({
+        success: true,
+        ok: true,
+        message: 'Question updated successfully',
+        question: updatedQuestion,
+      });
+    } catch (error) {
+      logger.error('Update question error:', error);
+
+      let status = 500;
+      if (error.message === 'Template not found' || error.message === 'Question not found') {
+        status = 404;
+      } else if (error.message && error.message.startsWith('Access denied')) {
+        status = 403;
+      }
+
+      res.status(status).json({
+        success: false,
+        ok: false,
+        message: error.message || 'Error updating question',
+      });
+    }
+  }
+
+  /**
+   * Delete a question from a template
+   */
+  async deleteQuestion(req, res) {
+    try {
+      const { templateId, questionId } = req.params;
+
+      await templateService.deleteQuestion(templateId, questionId, req.user);
+
+      res.status(200).json({
+        success: true,
+        ok: true,
+        message: 'Question deleted successfully',
+      });
+    } catch (error) {
+      logger.error('Delete question error:', error);
+
+      let status = 500;
+      if (error.message === 'Template not found' || error.message === 'Question not found') {
+        status = 404;
+      } else if (error.message && error.message.startsWith('Access denied')) {
+        status = 403;
+      }
+
+      res.status(status).json({
+        success: false,
+        ok: false,
+        message: error.message || 'Error deleting question',
       });
     }
   }

@@ -177,30 +177,29 @@
 }
 .inputWithButton {
   display: flex;
-  gap: 0.6rem;
+  gap: 0.7rem;
   align-items: stretch;
 
   input {
     flex: 1;
   }
 
+
   button {
     white-space: nowrap;
+ border-radius: 20px !important;     
+  padding-inline: 1.2rem !important;        
   }
 }
 
-/* Generate button */
 
 .generateBtn {
-  margin-top: 0.2rem;
-  display: flex;
-  justify-content: flex-end;
+  align-self: flex-start;              
+  margin-top: 0.6rem;
+  border-radius: 20px !important;    
+  padding-inline: 1.2rem !important;
 }
 
-.generateBtn button {
-  border-radius: 0.75rem;
-  padding-inline: 1.4rem;
-}
 
 /* Hint text */
 

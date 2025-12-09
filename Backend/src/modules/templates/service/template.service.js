@@ -105,6 +105,7 @@ class TemplateService {
     if (questions && Array.isArray(questions) && questions.length > 0) {
       const questionPromises = questions.map((q, index) => {
         return Question.create({
+          // chú ý: chỗ này code cũ dùng survey_template_id
           survey_template_id: template.id,
           question_type_id: q.question_type_id,
           question_text: q.question_text,
@@ -346,6 +347,178 @@ class TemplateService {
       
     } catch (error) {
       // Rollback the transaction in case of error
+      await transaction.rollback();
+      throw error;
+    }
+  }
+
+  /**
+   * Update question in template
+   */
+  async updateQuestion(templateId, questionId, questionData, user) {
+    const sequelize = require('../../../models').sequelize;
+    const transaction = await sequelize.transaction();
+
+    try {
+      const template = await SurveyTemplate.findByPk(templateId, { transaction });
+
+      if (!template) {
+        await transaction.rollback();
+        throw new Error('Template not found');
+      }
+
+      // Check ownership
+      if (user.role !== 'admin' && template.created_by !== user.id) {
+        await transaction.rollback();
+        throw new Error('Access denied. You do not own this template.');
+      }
+
+      const question = await Question.findOne({
+        where: { id: questionId, template_id: templateId },
+        include: [
+          {
+            model: QuestionOption,
+            as: 'QuestionOptions',
+            required: false
+          }
+        ],
+        transaction
+      });
+
+      if (!question) {
+        await transaction.rollback();
+        throw new Error('Question not found');
+      }
+
+      // Cập nhật các field chính
+      if (questionData.question_text !== undefined) {
+        question.question_text = questionData.question_text;
+      }
+
+      if (questionData.label !== undefined) {
+        question.label = questionData.label;
+      }
+
+      if (questionData.question_type_id !== undefined) {
+        question.question_type_id = questionData.question_type_id;
+      }
+
+      if (typeof questionData.required === 'boolean' || typeof questionData.is_required === 'boolean') {
+        question.required = questionData.required ?? questionData.is_required;
+      }
+
+      if (questionData.display_order !== undefined) {
+        question.display_order = questionData.display_order;
+      }
+
+      await question.save({ transaction });
+
+      // Nếu frontend gửi options lên thì cập nhật lại toàn bộ options
+      if (Array.isArray(questionData.options)) {
+        // Xoá options cũ
+        await QuestionOption.destroy({
+          where: { question_id: question.id },
+          transaction
+        });
+
+        // Lọc & chuẩn hoá options mới
+        const cleanOptions = questionData.options
+          .map((opt) => {
+            if (typeof opt === 'string') {
+              const text = opt.trim();
+              return text.length > 0 ? text : null;
+            }
+
+            if (opt && typeof opt === 'object') {
+              const text = (opt.option_text || opt.text || opt.label || opt.value || '').trim();
+              if (!text) return null;
+              return {
+                text,
+                display_order: opt.display_order
+              };
+            }
+
+            return null;
+          })
+          .filter(Boolean);
+
+        // Tạo lại options mới
+        for (let i = 0; i < cleanOptions.length; i++) {
+          const opt = cleanOptions[i];
+          const optionText = typeof opt === 'string' ? opt : opt.text;
+          const displayOrder =
+            typeof opt === 'string'
+              ? i + 1
+              : (opt.display_order !== undefined ? opt.display_order : i + 1);
+
+          await QuestionOption.create(
+            {
+              question_id: question.id,
+              option_text: optionText,
+              display_order: displayOrder
+            },
+            { transaction }
+          );
+        }
+      }
+
+      await transaction.commit();
+
+      // Sau khi update xong, trả lại cả template để FE dễ refresh
+      return this.getTemplateById(templateId);
+    } catch (error) {
+      await transaction.rollback();
+      throw error;
+    }
+  }
+
+  /**
+   * Delete question from template
+   */
+  async deleteQuestion(templateId, questionId, user) {
+    const sequelize = require('../../../models').sequelize;
+    const transaction = await sequelize.transaction();
+
+    try {
+      const template = await SurveyTemplate.findByPk(templateId, { transaction });
+
+      if (!template) {
+        await transaction.rollback();
+        throw new Error('Template not found');
+      }
+
+      // Check ownership
+      if (user.role !== 'admin' && template.created_by !== user.id) {
+        await transaction.rollback();
+        throw new Error('Access denied. You do not own this template.');
+      }
+
+      const question = await Question.findOne({
+        where: { id: questionId, template_id: templateId },
+        transaction
+      });
+
+      if (!question) {
+        await transaction.rollback();
+        throw new Error('Question not found');
+      }
+
+      // Xoá options trước
+      await QuestionOption.destroy({
+        where: { question_id: question.id },
+        transaction
+      });
+
+      // Xoá question
+      await Question.destroy({
+        where: { id: question.id },
+        transaction
+      });
+
+      await transaction.commit();
+
+      return { message: 'Question deleted successfully' };
+    } catch (error) {
       await transaction.rollback();
       throw error;
     }

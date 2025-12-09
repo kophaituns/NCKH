@@ -59,6 +59,20 @@ router.delete('/:id', authenticate, isTeacherOrAdmin, templateController.deleteT
  * @access  Private (Owner/Admin only)
  */
 router.post('/:id/questions', authenticate, isTeacherOrAdmin, templateController.addQuestion);
+ 
+/**
+ * @route   PUT /api/modules/templates/:templateId/questions/:questionId
+ * @desc    Update question in template
+ * @access  Private (Owner/Admin only)
+ */
+router.put('/:templateId/questions/:questionId', authenticate, isTeacherOrAdmin, templateController.updateQuestion);
+
+/**
+ * @route   DELETE /api/modules/templates/:templateId/questions/:questionId
+ * @desc    Delete question from template
+ * @access  Private (Owner/Admin only)
+ */
+router.delete('/:templateId/questions/:questionId', authenticate, isTeacherOrAdmin, templateController.deleteQuestion);
 
 /**
  * @route   GET /api/templates/:id/export-pdf

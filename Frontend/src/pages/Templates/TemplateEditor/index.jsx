@@ -170,17 +170,24 @@ const TemplateEditor = () => {
       }
       
       if (editingQuestion) {
-        await QuestionService.update(editingQuestion.id, payload);
-        showToast('Question updated successfully', 'success');
+      
+        const response = await TemplateService.updateQuestion(id, editingQuestion.id, payload);
+
+        if (response && (response.ok || response.success)) {
+          showToast('Question updated successfully', 'success');
+        } else {
+          throw new Error(response?.message || 'Failed to update question');
+        }
       } else {
-        // Use TemplateService.addQuestion instead
+        // Thêm mới question vào template
         const response = await TemplateService.addQuestion(id, payload);
-        if (response && response.ok) {
+        if (response && (response.ok || response.success)) {
           showToast('Question added successfully', 'success');
         } else {
           throw new Error(response?.message || 'Failed to add question');
         }
       }
+
       
       setShowQuestionModal(false);
       fetchTemplateData();
@@ -237,14 +244,21 @@ const TemplateEditor = () => {
       confirmText: 'Delete',
       cancelText: 'Cancel',
       onConfirm: async () => {
-        try {
-          await QuestionService.delete(questionId);
+      try {
+        const response = await TemplateService.deleteQuestion(id, questionId);
+
+        if (response && (response.ok || response.success)) {
           showToast('Question deleted successfully', 'success');
-          setConfirmModal({ ...confirmModal, isOpen: false });
-          fetchTemplateData();
-        } catch (error) {
-          showToast(error.response?.data?.message || 'Failed to delete question', 'error');
+        } else {
+          throw new Error(response?.message || 'Failed to delete question');
         }
+
+        setConfirmModal({ ...confirmModal, isOpen: false });
+        fetchTemplateData();
+      } catch (error) {
+        showToast(error.response?.data?.message || error.message || 'Failed to delete question', 'error');
+      }
+
       }
     });
   };
