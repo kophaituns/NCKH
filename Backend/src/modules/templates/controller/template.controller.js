@@ -255,9 +255,9 @@ class TemplateController {
   async addQuestion(req, res) {
     try {
       const { id } = req.params;
-      const { question_type_id, question_text, is_required, display_order, options } = req.body;
+      const { question_type_id, question_text, is_required, display_order, options, maxScore } = req.body;
 
-      // Validation
+      // Basic validation
       if (!question_type_id || !question_text) {
         return res.status(400).json({
           success: false,
@@ -269,11 +269,27 @@ class TemplateController {
 
       res.status(201).json({
         success: true,
+        ok: true,
         message: 'Question added successfully',
-        data: { template }
+        data: { 
+          template,
+          question_id: template.Questions?.[template.Questions.length - 1]?.id
+        }
       });
     } catch (error) {
       logger.error('Add question error:', error);
+
+      // Validation errors
+      if (error.message.includes('should not have options') ||
+          error.message.includes('require at least') ||
+          error.message.includes('requires maxScore') ||
+          error.message.includes('Invalid question type') ||
+          error.message.includes('Unknown question type')) {
+        return res.status(400).json({
+          success: false,
+          message: error.message
+        });
+      }
 
       if (error.message.includes('not found')) {
         return res.status(404).json({

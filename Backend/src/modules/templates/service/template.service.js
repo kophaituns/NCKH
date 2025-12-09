@@ -1,6 +1,7 @@
 // src/modules/templates/service/template.service.js
 const { SurveyTemplate, Question, QuestionOption, QuestionType, User } = require('../../../models');
 const { Op } = require('sequelize');
+const { validateQuestion, normalizeQuestionData, QUESTION_TYPES_WITH_PREDEFINED_OPTIONS } = require('../validator/templates.validator');
 
 class TemplateService {
   /**
@@ -282,62 +283,53 @@ class TemplateService {
         throw new Error('Access denied. You do not own this template.');
       }
 
+      // Validate question data based on type
+      await validateQuestion(questionData);
+
+      // Normalize question data (handle predefined options, defaults, etc.)
+      const normalizedData = await normalizeQuestionData(questionData);
+
+      // Get question type to check if it needs options
+      const questionType = await QuestionType.findByPk(normalizedData.question_type_id, { transaction });
+      const typeName = questionType.type_name;
+
       // Create the question
       const question = await Question.create({
         template_id: templateId,
-        label: questionData.label || questionData.question_text, // Use label if provided, otherwise use question_text
-        question_text: questionData.question_text,
-        question_type_id: questionData.question_type_id,
-        required: questionData.required || questionData.is_required || false,
-        display_order: questionData.display_order || 1
+        label: normalizedData.label || normalizedData.question_text,
+        question_text: normalizedData.question_text,
+        question_type_id: normalizedData.question_type_id,
+        required: normalizedData.required || normalizedData.is_required || false,
+        display_order: normalizedData.display_order || 1,
+        // Store maxScore for rating type (if needed, you might need to add this column to Question model)
+        // For now, we'll handle it in options or metadata
       }, { transaction });
 
-      // Create options if provided - with strict validation
-      if (questionData.options && Array.isArray(questionData.options) && questionData.options.length > 0) {
-        // Filter and process options - support both string arrays and object arrays
-        const validOptions = questionData.options.filter(opt => {
-          // Handle string options (from frontend)
-          if (typeof opt === 'string') {
-            return opt.trim().length > 0;
-          }
-          
-          // Handle object options
-          if (opt && typeof opt === 'object') {
-            const optionText = opt.option_text || opt.text || opt.label || opt.value;
-            return optionText && 
-                   typeof optionText === 'string' && 
-                   optionText.trim().length > 0;
-          }
-          
-          return false;
-        });
-
-        // Only create options if we have valid ones
-        if (validOptions.length > 0) {
-          for (let i = 0; i < validOptions.length; i++) {
-            const opt = validOptions[i];
-            
-            let optionText;
-            let displayOrder = i + 1;
-            
-            // Handle string options (from frontend filter)
-            if (typeof opt === 'string') {
-              optionText = opt.trim();
-            } else {
-              // Handle object options
-              optionText = (opt.option_text || opt.text || opt.label || opt.value).trim();
-              displayOrder = opt.display_order !== undefined ? opt.display_order : i + 1;
-            }
-            
-            // Create each option individually with proper error handling
+      // Handle options based on question type
+      if (typeName === 'yes_no') {
+        // Yes/No: Auto-create predefined options ["Yes", "No"]
+        const yesNoOptions = QUESTION_TYPES_WITH_PREDEFINED_OPTIONS['yes_no'];
+        for (let i = 0; i < yesNoOptions.length; i++) {
+          await QuestionOption.create({
+            question_id: question.id,
+            option_text: yesNoOptions[i],
+            display_order: i + 1
+          }, { transaction });
+        }
+      } else if (normalizedData.options && Array.isArray(normalizedData.options) && normalizedData.options.length > 0) {
+        // For types that require options: multiple_choice, multiple_select, dropdown
+        // normalizedData.options is already normalized to array of objects with option_text and display_order
+        for (const opt of normalizedData.options) {
+          if (opt && opt.option_text && opt.option_text.trim().length > 0) {
             await QuestionOption.create({
               question_id: question.id,
-              option_text: optionText,
-              display_order: displayOrder
+              option_text: opt.option_text.trim(),
+              display_order: opt.display_order || 1
             }, { transaction });
           }
         }
       }
+      // For checkbox, text, and rating: no options needed
 
       // Commit the transaction
       await transaction.commit();
@@ -353,6 +345,15 @@ class TemplateService {
 
   /**
    * Get all question types
+   * 
+   * Question Types Definition:
+   * 1. text - Single line text input (no options)
+   * 2. multiple_choice - Select ONE option from list (requires options array, min 2)
+   * 3. multiple_select - Select MULTIPLE options from list (requires options array, min 2)
+   * 4. checkbox - Single true/false checkbox (no options, value is boolean)
+   * 5. dropdown - Select ONE from dropdown list (requires options array, min 2)
+   * 6. rating - Numeric scale rating (requires maxScore property, default 5, no options)
+   * 7. yes_no - Binary Yes/No question (auto-creates ["Yes", "No"] options)
    */
   async getQuestionTypes() {
     const types = await QuestionType.findAll({
@@ -435,44 +436,54 @@ class TemplateService {
               <div class="question-type">[${questionType}]</div>
           `;
 
+          // Handle different question types according to definitions
           if (questionType === 'multiple_choice' && options.length > 0) {
-            htmlContent += '<div class="options">';
+            // Multiple Choice: select ONE option
+            htmlContent += '<div class="options"><strong>Chọn một đáp án:</strong><br>';
+            options.forEach((option) => {
+              htmlContent += `<div class="option"><span class="radio"></span> ${option.option_text}</div>`;
+            });
+            htmlContent += '</div>';
+          } else if (questionType === 'multiple_select' && options.length > 0) {
+            // Multiple Select: select MULTIPLE options
+            htmlContent += '<div class="options"><strong>Chọn nhiều đáp án:</strong><br>';
             options.forEach((option) => {
               htmlContent += `<div class="option"><span class="checkbox"></span> ${option.option_text}</div>`;
             });
             htmlContent += '</div>';
-          } else if (questionType === 'checkbox' && options.length > 0) {
-            htmlContent += '<div class="options">';
-            options.forEach((option) => {
-              htmlContent += `<div class="option"><span class="checkbox"></span> ${option.option_text}</div>`;
-            });
-            htmlContent += '</div>';
+          } else if (questionType === 'checkbox') {
+            // Checkbox: single true/false checkbox (no options)
+            htmlContent += `
+              <div class="options">
+                <div class="option"><span class="checkbox"></span> Đồng ý</div>
+              </div>
+            `;
           } else if (questionType === 'dropdown' && options.length > 0) {
-            htmlContent += '<div class="options"><strong>Tùy chọn:</strong><br>';
+            // Dropdown: select ONE from dropdown
+            htmlContent += '<div class="options"><strong>Chọn từ danh sách:</strong><br>';
             options.forEach((option) => {
               htmlContent += `<div class="option">• ${option.option_text}</div>`;
             });
             htmlContent += '</div>';
           } else if (questionType === 'yes_no') {
+            // Yes/No: predefined ["Yes", "No"]
             htmlContent += `
               <div class="options">
-                <div class="option"><span class="checkbox"></span> Có</div>
-                <div class="option"><span class="checkbox"></span> Không</div>
+                <div class="option"><span class="radio"></span> Yes</div>
+                <div class="option"><span class="radio"></span> No</div>
               </div>
             `;
-          } else if (questionType === 'likert_scale' || questionType === 'rating') {
-            htmlContent += `
-              <div class="rating">
-                Đánh giá từ 1 đến 5: 
-                <span class="rating-box">1</span>
-                <span class="rating-box">2</span>
-                <span class="rating-box">3</span>
-                <span class="rating-box">4</span>
-                <span class="rating-box">5</span>
-              </div>
-            `;
+          } else if (questionType === 'rating') {
+            // Rating: numeric scale (default 1-5, can have maxScore)
+            const maxRating = question.maxScore || 5;
+            htmlContent += `<div class="rating"><strong>Đánh giá từ 1 đến ${maxRating}:</strong><br>`;
+            for (let i = 1; i <= maxRating; i++) {
+              htmlContent += `<span class="rating-box">${i}</span>`;
+            }
+            htmlContent += '</div>';
           } else {
-            htmlContent += '<div class="text-answer"></div><div class="text-answer"></div><div class="text-answer"></div>';
+            // Text: single line input
+            htmlContent += '<div class="text-answer"></div>';
           }
 
           htmlContent += '</div>';

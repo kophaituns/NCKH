@@ -286,6 +286,7 @@ class ResponseService {
     console.log('[ResponseService] Submitting answers payload:', JSON.stringify(answers, null, 2));
 
     // Get collector and validate with Questions to map answer types
+    const { QuestionOption } = require('../../../models');
     const collector = await SurveyCollector.findOne({
       where: { token: collectorToken },
       include: [{
@@ -297,10 +298,17 @@ class ResponseService {
           include: [{
             model: Question,
             as: 'Questions',
-            include: [{
-              model: require('../../../models').QuestionType,
-              as: 'QuestionType'
-            }]
+            include: [
+              {
+                model: require('../../../models').QuestionType,
+                as: 'QuestionType'
+              },
+              {
+                model: QuestionOption,
+                as: 'QuestionOptions',
+                attributes: ['id', 'option_text', 'display_order']
+              }
+            ]
           }]
         }]
       }]
@@ -421,12 +429,54 @@ class ResponseService {
           let textAnswer = null;
           let numericAnswer = null;
 
-          if (type === 'multiple_choice' || type === 'dropdown' || type === 'checkbox') {
-            optionId = value;
+          // Handle yes_no type: value might be 'yes'/'no' string or option_id
+          if (type === 'yes_no') {
+            // If value is 'yes' or 'no', need to find the corresponding option_id
+            if (value === 'yes' || value === 'no' || value === 'Yes' || value === 'No') {
+              // Find the question and its options
+              const question = survey.template.Questions.find(q => q.id === questionId);
+              if (question && question.QuestionOptions) {
+                const optionText = value.toLowerCase();
+                const option = question.QuestionOptions.find(opt => 
+                  opt.option_text.toLowerCase() === optionText
+                );
+                if (option) {
+                  optionId = option.id;
+                } else {
+                  // Fallback: try to parse as integer (might be option_id already)
+                  const parsedId = parseInt(value);
+                  if (!isNaN(parsedId)) {
+                    optionId = parsedId;
+                  } else {
+                    textAnswer = value; // Fallback to text if can't find option
+                  }
+                }
+              } else {
+                // Fallback: try to parse as integer
+                const parsedId = parseInt(value);
+                if (!isNaN(parsedId)) {
+                  optionId = parsedId;
+                } else {
+                  textAnswer = value;
+                }
+              }
+            } else {
+              // Value is already option_id (integer)
+              const parsedId = parseInt(value);
+              if (!isNaN(parsedId)) {
+                optionId = parsedId;
+              } else {
+                textAnswer = value;
+              }
+            }
+          } else if (type === 'multiple_choice' || type === 'dropdown' || type === 'checkbox') {
+            // Parse option_id as integer
+            const parsedId = parseInt(value);
+            optionId = !isNaN(parsedId) ? parsedId : null;
           } else if (type === 'likert_scale' || type === 'rating') {
-            numericAnswer = value;
+            numericAnswer = parseFloat(value) || null;
           } else {
-            textAnswer = value;
+            textAnswer = String(value);
           }
 
           answerPromises.push(Answer.create({

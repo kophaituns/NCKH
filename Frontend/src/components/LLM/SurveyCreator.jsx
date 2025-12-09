@@ -6,16 +6,24 @@ import Select from '../UI/Select';
 import TextArea from '../UI/TextArea';
 import Checkbox from '../UI/Checkbox';
 import Switch from '../UI/Switch';
+import Modal from '../UI/Modal';
 import { useToast } from '../../contexts/ToastContext';
 import LLMService from '../../api/services/llm.service';
 import WorkspaceService from '../../api/services/workspace.service';
 import styles from './SurveyCreator.module.scss';
 
-const SurveyCreator = ({ generatedQuestions, onSurveyCreated, onRemoveQuestion }) => {
+const SurveyCreator = ({
+  generatedQuestions,
+  onSurveyCreated,
+  onRemoveQuestion,
+  onUpdateQuestion = () => {},
+}) => {
   const { showToast } = useToast();
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('select');
   const [workspaces, setWorkspaces] = useState([]);
+  const [editingQuestion, setEditingQuestion] = useState(null);
+  const [showEditModal, setShowEditModal] = useState(false);
 
   const [surveyData, setSurveyData] = useState({
     title: '',
@@ -113,6 +121,110 @@ const SurveyCreator = ({ generatedQuestions, onSurveyCreated, onRemoveQuestion }
     ));
   };
 
+  // Question types that require options array (min 2 options)
+  const questionTypesWithOptions = ['multiple_choice', 'multiple_select', 'dropdown', 'checkbox'];
+  
+  // Question types that should NOT have options
+  // - text: single line input
+  // - rating: uses maxScore instead of options
+  // - yes_no: auto-generates ["Yes", "No"] options (handled separately)
+
+  const handleOpenEditQuestion = (question, index) => {
+    const questionType = question.type || getQuestionType(question.question);
+    const needsOptions = questionTypesWithOptions.includes(questionType);
+    
+    // Initialize options based on question type
+    let initialOptions = [];
+    if (needsOptions) {
+      // Multiple choice, multiple select, dropdown, checkbox: need options
+      initialOptions = question.options || ['Option 1', 'Option 2'];
+    } else if (questionType === 'yes_no') {
+      // Yes/No: predefined options
+      initialOptions = question.options || ['Yes', 'No'];
+    }
+    // text, rating: no options needed
+    
+    setEditingQuestion({
+      ...question,
+      index,
+      question_text: question.question,
+      question_type: questionType,
+      required: question.required ?? false,
+      options: initialOptions,
+      maxScore: question.maxScore || (questionType === 'rating' ? 5 : undefined),
+    });
+    setShowEditModal(true);
+  };
+
+  const handleAddOption = () => {
+    if (!editingQuestion) return;
+    setEditingQuestion(prev => ({
+      ...prev,
+      options: [...(prev.options || []), '']
+    }));
+  };
+
+  const handleUpdateOption = (index, value) => {
+    if (!editingQuestion) return;
+    setEditingQuestion(prev => ({
+      ...prev,
+      options: prev.options.map((opt, i) => i === index ? value : opt)
+    }));
+  };
+
+  const handleRemoveOption = (index) => {
+    if (!editingQuestion || !editingQuestion.options) return;
+    if (editingQuestion.options.length <= 2) {
+      showToast('At least 2 options are required', 'error');
+      return;
+    }
+    setEditingQuestion(prev => ({
+      ...prev,
+      options: prev.options.filter((_, i) => i !== index)
+    }));
+  };
+
+  const handleSaveEditedQuestion = () => {
+    if (!editingQuestion?.question_text?.trim()) {
+      showToast('Please enter question text', 'error');
+      return;
+    }
+
+    // Validate options for question types that require them
+    if (questionTypesWithOptions.includes(editingQuestion.question_type) || editingQuestion.question_type === 'yes_no') {
+      const validOptions = (editingQuestion.options || []).filter(opt => opt && opt.trim && opt.trim().length > 0);
+      if (validOptions.length < 2) {
+        showToast('At least 2 options are required for this question type', 'error');
+        return;
+      }
+    }
+    
+    // Validate rating maxScore
+    if (editingQuestion.question_type === 'rating') {
+      if (!editingQuestion.maxScore || editingQuestion.maxScore < 1) {
+        showToast('Rating questions require maxScore (default: 5)', 'error');
+        return;
+      }
+    }
+
+    const { index, ...rest } = editingQuestion;
+    const updated = {
+      ...rest,
+      question: editingQuestion.question_text.trim(),
+      type: editingQuestion.question_type,
+      required: !!editingQuestion.required,
+      options: (questionTypesWithOptions.includes(editingQuestion.question_type) || editingQuestion.question_type === 'yes_no')
+        ? (editingQuestion.options || []).filter(opt => opt && opt.trim && opt.trim().length > 0)
+        : undefined,
+      maxScore: editingQuestion.question_type === 'rating' ? editingQuestion.maxScore : undefined,
+    };
+
+    onUpdateQuestion(index, updated);
+    setShowEditModal(false);
+    setEditingQuestion(null);
+    showToast('Question updated', 'success');
+  };
+
   const handleCreateSurvey = async () => {
     if (!surveyData.title.trim()) {
       showToast('Please enter survey title', 'error');
@@ -135,14 +247,28 @@ const SurveyCreator = ({ generatedQuestions, onSurveyCreated, onRemoveQuestion }
       const response = await LLMService.createSurveyFromQuestions({
         ...surveyData,
         // ✅ Dùng generatedQuestions để tạo survey
-        selectedQuestions: generatedQuestions.map(q => ({
-          question: q.question,
-          type: getQuestionType(q.question),
-          required: false,
-          options: getQuestionType(q.question) === 'multiple_choice'
-            ? ['Option 1', 'Option 2', 'Option 3']
-            : undefined
-        })),
+        selectedQuestions: generatedQuestions.map(q => {
+          const questionType = q.type || getQuestionType(q.question);
+          const needsOptions = questionTypesWithOptions.includes(questionType) || questionType === 'yes_no';
+          
+          let options = undefined;
+          if (needsOptions) {
+            if (questionType === 'yes_no') {
+              // Yes/No: predefined options
+              options = q.options && q.options.length > 0 ? q.options : ['Yes', 'No'];
+            } else {
+              // Multiple Choice, Multiple Select, Dropdown, Checkbox: use provided options or defaults
+              options = q.options && q.options.length > 0 ? q.options : ['Option 1', 'Option 2', 'Option 3'];
+            }
+          }
+          
+          return {
+            question: q.question,
+            type: questionType,
+            required: q.required ?? false,
+            options: options
+          };
+        }),
         customQuestions: customQuestions.filter(q => q.question_text.trim()),
         shareSettings
       });
@@ -302,30 +428,61 @@ const SurveyCreator = ({ generatedQuestions, onSurveyCreated, onRemoveQuestion }
                     >
                       <p className={styles.questionText}>{question.question}</p>
                       <small className={styles.questionMeta}>
-                        Type: {getQuestionType(question.question)} • Source: {question.source}
+                        Type: {question.type || getQuestionType(question.question)} • Source: {question.source || 'AI'}
                       </small>
                     </div>
 
-                    {/* Nút X xoá câu hỏi khỏi survey */}
+                    {/* Edit question icon */}
                     <button
-                    type="button"
-                    onClick={() => onRemoveQuestion && onRemoveQuestion(question)}
-                    style={{
-                      border: 'none',
-                      background: 'transparent',
-                      color: '#ff0000ff',
-                      cursor: 'pointer',
-                      fontWeight: 'bold',
-                      fontSize: 30,
-                      lineHeight: 1,
-                      padding: 0,
-                      marginLeft: 8,
-                      transform: 'translateY(-3px)',  
-                    }}
-                    title="Remove question"
-                  >
-                    ×
-                  </button>
+                      type="button"
+                      onClick={() => handleOpenEditQuestion(question, index)}
+                      style={{
+                        border: '1px solid #e5e7eb',
+                        borderRadius: '4px',
+                        background: 'transparent',
+                        cursor: 'pointer',
+                        padding: '4px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        width: '28px',
+                        height: '28px',
+                        marginLeft: 4,
+                      }}
+                      title="Edit question"
+                    >
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2563eb" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                      </svg>
+                    </button>
+
+                    {/* Delete question icon */}
+                    <button
+                      type="button"
+                      onClick={() => onRemoveQuestion && onRemoveQuestion(question)}
+                      style={{
+                        border: '1px solid #e5e7eb',
+                        borderRadius: '4px',
+                        background: 'transparent',
+                        cursor: 'pointer',
+                        padding: '4px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        width: '28px',
+                        height: '28px',
+                        marginLeft: 4,
+                      }}
+                      title="Remove question"
+                    >
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <polyline points="3 6 5 6 21 6"></polyline>
+                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                        <line x1="10" y1="11" x2="10" y2="17"></line>
+                        <line x1="14" y1="11" x2="14" y2="17"></line>
+                      </svg>
+                    </button>
 
 
                   </div>
@@ -474,6 +631,158 @@ const SurveyCreator = ({ generatedQuestions, onSurveyCreated, onRemoveQuestion }
           </div>
         )}
       </Card>
+
+      {/* Edit Question Modal */}
+      {showEditModal && editingQuestion && (
+        <Modal
+          isOpen={showEditModal}
+          onClose={() => setShowEditModal(false)}
+          title="Edit Question"
+        >
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <div>
+              <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500', fontSize: '14px' }}>
+                Question Text *
+              </label>
+              <TextArea
+                value={editingQuestion.question_text}
+                onChange={(e) => setEditingQuestion(prev => ({ ...prev, question_text: e.target.value }))}
+                rows={3}
+                placeholder="Enter question text"
+              />
+            </div>
+
+            <div>
+              <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500', fontSize: '14px' }}>
+                Question Type *
+              </label>
+              <Select
+                value={editingQuestion.question_type}
+                onChange={(value) => {
+                  const needsOptions = questionTypesWithOptions.includes(value);
+                  let newOptions = [];
+                  
+                  if (needsOptions) {
+                    // Multiple choice, multiple select, dropdown, checkbox: need options
+                    newOptions = editingQuestion.options && editingQuestion.options.length > 0 
+                      ? editingQuestion.options 
+                      : ['Option 1', 'Option 2'];
+                  } else if (value === 'yes_no') {
+                    // Yes/No: predefined options
+                    newOptions = ['Yes', 'No'];
+                  }
+                  // text, rating: no options
+                  
+                  setEditingQuestion(prev => ({
+                    ...prev,
+                    question_type: value,
+                    options: newOptions,
+                    maxScore: value === 'rating' ? (prev.maxScore || 5) : undefined,
+                  }));
+                }}
+              >
+                <option value="text">Text</option>
+                <option value="multiple_choice">Multiple Choice</option>
+                <option value="multiple_select">Multiple Select</option>
+                <option value="checkbox">Checkbox</option>
+                <option value="dropdown">Dropdown</option>
+                <option value="rating">Rating</option>
+                <option value="yes_no">Yes/No</option>
+              </Select>
+            </div>
+
+            {/* Options Section - show for types that need options or yes_no */}
+            {(questionTypesWithOptions.includes(editingQuestion.question_type) || editingQuestion.question_type === 'yes_no') && (
+              <div>
+                <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500', fontSize: '14px' }}>
+                  {editingQuestion.question_type === 'yes_no' 
+                    ? 'Options (predefined)' 
+                    : 'Options * (at least 2 required)'}
+                </label>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '8px' }}>
+                  {(editingQuestion.options || []).map((option, index) => (
+                    <div key={index} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <Input
+                        value={option}
+                        onChange={(e) => handleUpdateOption(index, e.target.value)}
+                        placeholder={`Option ${index + 1}`}
+                        style={{ flex: 1 }}
+                      />
+                      {(editingQuestion.options || []).length > 2 && editingQuestion.question_type !== 'yes_no' && (
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveOption(index)}
+                          style={{
+                            border: 'none',
+                            background: 'transparent',
+                            color: '#ef4444',
+                            cursor: 'pointer',
+                            fontSize: '20px',
+                            padding: '4px 8px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                          }}
+                          title="Remove option"
+                        >
+                          ✕
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+                {editingQuestion.question_type !== 'yes_no' && (
+                  <Button
+                    variant="outline"
+                    onClick={handleAddOption}
+                    style={{ width: 'fit-content' }}
+                  >
+                    + Add Option
+                  </Button>
+                )}
+              </div>
+            )}
+
+            {/* Rating: show maxScore input */}
+            {editingQuestion.question_type === 'rating' && (
+              <div>
+                <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500', fontSize: '14px' }}>
+                  Max Score *
+                </label>
+                <Input
+                  type="number"
+                  value={editingQuestion.maxScore || 5}
+                  onChange={(e) => setEditingQuestion(prev => ({ 
+                    ...prev, 
+                    maxScore: parseInt(e.target.value) || 5 
+                  }))}
+                  min="1"
+                  max="10"
+                  placeholder="5"
+                />
+              </div>
+            )}
+
+            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px' }}>
+              <input
+                type="checkbox"
+                checked={!!editingQuestion.required}
+                onChange={(e) => setEditingQuestion(prev => ({ ...prev, required: e.target.checked }))}
+              />
+              Required question
+            </label>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '8px' }}>
+              <Button variant="outline" onClick={() => setShowEditModal(false)}>
+                Cancel
+              </Button>
+              <Button onClick={handleSaveEditedQuestion}>
+                Update Question
+              </Button>
+            </div>
+          </div>
+        </Modal>
+      )}
 
       {/* Action Buttons */}
       <div className={styles.actions}>

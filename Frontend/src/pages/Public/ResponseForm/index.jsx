@@ -204,10 +204,28 @@ const PublicResponseForm = () => {
       setSubmitting(true);
 
       // Format answers for submission
-      const formattedAnswers = Object.entries(answers).map(([questionId, value]) => ({
-        questionId: parseInt(questionId),
-        value: Array.isArray(value) ? value : String(value)
-      }));
+      const formattedAnswers = Object.entries(answers).map(([questionId, value]) => {
+        const question = survey.questions.find(q => q.id === parseInt(questionId));
+        
+        // For yes_no questions, convert 'yes'/'no' to option_id
+        if (question && question.type === 'yes_no' && (value === 'yes' || value === 'no')) {
+          // Find the option_id for 'Yes' or 'No'
+          const option = question.options?.find(opt => 
+            opt.text?.toLowerCase() === value.toLowerCase()
+          );
+          if (option) {
+            return {
+              questionId: parseInt(questionId),
+              value: option.id // Send option_id instead of 'yes'/'no'
+            };
+          }
+        }
+        
+        return {
+          questionId: parseInt(questionId),
+          value: Array.isArray(value) ? value : String(value)
+        };
+      });
 
       const submissionData = {
         answers: formattedAnswers
