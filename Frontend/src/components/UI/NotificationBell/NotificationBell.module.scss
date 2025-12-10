@@ -1,45 +1,263 @@
-// src/components/UI/NotificationBell/NotificationBell.module.scss
+/* --- Bell + dot --- */
 .notificationBell {
   position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
 
-  .bellButton {
-    position: relative;
-    background: none;
-    border: none;
-    cursor: pointer;
-    color: #333;
-    padding: 8px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 6px;
-    transition: all 0.2s ease;
+/* dùng cho button bên trong */
+.bellButton {
+  position: relative;
+  border: none;
+  outline: none;
+  background: #f9fafb;
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #64748b;
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.06);
+  transition:
+    background 0.15s ease,
+    color 0.15s ease,
+    box-shadow 0.15s ease,
+    transform 0.05s ease;
 
-    &:hover {
-      background-color: #f0f0f0;
-      color: #0066cc;
-    }
-
-    svg {
-      width: 24px;
-      height: 24px;
-    }
+  svg {
+    width: 22px;
+    height: 22px;
   }
 
-  .badge {
+  &:hover {
+    background-color: #eef2ff;
+    color: #2563eb;
+    box-shadow: 0 6px 16px rgba(37, 99, 235, 0.18);
+    transform: translateY(-1px);
+  }
+
+  &:active {
+    transform: translateY(0);
+    box-shadow: 0 3px 10px rgba(15, 23, 42, 0.12);
+  }
+}
+
+/* badge số – nếu sau này cần dùng lại vẫn có */
+.badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  background-color: #ef4444;
+  color: #ffffff;
+  border-radius: 999px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 600;
+  border: 2px solid #ffffff;
+}
+
+/* 🔴 chấm đỏ nhỏ trên góc chuông */
+.dotIndicator {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 9px;
+  height: 9px;
+  border-radius: 999px;
+  background-color: #ef4444;
+  box-shadow: 0 0 0 2px #ffffff;
+}
+
+/* --- Notification Panel + items --- */
+.notificationPanel {
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 12px 0 8px;
+  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.14);
+  width: 360px;
+  max-height: 480px;
+  display: flex;
+  flex-direction: column;
+}
+
+.header {
+  padding: 4px 16px 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 14px;
+  color: #0f172a;
+  font-weight: 600;
+}
+
+.markAll {
+  font-size: 13px;
+  color: #2563eb;
+  cursor: pointer;
+  border: none;
+  background: transparent;
+  padding: 4px 0;
+  transition: color 0.15s ease;
+
+  &:hover {
+    color: #1d4ed8;
+  }
+}
+
+.list {
+  margin-top: 4px;
+  padding: 0 8px 4px;
+  max-height: 420px;
+  overflow-y: auto;
+}
+
+/* card từng thông báo */
+.item {
+  position: relative;
+  display: flex;
+  align-items: stretch;
+  gap: 10px;
+  padding: 10px 12px;
+  margin-bottom: 6px;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+  background: #ffffff;
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    box-shadow 0.15s ease,
+    transform 0.05s ease,
+    border-color 0.15s ease;
+
+  &:hover {
+    background: #f9fafb;
+    border-color: #cbd5f5;
+    box-shadow: 0 10px 28px rgba(15, 23, 42, 0.12);
+    transform: translateY(-1px);
+  }
+
+  &::before {
+    content: '';
     position: absolute;
-    top: 0;
-    right: 0;
-    background-color: #ff4444;
-    color: white;
-    border-radius: 50%;
-    width: 20px;
-    height: 20px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 12px;
-    font-weight: bold;
-    border: 2px solid white;
+    left: 0;
+    top: 10px;
+    bottom: 10px;
+    width: 3px;
+    border-radius: 999px;
+    background: #e5e7eb;
   }
+}
+
+.itemUnread {
+  background: #f9fafb;
+  border-color: #dbeafe;
+  box-shadow: 0 10px 25px rgba(37, 99, 235, 0.08);
+
+  &::before {
+    background: linear-gradient(180deg, #22c55e, #22d3ee);
+  }
+}
+
+/* icon bên trái */
+.iconWrapper {
+  flex-shrink: 0;
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+  background: #eff6ff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  color: #1d4ed8;
+}
+
+.itemUnread .iconWrapper {
+  background: rgba(34, 197, 94, 0.08);
+  color: #16a34a;
+}
+
+/* nội dung text */
+.content {
+  flex: 1;
+  min-width: 0;
+}
+
+.titleRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.message {
+  margin-top: 2px;
+  font-size: 13px;
+  color: #4b5563;
+  line-height: 1.5;
+}
+
+.date {
+  margin-top: 4px;
+  font-size: 12px;
+  color: #9ca3af;
+}
+
+/* nút tick bên phải */
+.action {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+}
+
+.markReadButton {
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  border: 1px solid #e5e7eb;
+  background: #f9fafb;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  color: #9ca3af;
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease,
+    transform 0.05s ease;
+
+  &:hover {
+    background: rgba(34, 197, 94, 0.06);
+    border-color: rgba(34, 197, 94, 0.6);
+    color: #16a34a;
+    transform: translateY(-0.5px);
+  }
+}
+
+/* scroll bar gọn gàng */
+.list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.list::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.list::-webkit-scrollbar-thumb {
+  background: #e5e7eb;
+  border-radius: 999px;
 }

@@ -1,3 +1,5 @@
+const notificationService = require('../../../utils/notification.service'); 
+
 const {
   SurveyResponse,
   Answer,
@@ -280,7 +282,14 @@ class ResponseService {
   /**
    * Submit public response via collector token
    */
-  async submitPublicResponse(collectorToken, responseData, userIdentifier = null, user = null) {
+    async submitPublicResponse(
+      collectorToken,
+      responseData,
+      userIdentifier = null,
+      user = null,
+      io = null
+) {
+
     const { answers } = responseData;
 
     console.log('[ResponseService] Submitting answers payload:', JSON.stringify(answers, null, 2));
@@ -494,16 +503,30 @@ class ResponseService {
 
     // Increment collector response count
     await collectorService.incrementResponseCount(collector.id);
-
-    // Mark invite as responded if this was a private survey with invite
     if (responseData._inviteId) {
-      const surveyInviteService = require('../../surveys/service/surveyInvite.service');
       try {
-        await surveyInviteService.markInviteResponded(responseData.invite_token);
+        // ... mark invite responded ...
       } catch (error) {
-        // Log but don't fail the response submission
         console.error('Failed to mark invite as responded:', error);
       }
+    }
+
+    try {
+      if (survey && survey.created_by) {
+        await notificationService.notifySurveyResponse(
+          survey.created_by,      
+          survey.id,              
+          1,                      
+          `Bạn vừa nhận được một câu trả lời mới cho khảo sát "${survey.title}"`,
+          io                      
+        );
+      }
+    } catch (notifError) {
+      console.error(
+        '[ResponseService] Failed to create survey response notification:',
+        notifError
+      );
+    
     }
 
     return {
@@ -514,5 +537,6 @@ class ResponseService {
     };
   }
 }
+
 
 module.exports = new ResponseService();

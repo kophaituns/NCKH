@@ -258,7 +258,16 @@ class ResponseController {
       // Pass user object if authenticated
       const user = req.user;
 
-      const response = await responseService.submitPublicResponse(token, req.body, userIdentifier, user);
+      // 🔔 Lấy instance Socket.IO để truyền xuống service tạo notification real-time
+      const io = req.app.get('io');
+
+      const response = await responseService.submitPublicResponse(
+        token,
+        req.body,
+        userIdentifier,
+        user,
+        io
+      );
 
       res.status(201).json({
         success: true,
