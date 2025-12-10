@@ -1,5 +1,6 @@
 // src/components/UI/NotificationPanel/index.jsx
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import styles from './NotificationPanel.module.scss';
 import NotificationService from '../../../api/services/notification.service';
 
@@ -7,12 +8,13 @@ const NotificationPanel = ({ onClose, onNotificationRead }) => {
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  const navigate = useNavigate();
+
   useEffect(() => {
     fetchNotifications();
 
-    // Also set up a polling interval to refresh notifications while panel is open
+    // Polling trong lúc panel đang mở
     const pollInterval = setInterval(fetchNotifications, 10000); // Every 10 seconds
-
     return () => clearInterval(pollInterval);
   }, []);
 
@@ -29,8 +31,8 @@ const NotificationPanel = ({ onClose, onNotificationRead }) => {
   const handleMarkAsRead = async (notificationId) => {
     const result = await NotificationService.markAsRead(notificationId);
     if (result.ok) {
-      setNotifications(prev =>
-        prev.map(n =>
+      setNotifications((prev) =>
+        prev.map((n) =>
           n.id === notificationId ? { ...n, is_read: true } : n
         )
       );
@@ -38,10 +40,38 @@ const NotificationPanel = ({ onClose, onNotificationRead }) => {
     }
   };
 
-  const handleNotificationClick = (notification) => {
-    if (notification.data?.action_url) {
-      handleMarkAsRead(notification.id);
-      window.location.href = notification.data.action_url;
+  /**
+   * Click vào một notification:
+   * - Nếu là survey_response: mở My Survey Responses đúng survey đó
+   * - Nếu có action_url: chuyển tới action_url như cũ
+   */
+  const handleNotificationClick = async (notification) => {
+    try {
+      // 1) Survey có câu trả lời mới
+      if (notification.type === 'survey_response') {
+        const surveyId =
+          notification.data?.surveyId ||
+          notification.data?.survey_id ||
+          notification.related_id;
+
+        console.log('[NotificationPanel] survey_response clicked, surveyId =', surveyId);
+
+        if (surveyId) {
+          await handleMarkAsRead(notification.id);
+          // Điều hướng tới My Survey Responses của survey đó
+          navigate(`/my-responses?surveyId=${surveyId}`);
+          onClose?.();
+          return;
+        }
+      }
+
+      // 2) Các notification khác có action_url (logic cũ)
+      if (notification.data?.action_url) {
+        await handleMarkAsRead(notification.id);
+        window.location.href = notification.data.action_url;
+      }
+    } catch (err) {
+      console.error('[NotificationPanel] handleNotificationClick error:', err);
     }
   };
 
@@ -56,7 +86,7 @@ const NotificationPanel = ({ onClose, onNotificationRead }) => {
   const handleMarkAllAsRead = async () => {
     const result = await NotificationService.markAllAsRead();
     if (result.ok) {
-      setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
+      setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
       onNotificationRead?.();
     }
   };
@@ -86,7 +116,6 @@ const NotificationPanel = ({ onClose, onNotificationRead }) => {
     try {
       const date = new Date(dateString);
 
-      // Check if date is valid
       if (isNaN(date.getTime())) {
         return 'Unknown date';
       }
@@ -146,13 +175,24 @@ const NotificationPanel = ({ onClose, onNotificationRead }) => {
               };
               console.log(`[${idx}] Notification:`, debugInfo);
               console.log(`[${idx}] Full notification object:`, notification);
-              console.log(`[${idx}] Should show Accept button:`, notification.type === 'workspace_invitation' && !!notification.data?.token);
+              console.log(
+                `[${idx}] Should show Accept button:`,
+                notification.type === 'workspace_invitation' &&
+                  !!notification.data?.token
+              );
+
+              const isClickable =
+                notification.type === 'survey_response' ||
+                !!notification.data?.action_url;
+
               return (
                 <div
                   key={notification.id}
-                  className={`${styles.notification} ${!notification.is_read ? styles.unread : ''}`}
+                  className={`${styles.notification} ${
+                    !notification.is_read ? styles.unread : ''
+                  }`}
                   onClick={() => handleNotificationClick(notification)}
-                  style={{ cursor: notification.data?.action_url ? 'pointer' : 'default' }}
+                  style={{ cursor: isClickable ? 'pointer' : 'default' }}
                 >
                   <div className={styles.icon}>
                     {getNotificationIcon(notification.type)}
@@ -165,18 +205,23 @@ const NotificationPanel = ({ onClose, onNotificationRead }) => {
                     </div>
                   </div>
                   <div className={styles.actions}>
-                    {notification.type === 'workspace_invitation' && notification.data?.token && !notification.is_read && (
-                      <button
-                        className={styles.acceptButton}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleAcceptWorkspaceInvitation(notification.id, notification.data);
-                        }}
-                        title="Accept workspace invitation"
-                      >
-                        Accept
-                      </button>
-                    )}
+                    {notification.type === 'workspace_invitation' &&
+                      notification.data?.token &&
+                      !notification.is_read && (
+                        <button
+                          className={styles.acceptButton}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleAcceptWorkspaceInvitation(
+                              notification.id,
+                              notification.data
+                            );
+                          }}
+                          title="Accept workspace invitation"
+                        >
+                          Accept
+                        </button>
+                      )}
                     {!notification.is_read && (
                       <button
                         className={styles.readButton}
