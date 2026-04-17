@@ -1,3 +1,31 @@
-node_modules
+# Root Level Folder Ignores (To keep AI commit clean)
+Frontend/
+Backend/
+docs/
+logs/
 
-form-agent-AI-project/
+# AI Project Specific Ignores
+form-agent-AI-project/datasets/
+form-agent-AI-project/question_datasets/
+form-agent-AI-project/chroma_db/
+form-agent-AI-project/models/
+form-agent-AI-project/__pycache__/
+form-agent-AI-project/.venv/
+form-agent-AI-project/form_agent_export_*.json
+
+# Global junk
+**/__pycache__/
+**/.venv/
+**/node_modules/
+**/*.pkl
+**/*.joblib
+**/*.db
+**/*.log
+**/*.tmp
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+.ipynb_checkpoints/
+.env
+**/.env

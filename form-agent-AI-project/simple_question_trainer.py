@@ -28,19 +28,19 @@ class SimpleQuestionAI:
         self.vectorizer = None
         self.trained_questions_db = None  # Database of trained questions
         self.keyword_to_questions = {}    # Map keywords to questions
-        print("🤖 Simple Question AI initialized!")
+        print(" Simple Question AI initialized!")
     
 
 
     def load_training_data(self, max_samples=1000000):
         """Load training data từ datasets folder - sử dụng dữ liệu thật đã train"""
         
-        print(f"📊 Loading training data from datasets (max {max_samples:,} samples)...")
+        print(f" Loading training data from datasets (max {max_samples:,} samples)...")
         
         # Load từ datasets folder (50 triệu dữ liệu)
         datasets_dir = "datasets"
         if not os.path.exists(datasets_dir):
-            print("❌ No datasets folder found!")
+            print(" No datasets folder found!")
             return None
         
         # Load các batch files
@@ -51,7 +51,7 @@ class SimpleQuestionAI:
         all_data = []
         total_loaded = 0
         
-        print(f"📁 Found {len(batch_files)} batch files")
+        print(f" Found {len(batch_files)} batch files")
         
         for file in batch_files:
             if total_loaded >= max_samples:
@@ -71,16 +71,16 @@ class SimpleQuestionAI:
                     
                     all_data.append(df)
                     total_loaded += len(df)
-                    print(f"   ✅ {file}: {len(df):,} records")
+                    print(f"    {file}: {len(df):,} records")
                 else:
-                    print(f"   ⚠️ {file}: Missing required columns")
+                    print(f"    {file}: Missing required columns")
                 
             except Exception as e:
-                print(f"   ❌ Error loading {file}: {e}")
+                print(f"    Error loading {file}: {e}")
         
         if all_data:
             combined_df = pd.concat(all_data, ignore_index=True)
-            print(f"📊 Total loaded: {len(combined_df):,} questions")
+            print(f" Total loaded: {len(combined_df):,} questions")
             
             # Tạo keyword mapping cho generate_questions
             self._build_keyword_mapping(combined_df)
@@ -91,7 +91,7 @@ class SimpleQuestionAI:
     def _build_keyword_mapping(self, df):
         """Xây dựng mapping từ keyword đến questions"""
         
-        print("🗺️ Building keyword to questions mapping...")
+        print(" Building keyword to questions mapping...")
         
         # Group by keyword
         grouped = df.groupby('keyword')
@@ -107,7 +107,7 @@ class SimpleQuestionAI:
             
             self.keyword_to_questions[keyword.lower()] = questions_list
         
-        print(f"   📊 Mapped {len(self.keyword_to_questions):,} unique keywords")
+        print(f"    Mapped {len(self.keyword_to_questions):,} unique keywords")
         
         # Store full dataset for similarity search
         self.trained_questions_db = df
@@ -115,7 +115,7 @@ class SimpleQuestionAI:
     def train_category_model(self, df):
         """Train simple category classification"""
         
-        print("🎯 Training category classifier...")
+        print(" Training category classifier...")
         
         # Prepare data
         X = df['keyword'].fillna('') + ' ' + df['question'].fillna('')
@@ -138,8 +138,8 @@ class SimpleQuestionAI:
         y_pred = self.category_model.predict(X_test_vec)
         accuracy = accuracy_score(y_test, y_pred)
         
-        print(f"   📊 Accuracy: {accuracy:.3f}")
-        print("   📋 Report:")
+        print(f"    Accuracy: {accuracy:.3f}")
+        print("    Report:")
         print(classification_report(y_test, y_pred))
         
         return accuracy
@@ -160,11 +160,11 @@ class SimpleQuestionAI:
     def generate_questions(self, keyword, num_questions=5):
         """Generate questions từ trained dataset - KHÔNG dùng templates"""
         
-        print(f"🎯 Generating questions for: '{keyword}' from trained data")
-        
+        print(f" Generating questions for: '{keyword}' from trained data")
+    
         # Predict category
         category, confidence = self.predict_category(keyword)
-        print(f"   📂 Predicted category: {category} (confidence: {confidence:.3f})")
+        print(f"    Predicted category: {category} (confidence: {confidence:.3f})")
         
         questions = []
         keyword_lower = keyword.lower()
@@ -176,24 +176,24 @@ class SimpleQuestionAI:
                 import random
                 selected = random.sample(exact_matches, num_questions)
                 questions.extend(selected)
-                print(f"   ✅ Found {len(selected)} exact matches")
+                print(f"    Found {len(selected)} exact matches")
                 return questions
             else:
                 questions.extend(exact_matches)
                 num_questions -= len(exact_matches)
-                print(f"   ✅ Found {len(exact_matches)} exact matches, need {num_questions} more")
+                print(f"    Found {len(exact_matches)} exact matches, need {num_questions} more")
         
         # Method 2: Partial keyword matching
         if num_questions > 0:
             partial_matches = self._find_partial_matches(keyword, category, num_questions)
             questions.extend(partial_matches)
-            print(f"   ✅ Found {len(partial_matches)} partial matches")
+            print(f"    Found {len(partial_matches)} partial matches")
         
         # Method 3: Category-based fallback if still not enough
         if len(questions) < num_questions:
             category_matches = self._find_category_matches(category, num_questions - len(questions))
             questions.extend(category_matches)
-            print(f"   ✅ Added {len(category_matches)} category matches")
+            print(f"    Added {len(category_matches)} category matches")
         
         # Ensure unique questions and proper format
         unique_questions = []
@@ -212,7 +212,7 @@ class SimpleQuestionAI:
         
         # Limit to requested number
         final_questions = unique_questions[:num_questions]
-        print(f"   🎯 Returning {len(final_questions)} unique questions")
+        print(f"   Returning {len(final_questions)} unique questions")
         
         return final_questions
 
@@ -338,9 +338,9 @@ class SimpleQuestionAI:
         with open(model_path, 'wb') as f:
             pickle.dump(model_data, f)
         
-        print(f"💾 Model saved: {model_path}")
-        print(f"   📊 Keywords: {len(self.keyword_to_questions):,}")
-        print(f"   📊 Questions: {len(self.trained_questions_db) if self.trained_questions_db is not None else 0:,}")
+        print(f" Model saved: {model_path}")
+        print(f"    Keywords: {len(self.keyword_to_questions):,}")
+        print(f"    Questions: {len(self.trained_questions_db) if self.trained_questions_db is not None else 0:,}")
 
     def load_model(self):
         """Load trained model with question database"""
@@ -356,25 +356,25 @@ class SimpleQuestionAI:
                 self.keyword_to_questions = model_data.get('keyword_to_questions', {})
                 self.trained_questions_db = model_data.get('trained_questions_db')
                 
-                print(f"📥 Model loaded: {model_path}")
-                print(f"   📊 Keywords: {len(self.keyword_to_questions):,}")
+                print(f" Model loaded: {model_path}")
+                print(f"    Keywords: {len(self.keyword_to_questions):,}")
                 if self.trained_questions_db is not None:
-                    print(f"   📊 Questions: {len(self.trained_questions_db):,}")
+                    print(f"    Questions: {len(self.trained_questions_db):,}")
                 
                 return True
                 
             except Exception as e:
-                print(f"❌ Error loading model: {e}")
+                print(f" Error loading model: {e}")
                 return False
         
-        print(f"❌ No model found: {model_path}")
+        print(f" No model found: {model_path}")
         return False
 
 
 def main():
     """Main training function"""
     
-    print("🤖 Simple Question AI Trainer")
+    print(" Simple Question AI Trainer")
     print("=" * 40)
     
     # Initialize
@@ -384,7 +384,7 @@ def main():
     df = ai.load_training_data(max_samples=20000)  # Limit to 20k samples
     
     if df is not None and len(df) > 100:
-        print(f"\n📊 Dataset info:")
+        print(f"\n Dataset info:")
         print(f"   Records: {len(df):,}")
         print(f"   Categories: {df['category'].value_counts().to_dict()}")
         
@@ -395,7 +395,7 @@ def main():
             ai.save_model()
             
             # Test generation
-            print(f"\n🧪 Testing question generation:")
+            print(f"\n Testing question generation:")
             test_keywords = [
                 "machine learning algorithms",
                 "cryptocurrency investment",
@@ -405,16 +405,16 @@ def main():
             for keyword in test_keywords:
                 questions = ai.generate_questions(keyword, num_questions=3)
                 
-                print(f"\n🔍 '{keyword}':")
+                print(f"\n Testing '{keyword}':")
                 for i, q in enumerate(questions, 1):
                     print(f"   {i}. {q['question']}")
         else:
-            print(f"❌ Accuracy too low: {accuracy:.3f}")
+            print(f" Accuracy too low: {accuracy:.3f}")
     
     else:
-        print("❌ Insufficient training data")
+        print(" Insufficient training data")
     
-    print("\n✅ Training completed!")
+    print("\n Training completed!")
 
 
 if __name__ == "__main__":

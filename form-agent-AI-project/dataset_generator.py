@@ -1027,9 +1027,9 @@ it_df = pd.read_csv('datasets/sample_it_10k.csv')
 
 def main():
     """Main function để chạy dataset generation"""
-    print("🤖 Form Agent AI - Dataset Generator")
-    print("📊 Generating 500,000,000 records for IT, Economics, and Marketing")
-    print("⏰ This will take several hours to complete...")
+    print(" Form Agent AI - Dataset Generator")
+    print(" Generating 500,000,000 records for IT, Economics, and Marketing")
+    print(" This will take several hours to complete...")
     
     # Initialize generator
     logger.info("Initializing dataset generator...")
@@ -1042,16 +1042,16 @@ def main():
             batch_size=100000         # 100k records per batch (5000 batches total)
         )
         
-        logger.info("🎉 Dataset generation completed successfully!")
-        logger.info(f"📋 Result: {result}")
+        logger.info(" Dataset generation completed successfully!")
+        logger.info(f" Result: {result}")
         
     except KeyboardInterrupt:
-        logger.info("⚠️  Generation interrupted by user")
-        logger.info("💾 Partial dataset and checkpoints are saved in datasets/ folder")
+        logger.info("  Generation interrupted by user")
+        logger.info(" Partial dataset and checkpoints are saved in datasets/ folder")
         
     except Exception as e:
-        logger.error(f"❌ Error during generation: {e}")
-        logger.info("💾 Any partial progress is saved in datasets/ folder")
+        logger.error(f" Error during generation: {e}")
+        logger.info(" Any partial progress is saved in datasets/ folder")
     
     finally:
         # Show final statistics regardless of completion status
@@ -1061,10 +1061,10 @@ def main():
             batch_files = [f for f in files if f.startswith("batch_")]
             sample_files = [f for f in files if f.startswith("sample_")]
             
-            print(f"\n📊 Final Statistics:")
-            print(f"   📁 Output directory: {os.path.abspath(output_dir)}")
-            print(f"   📄 Batch files: {len(batch_files)}")
-            print(f"   🧪 Sample files: {len(sample_files)}")
+            print(f"\n Final Statistics:")
+            print(f"    Output directory: {os.path.abspath(output_dir)}")
+            print(f"    Batch files: {len(batch_files)}")
+            print(f"    Sample files: {len(sample_files)}")
             
             # Estimate total records generated
             if batch_files:
@@ -1073,9 +1073,9 @@ def main():
                     sample_batch = os.path.join(output_dir, batch_files[0])
                     sample_df = pd.read_csv(sample_batch)
                     estimated_total = len(sample_df) * len(batch_files)
-                    print(f"   📊 Estimated records generated: {estimated_total:,}")
+                    print(f"   Estimated records generated: {estimated_total:,}")
                 except:
-                    print(f"   📊 Records: Could not estimate total")
+                    print(f"    Records: Could not estimate total")
             
             # Show sample file info
             print(f"\n🧪 Sample Files:")
@@ -1084,9 +1084,9 @@ def main():
                     sample_path = os.path.join(output_dir, sample_file)
                     try:
                         sample_df = pd.read_csv(sample_path)
-                        print(f"   📄 {sample_file}: {len(sample_df):,} records")
+                        print(f"    {sample_file}: {len(sample_df):,} records")
                     except:
-                        print(f"   📄 {sample_file}: Error reading file")
+                        print(f"    {sample_file}: Error reading file")
 
 if __name__ == "__main__":
     main()
