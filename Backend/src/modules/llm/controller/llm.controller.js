@@ -1,6 +1,140 @@
 // modules/llm/controller/llm.controller.js
 const llmService = require('../service/llm.service');
 const logger = require('../../../utils/logger');
+const { circuitBreakers, CircuitBreakerError, getAllCircuitBreakerStatus } = require('../../../utils/circuitBreaker');
+
+// ============================================================================
+// INPUT VALIDATION & SANITIZATION UTILITIES
+// ============================================================================
+
+// Characters that are BLOCKED immediately (@ and #)
+const BLOCKED_CHARACTERS = ['@', '#'];
+const BLOCKED_CHAR_REGEX = /[@#]/g;
+
+/**
+ * Check for blocked characters (@, #) - returns error immediately if found
+ */
+function checkBlockedCharacters(input) {
+  if (!input || typeof input !== 'string') {
+    return { hasBlocked: false };
+  }
+
+  const foundBlocked = [];
+  for (const char of BLOCKED_CHARACTERS) {
+    if (input.includes(char)) {
+      foundBlocked.push(char);
+    }
+  }
+
+  if (foundBlocked.length > 0) {
+    return {
+      hasBlocked: true,
+      blockedChars: foundBlocked,
+      message: `Ký tự không được phép: ${foundBlocked.join(', ')}. Vui lòng không sử dụng @ hoặc #`
+    };
+  }
+
+  return { hasBlocked: false };
+}
+
+/**
+ * Sanitize user input by removing dangerous characters
+ */
+function sanitizeInput(input) {
+  if (!input || typeof input !== 'string') {
+    return '';
+  }
+
+  return input
+    .trim()
+    .replace(BLOCKED_CHAR_REGEX, '') // Remove blocked @ and #
+    .replace(/[\x00-\x1F\x7F]/g, '') // Remove control characters
+    .replace(/\s+/g, ' ') // Normalize spaces
+    .replace(/<[^>]*>/g, '') // Remove HTML tags
+    .replace(/javascript:/gi, '') // Remove JS injection
+    .replace(/on\w+=/gi, '') // Remove event handlers
+    .replace(/([!$%^&*()_+=\[\]{}|\\:";'<>?,./`~\-]){3,}/g, '$1$1'); // Limit special chars (removed @ and # from this list)
+}
+
+/**
+ * Validate keyword for AI processing
+ */
+function validateKeyword(keyword) {
+  if (!keyword || typeof keyword !== 'string') {
+    return { isValid: false, reason: 'EMPTY_INPUT', message: 'Keyword is required' };
+  }
+
+  // FIRST: Check for blocked characters
+  const blockedCheck = checkBlockedCharacters(keyword);
+  if (blockedCheck.hasBlocked) {
+    return {
+      isValid: false,
+      reason: 'BLOCKED_CHARACTERS',
+      message: blockedCheck.message,
+      blockedChars: blockedCheck.blockedChars
+    };
+  }
+
+  const cleaned = sanitizeInput(keyword);
+
+  // Check minimum length
+  if (cleaned.length < 3) {
+    return { isValid: false, reason: 'TOO_SHORT', message: 'Keyword must be at least 3 characters' };
+  }
+
+  // Check only special characters
+  if (/^[\W_]+$/.test(cleaned)) {
+    return { isValid: false, reason: 'INVALID_CHARS', message: 'Keyword contains only special characters' };
+  }
+
+  // Check garbage patterns
+  if (/^(test|asdf|qwerty|abc|xyz|aaa|bbb|123|111)\s*\d*$/i.test(cleaned)) {
+    return { isValid: false, reason: 'GARBAGE_INPUT', message: 'Keyword appears to be test/garbage input' };
+  }
+
+  // Check repeated characters
+  if (/(.)\1{3,}/.test(cleaned)) {
+    return { isValid: false, reason: 'SPAM_PATTERN', message: 'Keyword contains spam-like pattern' };
+  }
+
+  // Check minimum alphabetic characters
+  const alphaCount = (cleaned.match(/[a-zA-Z\u00C0-\u024F\u1E00-\u1EFF]/g) || []).length;
+  if (alphaCount < 2) {
+    return { isValid: false, reason: 'INSUFFICIENT_ALPHA', message: 'Keyword must contain at least 2 letters' };
+  }
+
+  return { isValid: true, cleaned };
+}
+
+/**
+ * Log invalid input attempt to audit log
+ */
+async function logInvalidInputAudit(userId, keyword, reason, endpoint, ipAddress) {
+  try {
+    const { AuditLog } = require('../../../models');
+
+    if (AuditLog) {
+      await AuditLog.create({
+        user_id: userId || null,
+        action: 'INVALID_INPUT_ATTEMPT',
+        entity_type: 'llm_input',
+        entity_id: null,
+        details: JSON.stringify({
+          keyword: keyword ? keyword.substring(0, 100) : '', // Truncate for safety
+          reason: reason,
+          endpoint: endpoint,
+          ip_address: ipAddress,
+          timestamp: new Date().toISOString()
+        }),
+        ip_address: ipAddress,
+        created_at: new Date()
+      });
+    }
+  } catch (error) {
+    // Log to file if DB audit fails
+    logger.warn(` AUDIT: Invalid input | User: ${userId} | Keyword: "${keyword?.substring(0, 50)}" | Reason: ${reason} | Endpoint: ${endpoint}`);
+  }
+}
 
 class LLMController {
   /**
@@ -24,28 +158,94 @@ class LLMController {
 
   /**
    * Generate questions using trained model
+   * With input validation, sanitization, and audit logging
    */
   async generateQuestions(req, res) {
     try {
-      const { topic, count = 5, category = 'general' } = req.body;
+      // Support both 'topic' and 'keyword' field names for flexibility
+      const { 
+        topic, 
+        keyword,  // Alternative field name from Frontend
+        count = 5, 
+        num_questions,  // Alternative field name from Frontend
+        category = 'general',
+        category_hint,  // Alternative field name from Frontend
+        offset = 0 
+      } = req.body;
+      
+      // Use whichever field is provided
+      const inputTopic = topic || keyword;
+      const inputCount = count || num_questions || 5;
+      const inputCategory = category || category_hint || 'general';
+      
+      const userId = req.user?.id;
+      const ipAddress = req.ip || req.connection?.remoteAddress || 'unknown';
 
-      if (!topic) {
+      // ================================================================
+      // STEP 1: Validate input
+      // ================================================================
+      const validation = validateKeyword(inputTopic);
+
+      if (!validation.isValid) {
+        // Log invalid attempt to audit
+        await logInvalidInputAudit(userId, inputTopic, validation.reason, '/llm/generate', ipAddress);
+
+        logger.warn(`Invalid input rejected | User: ${userId} | Reason: ${validation.reason} | Topic: "${inputTopic?.substring(0, 50)}"`);
+
         return res.status(400).json({
           success: false,
-          message: 'Topic is required'
+          error: 'INVALID_KEYWORD',
+          message: validation.message,
+          reason: validation.reason,
+          suggestion: 'Please enter meaningful keywords, for example: "Machine Learning", "Digital Marketing"'
         });
       }
 
+      // ================================================================
+      // STEP 2: Sanitize input before processing
+      // ================================================================
+      const sanitizedTopic = sanitizeInput(inputTopic);
+
+      logger.info(`Generating questions | User: ${userId} | Topic: "${sanitizedTopic}" | Count: ${inputCount} | Offset: ${offset}`);
+
+      // ================================================================
+      // STEP 3: Generate questions with cleaned input
+      // ================================================================
       const result = await llmService.generateQuestions({
-        topic,
-        count: parseInt(count),
-        category,
-        userId: req.user?.id
+        topic: sanitizedTopic,
+        count: parseInt(inputCount),
+        category: inputCategory,
+        userId: userId,
+        offset: parseInt(offset)  // NEW: Support for regenerate
       });
 
+      // Check for AI server unavailable error
+      if (result.reason === 'AI_SERVER_UNAVAILABLE') {
+        return res.status(503).json({
+          success: false,
+          message: result.error || 'AI Server is currently unavailable',
+          reason: 'AI_SERVER_UNAVAILABLE'
+        });
+      }
+
+      // Check for AI access denied error
+      if (result.reason === 'AI_ACCESS_DENIED') {
+        return res.status(403).json({
+          success: false,
+          message: result.error || 'AI access denied',
+          reason: 'AI_ACCESS_DENIED',
+          userRole: result.userRole,
+          requiredRole: result.requiredRole
+        });
+      }
+
+      // Include metadata in response for frontend
       res.status(200).json({
         success: true,
-        data: result
+        data: result,
+        category: result.category,
+        confidence: result.confidence,
+        metadata: result.metadata  // NEW: Include metadata
       });
     } catch (error) {
       logger.error('Generate questions error:', error);
@@ -155,79 +355,92 @@ class LLMController {
     }
   }
 
-  /**
-   * Generate questions using AI
-   */
-  async generateQuestions(req, res) {
-    const user = req.user;
 
-    try {
-      console.log('🔍 Generate Questions Request Body:', JSON.stringify(req.body, null, 2));
-      console.log('🔍 Request Headers:', req.headers['content-type']);
-
-      // Validate request body
-      const { topic, keyword, count = 5, category = 'general' } = req.body;
-
-      // Accept both 'topic' and 'keyword' (frontend uses 'keyword')
-      const questionTopic = topic || keyword;
-
-      if (!questionTopic || typeof questionTopic !== 'string' || !questionTopic.trim()) {
-        console.log('❌ Topic/keyword validation failed:', { topic, keyword, count, category });
-        return res.status(400).json({
-          success: false,
-          message: 'Topic or keyword is required and must be a non-empty string',
-          received: req.body
-        });
-      }
-
-      // Validate count
-      const questionCount = parseInt(count);
-      if (isNaN(questionCount) || questionCount < 1 || questionCount > 20) {
-        console.log('❌ Count validation failed:', { count, questionCount });
-        return res.status(400).json({
-          success: false,
-          message: 'Count must be a number between 1 and 20'
-        });
-      }
-
-      logger.info(`🤖 User ${user.username} generating ${questionCount} questions for topic: ${questionTopic}`);
-
-      // Call LLM service to generate questions using trained model
-      const result = await llmService.generateQuestionsFromTrainedModel(
-        questionTopic.trim(),
-        questionCount,
-        category,
-        user?.id
-      );
-
-      res.json({
-        success: true,
-        data: result,
-        user_info: {
-          user_id: user.id,
-          username: user.username
-        }
-      });
-
-    } catch (error) {
-      logger.error(`❌ Error in generateQuestions: ${error.message}`);
-      res.status(500).json({
-        success: false,
-        message: 'Failed to generate questions',
-        error: error.message
-      });
-    }
-  }
 
   /**
    * Predict category for text
+   * With input validation and sanitization
    */
   async predictCategory(req, res) {
     try {
-      const prediction = await llmService.predictCategory(req.body);
+      const { keyword } = req.body;
+      const userId = req.user?.id;
+      const ipAddress = req.ip || req.connection?.remoteAddress || 'unknown';
+
+      // ================================================================
+      // STEP 1: Validate input
+      // ================================================================
+      const validation = validateKeyword(keyword);
+
+      if (!validation.isValid) {
+        // Log invalid attempt to audit
+        await logInvalidInputAudit(userId, keyword, validation.reason, '/llm/predict-category', ipAddress);
+
+        logger.warn(`Invalid category prediction input | User: ${userId} | Reason: ${validation.reason}`);
+
+        return res.status(400).json({
+          success: false,
+          error: 'INVALID_KEYWORD',
+          message: validation.message,
+          reason: validation.reason,
+          data: {
+            category: 'Unknown',
+            confidence: 0
+          }
+        });
+      }
+
+      // ================================================================
+      // STEP 2: Sanitize and predict
+      // ================================================================
+      const sanitizedKeyword = sanitizeInput(keyword);
+
+      const prediction = await llmService.predictCategory({ keyword: sanitizedKeyword });
+
+      // Check for AI server unavailable error
+      if (prediction.reason === 'AI_SERVER_UNAVAILABLE') {
+        return res.status(503).json({
+          success: false,
+          message: prediction.error || 'AI Server is currently unavailable',
+          reason: 'AI_SERVER_UNAVAILABLE',
+          data: {
+            category: 'Unknown',
+            confidence: 0
+          }
+        });
+      }
+
+      // ================================================================
+      // STEP 3: Validate prediction result
+      // ================================================================
+      const invalidCategories = ['unknown', 'n/a', 'none', 'null', '', 'undefined'];
+      const isInvalidCategory = !prediction.category ||
+        invalidCategories.includes(prediction.category.toLowerCase().trim());
+
+      // Normalize confidence to 0-100 scale for frontend
+      let confidence = prediction.confidence || 0;
+      if (confidence <= 1) {
+        confidence = Math.round(confidence * 100);
+      }
+
+      // Log warning if category is unknown or low confidence
+      if (isInvalidCategory || confidence < 50) {
+        logger.warn(` Unclear category prediction | Keyword: "${sanitizedKeyword}" | Category: ${prediction.category} | Confidence: ${confidence}%`);
+      }
+
       res.status(200).json({
         success: true,
-        data: prediction
+        data: {
+          category: prediction.category || 'Unknown',
+          confidence: confidence,
+          isValid: !isInvalidCategory && confidence >= 50,
+          canGenerate: !isInvalidCategory && confidence >= 50,
+          warningMessage: isInvalidCategory
+            ? 'AI cannot identify the topic. Please provide more detailed keywords.'
+            : confidence < 50
+              ? `Low confidence (${confidence}%). Results may not be accurate.`
+              : null
+        }
       });
     } catch (error) {
       logger.error('Predict category error:', error);
@@ -289,14 +502,24 @@ class LLMController {
         customQuestions,
         shareSettings,
         targetAudience,
+        workspaceId,  // Add workspaceId
         startDate,
-        endDate
+        endDate,
+        quickInvite  // Add quickInvite
       } = req.body;
 
       if (!title || !selectedQuestions || selectedQuestions.length === 0) {
         return res.status(400).json({
           success: false,
           message: 'Title and at least one question are required'
+        });
+      }
+
+      // Validate workspace requirement for internal surveys
+      if (targetAudience === 'internal' && !workspaceId) {
+        return res.status(400).json({
+          success: false,
+          message: 'Workspace ID is required for internal surveys'
         });
       }
 
@@ -309,14 +532,22 @@ class LLMController {
           customQuestions: customQuestions || [],
           shareSettings,
           targetAudience,
+          workspaceId,  // Pass workspaceId
           startDate,
-          endDate
+          endDate,
+          quickInvite  // Pass quickInvite
         }
       );
 
+      // Customize message based on invitation results
+      let message = 'Survey created successfully';
+      if (result.invitations && result.invitations.sent > 0) {
+        message = `Survey created and ${result.invitations.sent} invitation${result.invitations.sent > 1 ? 's' : ''} sent!`;
+      }
+
       res.status(201).json({
         success: true,
-        message: 'Survey created successfully',
+        message,
         data: result
       });
     } catch (error) {
@@ -607,6 +838,181 @@ class LLMController {
       });
     }
   }
+
+  // ============================================================================
+  // CIRCUIT BREAKER & SAFETY ENDPOINTS
+  // ============================================================================
+
+  /**
+   * Get Circuit Breaker status for all services
+   */
+  async getCircuitBreakerStatus(req, res) {
+    try {
+      const status = getAllCircuitBreakerStatus();
+
+      res.status(200).json({
+        success: true,
+        data: {
+          circuitBreakers: status,
+          timestamp: new Date().toISOString(),
+          summary: {
+            total: Object.keys(status).length,
+            open: Object.values(status).filter(s => s.state === 'OPEN').length,
+            closed: Object.values(status).filter(s => s.state === 'CLOSED').length,
+            halfOpen: Object.values(status).filter(s => s.state === 'HALF_OPEN').length
+          }
+        }
+      });
+    } catch (error) {
+      logger.error('Get circuit breaker status error:', error);
+      res.status(500).json({
+        success: false,
+        message: error.message || 'Error fetching circuit breaker status'
+      });
+    }
+  }
+
+  /**
+   * Generate questions with Circuit Breaker protection
+   * Wraps AI service calls to protect database when AI service is down
+   */
+  async generateQuestionsProtected(req, res) {
+    const user = req.user;
+    const ipAddress = req.ip || req.connection?.remoteAddress || 'unknown';
+    const aiCircuitBreaker = circuitBreakers.aiService;
+
+    try {
+      const { topic, keyword, count = 5, category = 'general' } = req.body;
+      const questionTopic = topic || keyword;
+      const userId = user?.id;
+
+      // ================================================================
+      // STEP 1: Check for blocked characters (@, #)
+      // ================================================================
+      const blockedCheck = checkBlockedCharacters(questionTopic);
+      if (blockedCheck.hasBlocked) {
+        await logInvalidInputAudit(userId, questionTopic, 'BLOCKED_CHARACTERS', '/llm/generate-protected', ipAddress);
+
+        return res.status(400).json({
+          success: false,
+          error: 'BLOCKED_CHARACTERS',
+          message: blockedCheck.message,
+          blockedChars: blockedCheck.blockedChars
+        });
+      }
+
+      // ================================================================
+      // STEP 2: Validate input
+      // ================================================================
+      const validation = validateKeyword(questionTopic);
+      if (!validation.isValid) {
+        await logInvalidInputAudit(userId, questionTopic, validation.reason, '/llm/generate-protected', ipAddress);
+
+        return res.status(400).json({
+          success: false,
+          error: 'INVALID_KEYWORD',
+          message: validation.message,
+          reason: validation.reason
+        });
+      }
+
+      // ================================================================
+      // STEP 3: Check Circuit Breaker before calling AI
+      // ================================================================
+      if (!aiCircuitBreaker.canRequest()) {
+        const cbState = aiCircuitBreaker.getState();
+        logger.warn(`Circuit Breaker OPEN - rejecting request from user ${userId}`);
+
+        return res.status(503).json({
+          success: false,
+          error: 'SERVICE_UNAVAILABLE',
+          message: 'AI service đang tạm ngưng do quá tải. Vui lòng thử lại sau.',
+          retryAfter: cbState.stats?.lastStateChange,
+          circuitState: cbState.state
+        });
+      }
+
+      // ================================================================
+      // STEP 4: Execute with Circuit Breaker protection
+      // ================================================================
+      const sanitizedTopic = sanitizeInput(questionTopic);
+
+      const result = await aiCircuitBreaker.execute(async () => {
+        return await llmService.generateQuestions({
+          topic: sanitizedTopic,
+          count: parseInt(count),
+          category,
+          userId
+        });
+      }, { requestId: `gen_${userId}_${Date.now()}` });
+
+      res.status(200).json({
+        success: true,
+        data: result,
+        circuitState: aiCircuitBreaker.getState().state
+      });
+
+    } catch (error) {
+      if (error.name === 'CircuitBreakerError') {
+        return res.status(503).json({
+          success: false,
+          error: 'CIRCUIT_OPEN',
+          message: error.message,
+          retryAfter: error.retryAfter
+        });
+      }
+
+      logger.error('Generate questions protected error:', error);
+      res.status(500).json({
+        success: false,
+        message: error.message || 'Error generating questions'
+      });
+    }
+  }
+
+  /**
+   * Validate input endpoint - check for blocked characters and validity
+   */
+  async validateInput(req, res) {
+    try {
+      const { keyword } = req.body;
+
+      // Check blocked characters first
+      const blockedCheck = checkBlockedCharacters(keyword);
+      if (blockedCheck.hasBlocked) {
+        return res.status(200).json({
+          success: true,
+          data: {
+            isValid: false,
+            reason: 'BLOCKED_CHARACTERS',
+            message: blockedCheck.message,
+            blockedChars: blockedCheck.blockedChars,
+            canProceed: false
+          }
+        });
+      }
+
+      // Full validation
+      const validation = validateKeyword(keyword);
+
+      res.status(200).json({
+        success: true,
+        data: {
+          isValid: validation.isValid,
+          reason: validation.reason || null,
+          message: validation.message || 'Input is valid',
+          cleaned: validation.cleaned || sanitizeInput(keyword),
+          canProceed: validation.isValid
+        }
+      });
+    } catch (error) {
+      logger.error('Validate input error:', error);
+      res.status(500).json({
+        success: false,
+        message: error.message || 'Error validating input'
+      });
+    }
+  }
 }
 
 // Create instance
@@ -635,5 +1041,9 @@ module.exports = {
   updateSurveySettings: llmController.updateSurveySettings.bind(llmController),
   updateSurveyQuestion: llmController.updateSurveyQuestion.bind(llmController),
   deleteSurveyQuestion: llmController.deleteSurveyQuestion.bind(llmController),
-  addSurveyQuestion: llmController.addSurveyQuestion.bind(llmController)
+  addSurveyQuestion: llmController.addSurveyQuestion.bind(llmController),
+  // Circuit Breaker & Safety
+  getCircuitBreakerStatus: llmController.getCircuitBreakerStatus.bind(llmController),
+  generateQuestionsProtected: llmController.generateQuestionsProtected.bind(llmController),
+  validateInput: llmController.validateInput.bind(llmController)
 };

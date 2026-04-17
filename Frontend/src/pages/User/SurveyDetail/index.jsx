@@ -11,7 +11,7 @@ const SurveyDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { showToast } = useToast();
-  
+
   const [survey, setSurvey] = useState(null);
   const [collectors, setCollectors] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -20,7 +20,7 @@ const SurveyDetail = () => {
     const fetchData = async () => {
       try {
         setLoading(true);
-        
+
         // Fetch survey details
         const surveyResult = await SurveyService.getById(id);
         if (surveyResult.ok || surveyResult.success) {
@@ -28,7 +28,7 @@ const SurveyDetail = () => {
         } else {
           throw new Error('Survey not found');
         }
-        
+
         // Fetch collectors for this survey
         try {
           const collectorsResult = await CollectorService.getBySurvey(id);
@@ -50,7 +50,7 @@ const SurveyDetail = () => {
   }, [id, navigate, showToast]);
 
   const handleRespond = (collectorToken) => {
-    window.open(`/public/responses/${collectorToken}`, '_blank');
+    window.open(`/collector/${collectorToken}`, '_blank');
   };
 
   if (loading) return <Loader />;
@@ -58,7 +58,7 @@ const SurveyDetail = () => {
   if (!survey) {
     return (
       <div className={styles.errorPage}>
-        <div className={styles.errorIcon}>❌</div>
+        <div className={styles.errorIcon}></div>
         <h2>Survey Not Found</h2>
         <p>The survey you're looking for doesn't exist.</p>
         <button onClick={() => navigate('/surveys')} className={styles.backButton}>
@@ -70,7 +70,7 @@ const SurveyDetail = () => {
 
   return (
     <div className={styles.surveyDetail}>
-      <button 
+      <button
         className={styles.backButton}
         onClick={() => navigate('/surveys')}
       >
@@ -83,7 +83,7 @@ const SurveyDetail = () => {
           {survey.description && (
             <p className={styles.description}>{survey.description}</p>
           )}
-          
+
           <div className={styles.meta}>
             <span className={`${styles.badge} ${styles.statusBadge}`}>
               {survey.status || 'Unknown'}
@@ -104,27 +104,27 @@ const SurveyDetail = () => {
         <div className={styles.content}>
           <section className={styles.surveyInfo}>
             <h2>Survey Information</h2>
-            
+
             <div className={styles.infoGrid}>
               <div className={styles.infoItem}>
                 <label>Questions</label>
                 <span>{survey.template?.questions?.length || 0} questions</span>
               </div>
-              
+
               {survey.start_date && (
                 <div className={styles.infoItem}>
                   <label>Start Date</label>
                   <span>{new Date(survey.start_date).toLocaleDateString()}</span>
                 </div>
               )}
-              
+
               {survey.end_date && (
                 <div className={styles.infoItem}>
                   <label>End Date</label>
                   <span>{new Date(survey.end_date).toLocaleDateString()}</span>
                 </div>
               )}
-              
+
               <div className={styles.infoItem}>
                 <label>Created</label>
                 <span>{new Date(survey.created_at).toLocaleDateString()}</span>
@@ -138,7 +138,7 @@ const SurveyDetail = () => {
               <p className={styles.sectionDescription}>
                 Click a distribution link below to submit your response:
               </p>
-              
+
               <div className={styles.collectorsList}>
                 {collectors.map((collector, idx) => (
                   <div key={collector.id} className={styles.collectorCard}>
@@ -148,7 +148,7 @@ const SurveyDetail = () => {
                         <span className={styles.badge}>Multiple Responses</span>
                       )}
                     </div>
-                    
+
                     <div className={styles.collectorInfo}>
                       <p><strong>Responses:</strong> {collector.response_count || 0}</p>
                       {collector.max_responses && (
@@ -158,8 +158,8 @@ const SurveyDetail = () => {
                         <p><strong>Expires:</strong> {new Date(collector.expiration_date).toLocaleDateString()}</p>
                       )}
                     </div>
-                    
-                    <button 
+
+                    <button
                       className={styles.respondButton}
                       onClick={() => handleRespond(collector.token)}
                     >
@@ -176,7 +176,7 @@ const SurveyDetail = () => {
             </section>
           ) : (
             <section className={styles.noCollectors}>
-              <div className={styles.emptyIcon}>🔗</div>
+              <div className={styles.emptyIcon}></div>
               <p>No response links are currently available for this survey.</p>
               <p className={styles.hint}>Check back later or ask the survey creator for a distribution link.</p>
             </section>

@@ -10,12 +10,13 @@ import {
   ArcElement,
   Title,
   Tooltip,
-  Legend
+  Legend,
+  Filler
 } from 'chart.js';
 import { Bar, Line, Pie } from 'react-chartjs-2';
 import { useToast } from '../../../contexts/ToastContext';
 import AnalyticsService from '../../../api/services/analytics.service';
-// ❌ NO LONGER NEEDED: UserService, SurveyService
+// NO LONGER NEEDED: UserService, SurveyService
 // import UserService from '../../../api/services/user.service';
 // import SurveyService from '../../../api/services/survey.service';
 import StatCard from '../../../components/UI/StatCard';
@@ -33,13 +34,14 @@ ChartJS.register(
   ArcElement,
   Title,
   Tooltip,
-  Legend
+  Legend,
+  Filler
 );
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
   const { showError } = useToast();
-  
+
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({
     totalUsers: 0,
@@ -64,7 +66,7 @@ const AdminDashboard = () => {
   const fetchDashboardData = useCallback(async () => {
     setLoading(true);
     try {
-      // ✅ CALL NEW ADMIN DASHBOARD API
+      // CALL NEW ADMIN DASHBOARD API
       // AnalyticsService.getAdminDashboard() is already defined in src/api/services/analytics.service.js
       const payload = await AnalyticsService.getAdminDashboard();
 
@@ -229,22 +231,22 @@ const AdminDashboard = () => {
           <p className={styles.subtitle}>Overview of system statistics and analytics</p>
         </div>
         <div className={styles.actions}>
-          <button 
+          <button
             className={styles.actionButton}
             onClick={() => navigate('/admin/users')}
           >
             <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-              <circle cx="10" cy="7" r="3" stroke="currentColor" strokeWidth="1.5"/>
-              <path d="M4 17a6 6 0 0112 0" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+              <circle cx="10" cy="7" r="3" stroke="currentColor" strokeWidth="1.5" />
+              <path d="M4 17a6 6 0 0112 0" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
             </svg>
             Manage Users
           </button>
-          <button 
+          <button
             className={styles.primaryButton}
             onClick={() => navigate('/templates')}
           >
             <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-              <path d="M10 5v10M5 10h10" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+              <path d="M10 5v10M5 10h10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
             </svg>
             Create Template
           </button>
@@ -254,25 +256,41 @@ const AdminDashboard = () => {
       {/* Stats Cards */}
       <div className={styles.statsGrid}>
         <StatCard
-          icon="👥"
+          icon={
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+              <path d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          }
           title="Total Users"
           value={stats.totalUsers}
           color="primary"
         />
         <StatCard
-          icon="📋"
+          icon={
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+              <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          }
           title="Total Surveys"
           value={stats.totalSurveys}
           color="info"
         />
         <StatCard
-          icon="✅"
+          icon={
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+              <path d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          }
           title="Total Responses"
           value={stats.totalResponses}
           color="success"
         />
         <StatCard
-          icon="🔥"
+          icon={
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+              <path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          }
           title="Active Surveys"
           value={stats.activeSurveys}
           color="warning"

@@ -2,6 +2,7 @@ const axios = require('axios');
 const { ChatConversation, ChatMessage, User } = require('../../../models');
 const logger = require('../../../utils/logger');
 const { Op } = require('sequelize');
+const contextBuilderService = require('./contextBuilder.service');
 
 class ChatService {
     constructor() {
@@ -298,18 +299,40 @@ class ChatService {
         }
     }
 
-    async chatWithGemini(conversationId, userId, userMessage) {
+    async chatWithGemini(conversationId, userId, userMessage, surveyId = null) {
         try {
             await this.sendMessage(conversationId, userId, userMessage);
 
             const startTime = Date.now();
 
+            // Build context if surveyId is provided
+            let systemContext = null;
+            let formattedContents = [];
+            
+            if (surveyId) {
+                try {
+                    const context = await contextBuilderService.buildContext(surveyId, conversationId, userId);
+                    const formattedMessages = contextBuilderService.formatForLLM(context, userMessage);
+                    
+                    // Convert to Gemini format
+                    formattedContents = formattedMessages.map(msg => ({
+                        role: msg.role === 'assistant' ? 'model' : 'user',
+                        parts: [{ text: msg.content }]
+                    }));
+                    
+                    logger.info(`Context built for survey ${surveyId}, domain: ${context.domain?.category}`);
+                } catch (contextError) {
+                    logger.warn('Failed to build context, using direct message:', contextError.message);
+                }
+            }
+
+            // Use formatted contents if available, otherwise use direct message
+            const requestContents = formattedContents.length > 0 
+                ? formattedContents 
+                : [{ parts: [{ text: userMessage }] }];
+
             const response = await axios.post(`${this.geminiApiUrl}?key=${this.geminiApiKey}`, {
-                contents: [{
-                    parts: [{
-                        text: userMessage
-                    }]
-                }]
+                contents: requestContents
             }, {
                 timeout: 30000,
                 headers: {
@@ -326,7 +349,8 @@ class ChatService {
                 message: aiMessage,
                 api_provider: 'gemini',
                 response_time: responseTime,
-                status: 'delivered'
+                status: 'delivered',
+                metadata: surveyId ? { surveyId, contextUsed: true } : null
             });
 
             const conversation = await ChatConversation.findByPk(conversationId);
@@ -336,7 +360,8 @@ class ChatService {
             return {
                 success: true,
                 userMessage,
-                aiMessage: aiChatMessage
+                aiMessage: aiChatMessage,
+                contextUsed: surveyId ? true : false
             };
         } catch (error) {
             logger.error('Error in Gemini chat:', error);
@@ -354,18 +379,55 @@ class ChatService {
         }
     }
 
-    async chatWithAuto(conversationId, userId, userMessage) {
+    async chatWithAuto(conversationId, userId, userMessage, surveyId = null) {
         try {
             const provider = this.defaultProvider === 'auto' ? 'gemini' : this.defaultProvider;
 
             if (provider === 'gemini') {
-                return await this.chatWithGemini(conversationId, userId, userMessage);
+                return await this.chatWithGemini(conversationId, userId, userMessage, surveyId);
             } else {
                 return await this.chatWithSuperDev(conversationId, userId, userMessage);
             }
         } catch (error) {
             logger.error('Error in Auto chat:', error);
             throw error;
+        }
+    }
+
+    /**
+     * Chat with domain-aware context
+     * Uses ContextBuilderService to detect survey domain and load chat history
+     */
+    async chatWithContext(conversationId, userId, userMessage, surveyId) {
+        try {
+            logger.info(`Starting context-aware chat for survey ${surveyId}`);
+            
+            // Build comprehensive context
+            const context = await contextBuilderService.buildContext(surveyId, conversationId, userId);
+            
+            // Log domain detection result
+            logger.info(`📂 Domain detected: ${context.domain?.category} (confidence: ${(context.domain?.confidence * 100).toFixed(1)}%)`);
+            logger.info(`📨 Chat history loaded: ${context.chatHistory?.length || 0} messages`);
+            
+            // Use Gemini with context
+            return await this.chatWithGemini(conversationId, userId, userMessage, surveyId);
+            
+        } catch (error) {
+            logger.error('Error in context-aware chat:', error);
+            // Fallback to regular chat
+            return await this.chatWithGemini(conversationId, userId, userMessage);
+        }
+    }
+
+    /**
+     * Get domain information for a survey
+     */
+    async getSurveyDomain(surveyId) {
+        try {
+            return await contextBuilderService.detectDomain(surveyId);
+        } catch (error) {
+            logger.error('Error getting survey domain:', error);
+            return { category: 'general', confidence: 0 };
         }
     }
 }

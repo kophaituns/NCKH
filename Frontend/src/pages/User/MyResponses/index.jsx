@@ -9,7 +9,7 @@ import styles from './MyResponses.module.scss';
 const MyResponses = () => {
   const navigate = useNavigate();
   const { showToast } = useToast();
-  
+
   const [responses, setResponses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -24,9 +24,9 @@ const MyResponses = () => {
         limit: 100,
         page: 1
       });
-      
+
       console.log('[MyResponses] fetchResponses result:', result);
-      
+
       // Handle different response formats
       if (result && Array.isArray(result)) {
         setResponses(result);
@@ -66,9 +66,9 @@ const MyResponses = () => {
 
   const getIdentityDisplay = (response) => {
     if (response.respondent_user_id) {
-      return '👤 Identified';
+      return 'Identified';
     }
-    return '🔒 Anonymous';
+    return 'Anonymous';
   };
 
   if (loading) return <Loader />;
@@ -80,7 +80,7 @@ const MyResponses = () => {
           <h1 className={styles.title}>My Responses</h1>
           <p className={styles.subtitle}>View and manage your survey responses</p>
         </div>
-        <button 
+        <button
           className={styles.browseButton}
           onClick={() => navigate('/surveys')}
         >
@@ -116,10 +116,10 @@ const MyResponses = () => {
 
       {currentResponses.length === 0 ? (
         <div className={styles.emptyState}>
-          <div className={styles.emptyIcon}>📋</div>
+          <div className={styles.emptyIcon}></div>
           <h3>No responses yet</h3>
           <p>You haven't submitted any survey responses yet</p>
-          <button 
+          <button
             className={styles.emptyButton}
             onClick={() => navigate('/surveys')}
           >
@@ -131,7 +131,7 @@ const MyResponses = () => {
           <div className={styles.responsesList}>
             {currentResponses.map((response) => (
               <div key={response.id} className={styles.responseCard}>
-                <div 
+                <div
                   className={styles.cardHeader}
                   onClick={() => setExpandedId(expandedId === response.id ? null : response.id)}
                   role="button"
@@ -156,12 +156,12 @@ const MyResponses = () => {
                     </div>
                   </div>
                   <div className={styles.expandIcon}>
-                    <svg 
-                      width="20" 
-                      height="20" 
-                      viewBox="0 0 24 24" 
-                      fill="none" 
-                      stroke="currentColor" 
+                    <svg
+                      width="20"
+                      height="20"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
                       strokeWidth="2"
                       style={{
                         transform: expandedId === response.id ? 'rotate(180deg)' : 'rotate(0deg)',
@@ -185,7 +185,7 @@ const MyResponses = () => {
                                 {answer.question?.question_text || `Question ${idx + 1}`}
                               </div>
                               <div className={styles.answer}>
-                                {Array.isArray(answer.answer_value) 
+                                {Array.isArray(answer.answer_value)
                                   ? answer.answer_value.join(', ')
                                   : answer.answer_value || 'No answer provided'}
                               </div>
@@ -196,7 +196,7 @@ const MyResponses = () => {
                     ) : (
                       <p className={styles.noAnswers}>No answers recorded for this response</p>
                     )}
-                    
+
                     <div className={styles.responseFooter}>
                       <small>
                         Response ID: {response.id} • Status: {response.status}

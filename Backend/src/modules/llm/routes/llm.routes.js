@@ -151,6 +151,31 @@ router.delete('/surveys/:surveyId/questions/:questionId', llmController.deleteSu
  */
 router.post('/surveys/:surveyId/questions', llmController.addSurveyQuestion);
 
+// ============================================================================
+// CIRCUIT BREAKER & SAFETY ROUTES
+// ============================================================================
+
+/**
+ * @route   GET /api/modules/llm/circuit-breaker/status
+ * @desc    Get status of all circuit breakers
+ * @access  Private
+ */
+router.get('/circuit-breaker/status', llmController.getCircuitBreakerStatus);
+
+/**
+ * @route   POST /api/modules/llm/generate-protected
+ * @desc    Generate questions with Circuit Breaker protection
+ * @access  Private
+ */
+router.post('/generate-protected', llmController.generateQuestionsProtected);
+
+/**
+ * @route   POST /api/modules/llm/validate-input
+ * @desc    Validate input for blocked characters and semantics
+ * @access  Private
+ */
+router.post('/validate-input', llmController.validateInput);
+
 // Health check
 router.get('/health', (req, res) => {
     res.json({ 

@@ -1,4 +1,4 @@
-const logger = require('../../../../src/utils/logger');
+const logger = require('../../../utils/logger');
 const { User, Survey, Question, QuestionOption, SurveyResponse, ResponseAnswer, SurveyLink, SurveyTemplate } = require('../../../../src/models');
 const axios = require('axios');
 
@@ -8,10 +8,17 @@ class LLMService {
     this.logger = logger;
     // Cấu hình cho trained model API
     this.trainedModelConfig = {
-      baseURL: process.env.TRAINED_MODEL_API_URL || 'http://localhost:8001',
-      timeout: 30000,
+      baseURL: process.env.TRAINED_MODEL_API_URL || 'http://localhost:9000',
+      timeout: 60000, // Tăng lên 60 giây để phù hợp với thời gian generate thực tế
       headers: {
         'Content-Type': 'application/json'
+      }
+    };
+    this.cache = {
+      categories: {
+        data: null,
+        timestamp: 0,
+        ttl: 3600000 // 1 hour
       }
     };
   }
@@ -31,17 +38,17 @@ class LLMService {
     }
 
     try {
-      this.logger.info(`🔗 Calling ${method} ${url}`);
+      this.logger.info(` Calling ${method} ${url}`);
       if (data) {
-        this.logger.info(`📤 Request data: ${JSON.stringify(data)}`);
+        this.logger.info(` Request data: ${JSON.stringify(data)}`);
       }
 
       const response = await axios(config);
-      this.logger.info(`✅ Response status: ${response.status}`);
+      this.logger.info(` Response status: ${response.status}`);
       return response;
     } catch (error) {
-      this.logger.error(`❌ API call failed: ${method} ${url}`);
-      this.logger.error(`❌ Error details:`, {
+      this.logger.error(` API call failed: ${method} ${url}`);
+      this.logger.error(` Error details:`, {
         message: error.message,
         status: error.response?.status,
         statusText: error.response?.statusText,
@@ -56,9 +63,16 @@ class LLMService {
    */
   async getCategories() {
     try {
+      // Check cache first
+      const now = Date.now();
+      if (this.cache.categories.data && (now - this.cache.categories.timestamp < this.cache.categories.ttl)) {
+        this.logger.info('Serving categories from cache');
+        return this.cache.categories.data;
+      }
+
       // Gọi API từ trained model để lấy categories
-      const url = `${this.trainedModelConfig.baseURL}/api/model/categories`;
-      this.logger.info(`🔗 Calling categories API: ${url}`);
+      const url = `${this.trainedModelConfig.baseURL}/`;
+      this.logger.info(`Calling categories API: ${url}`);
 
       const response = await axios.get(url, {
         timeout: 5000
@@ -66,7 +80,7 @@ class LLMService {
 
       if (response.data && response.data.success) {
         const categories = response.data.categories || ['general', 'it', 'marketing', 'economics'];
-        return categories.map(cat => {
+        const mappedCategories = categories.map(cat => {
           const categoryInfo = {
             it: { name: 'Information Technology', description: 'Technology, programming, and IT-related topics' },
             marketing: { name: 'Marketing', description: 'Marketing, advertising, and business promotion' },
@@ -80,11 +94,17 @@ class LLMService {
             description: categoryInfo[cat]?.description || `${cat} related surveys`
           };
         });
+
+        // Save to cache
+        this.cache.categories.data = mappedCategories;
+        this.cache.categories.timestamp = Date.now();
+
+        return mappedCategories;
       }
 
       throw new Error('Invalid response from trained model');
     } catch (error) {
-      this.logger.warn(`⚠️ Could not get categories from model (using defaults): ${error.message}`);
+      this.logger.warn(`Could not get categories from model (using defaults): ${error.message}`);
       // Return default categories if model is not available
       return [
         { id: 'it', name: 'Information Technology', description: 'IT related surveys' },
@@ -119,7 +139,7 @@ class LLMService {
 
       return allPrompts;
     } catch (error) {
-      this.logger.error(`❌ Error getting prompts: ${error.message}`);
+      this.logger.error(` Error getting prompts: ${error.message}`);
       // Return basic prompts if model is not available
       return [
         {
@@ -139,77 +159,167 @@ class LLMService {
    */
   async generateQuestions(data) {
     const models = require('../../../models');
-    const { GeneratedQuestion } = models;
+    const { GeneratedQuestion, User } = models;
 
-    console.log('🔍 generateQuestions called with:', data);
-    console.log('🔍 GeneratedQuestion model:', !!GeneratedQuestion);
+    console.log('generateQuestions called with:', data);
+    console.log('GeneratedQuestion model:', !!GeneratedQuestion);
 
     try {
-      const { topic, count = 5, category = 'general', userId } = data;
+      const { topic, count = 5, category = 'general', userId, offset = 0 } = data;
 
-      this.logger.info(`🤖 User ${userId || 'unknown'} generating ${count} questions for topic: ${topic}`);
+      this.logger.info(`User ${userId || 'unknown'} generating ${count} questions for topic: ${topic} (offset: ${offset})`);
 
-      // Use TrainedModelService
+      // Get user object for permission check
+      let user = null;
+      if (userId) {
+        try {
+          user = await User.findByPk(userId);
+        } catch (err) {
+          this.logger.warn(`Could not fetch user ${userId}: ${err.message}`);
+        }
+      }
+
+      // Use TrainedModelService with user for permission check
       const TrainedModelService = require('./trained-model.service');
-      const trainedModel = new TrainedModelService();
+      const trainedModel = new TrainedModelService(user);
 
-      const result = await trainedModel.generateQuestions(topic, count, category);
+      const result = await trainedModel.generateQuestions(topic, count, category, offset);
 
-      if (result.success && result.questions) {
+      // Check for AI server unavailable error - propagate to frontend
+      if (result.reason === 'AI_SERVER_UNAVAILABLE') {
+        this.logger.error('AI Server is unavailable');
+        return {
+          success: false,
+          error: result.error,
+          reason: 'AI_SERVER_UNAVAILABLE',
+          questions: []
+        };
+      }
+
+      // Check for AI access denied error - propagate to frontend
+      if (result.reason === 'AI_ACCESS_DENIED') {
+        this.logger.warn('AI access denied for user');
+        return {
+          success: false,
+          error: result.error,
+          reason: 'AI_ACCESS_DENIED',
+          userRole: result.userRole,
+          requiredRole: result.requiredRole,
+          questions: []
+        };
+      }
+
+      // Handle new response format with metadata
+      const questions = result.questions || [];
+      const metadata = result.metadata || null;
+      const hasQuestions = questions.length > 0;
+
+      if (hasQuestions) {
         // Save generated questions to database
         const savedQuestions = [];
 
-        for (const q of result.questions) {
+        for (const q of questions) {
+          // Get question text from either format
+          const questionText = q.question || q.question_text;
+          
+          // Validate & Normalize
+          const normalized = this.normalizeQuestion({
+            ...q,
+            question: questionText
+          });
+
           const questionData = {
-            question_text: q.question || q.text || q,
-            question_type: q.type || this._getQuestionType(q.question || q.text || q),
-            options: q.options || null, // Store options for multiple choice questions
+            question_text: normalized.question_text,
+            question_type: normalized.canonical_type, // Persist string type for AI history (if supported)
+            options: normalized.spec.options || null,
             keyword: topic,
-            category: category,
+            category: q.category || category,
             source_model: 'trained_model',
             generated_by: userId,
-            quality_score: q.confidence ? (q.confidence / 100 * 5) : null // Convert to 5-point scale
+            quality_score: q.confidence ? (q.confidence * 5) : 4.0  // confidence is now 0-1, not 0-100
           };
 
-          try {
-            console.log('🔍 Attempting to save question to database:', questionData);
-            const savedQuestion = await GeneratedQuestion.create(questionData);
-            console.log('✅ Question saved successfully:', savedQuestion.toJSON());
+          // Attempt save if Model exists
+          if (GeneratedQuestion) {
+            try {
+              console.log('Attempting to save normalized question:', questionData);
+              const savedQuestion = await GeneratedQuestion.create(questionData);
+              console.log(' Question saved successfully');
 
+              savedQuestions.push({
+                id: savedQuestion.id,
+                question: savedQuestion.question_text,
+                type: savedQuestion.question_type,
+                type_id: normalized.question_type_id,
+                options: savedQuestion.options,
+                spec: normalized.spec,
+                source: 'AI Model',
+                confidence: q.confidence || 0.85,
+                category: q.category,
+                question_type: q.question_type,  // NEW: AI detected type
+                semantic_type: q.semantic_type,   // NEW: Semantic type
+                method: q.method,                 // NEW: Generation method
+                source_keyword: q.source_keyword, // NEW: Source keyword
+                similarity_score: q.similarity_score, // NEW: Similarity score
+                suggested_form_type: q.suggested_form_type, // NEW: Form type suggestion
+                created_at: savedQuestion.created_at
+              });
+            } catch (saveError) {
+              console.error(' Failed to save question:', saveError);
+              // Push anyway without DB id
+              savedQuestions.push({
+                question: normalized.question_text,
+                type: normalized.canonical_type,
+                type_id: normalized.question_type_id,
+                options: normalized.spec.options || null,
+                spec: normalized.spec,
+                source: 'AI Model',
+                confidence: q.confidence || 0.85,
+                category: q.category,
+                question_type: q.question_type,
+                semantic_type: q.semantic_type,
+                method: q.method,
+                source_keyword: q.source_keyword,
+                similarity_score: q.similarity_score,
+                suggested_form_type: q.suggested_form_type
+              });
+            }
+          } else {
+            // No Model, just push to return array
             savedQuestions.push({
-              id: savedQuestion.id,
-              question: savedQuestion.question_text,
-              type: savedQuestion.question_type,
-              options: savedQuestion.options,
+              question: normalized.question_text,
+              type: normalized.canonical_type,
+              type_id: normalized.question_type_id,
+              options: normalized.spec.options || null,
+              spec: normalized.spec,
               source: 'AI Model',
-              confidence: q.confidence || 85,
-              created_at: savedQuestion.created_at
-            });
-          } catch (saveError) {
-            console.error('❌ Failed to save question to database:', saveError);
-            this.logger.warn(`Failed to save question to database: ${saveError.message}`);
-            // Still include in response even if save fails
-            savedQuestions.push({
-              question: questionData.question_text,
-              type: questionData.question_type,
-              source: 'AI Model',
-              confidence: q.confidence || 85
+              confidence: q.confidence || 0.85,
+              category: q.category,
+              question_type: q.question_type,
+              semantic_type: q.semantic_type,
+              method: q.method,
+              source_keyword: q.source_keyword,
+              similarity_score: q.similarity_score,
+              suggested_form_type: q.suggested_form_type
             });
           }
         }
 
-        this.logger.info(`✅ Generated ${savedQuestions.length} questions successfully`);
+        this.logger.info(` Generated ${savedQuestions.length} questions successfully`);
         return {
           success: true,
-          questions: savedQuestions
+          questions: savedQuestions,
+          category: result.category,
+          confidence: result.confidence,
+          metadata: metadata  // NEW: Include metadata for frontend
         };
       } else {
-        this.logger.warn('⚠️ Trained model failed, using fallback');
+        this.logger.warn('Trained model failed, using fallback');
         return this._generateSimpleFallbackQuestions(topic, count, category, result.error || 'Model unavailable', userId);
       }
 
     } catch (error) {
-      this.logger.error('❌ Error in generateQuestions:', error.message);
+      this.logger.error(' Error in generateQuestions:', error.message);
       return this._generateSimpleFallbackQuestions(data.topic, data.count, data.category, error.message, data.userId);
     }
   }
@@ -236,13 +346,28 @@ class LLMService {
 
       const result = await trainedModel.predictCategory(keyword);
 
-      if (result.success) {
+      // Check for AI server unavailable error - propagate to frontend
+      if (result.reason === 'AI_SERVER_UNAVAILABLE') {
+        this.logger.error('AI Server is unavailable for category prediction');
         return {
-          category: result.category,
-          confidence: result.confidence || 0.8
+          success: false,
+          error: result.error,
+          reason: 'AI_SERVER_UNAVAILABLE'
         };
-      } else {
+      }
+
+      // Python API returns: { keyword, predicted_category, confidence, all_probabilities }
+      if (result.predicted_category) {
+        return {
+          category: result.predicted_category,
+          confidence: result.confidence || 0.8,
+          all_probabilities: result.all_probabilities
+        };
+      } else if (result.success === false) {
         this.logger.error('Category prediction failed:', result.error);
+        return this._fallbackPredictCategory(keyword);
+      } else {
+        // Fallback if structure is unexpected
         return this._fallbackPredictCategory(keyword);
       }
     } catch (error) {
@@ -260,7 +385,7 @@ class LLMService {
     const { GeneratedQuestion } = models;
 
     try {
-      this.logger.info(`🤖 Calling trained model for topic: "${topic}", category: ${category}, count: ${count}`);
+      this.logger.info(`Calling trained model for topic: "${topic}", category: ${category}, count: ${count}`);
 
       const requestData = {
         keyword: topic,
@@ -268,16 +393,23 @@ class LLMService {
         category: category || 'general'
       };
 
-      const response = await this.callTrainedModel('/api/questions/generate', 'POST', requestData);
+      const response = await this.callTrainedModel('/api/generate-questions', 'POST', requestData);
 
-      if (response.data && response.data.success) {
-        const questions = response.data.questions.map((q, index) => ({
-          id: index + 1,
-          question: q.question || q,
-          type: this._getQuestionType(q, index),
-          options: this._getQuestionOptions(q, index),
-          required: true
-        }));
+      // Python API returns: { keyword, category, confidence, questions, generated_at, total_questions }
+      if (response.data && response.data.questions) {
+        const questions = response.data.questions.map((q, index) => {
+          const normalized = this.normalizeQuestion(q);
+          return {
+            id: index + 1,
+            question: normalized.question_text,
+            type: normalized.canonical_type,
+            type_id: normalized.question_type_id,
+            options: normalized.spec.options,
+            spec: normalized.spec,
+            required: true,
+            confidence: q.confidence || response.data.confidence
+          };
+        });
 
         // Save questions to database if userId is provided
         const savedQuestions = [];
@@ -286,20 +418,22 @@ class LLMService {
             try {
               const savedQuestion = await GeneratedQuestion.create({
                 question_text: q.question,
-                question_type: q.type,
+                question_type: q.type, // String type
                 options: q.options ? JSON.stringify(q.options) : null,
                 keyword: topic,
                 category: category,
                 source_model: 'trained_model',
                 generated_by: userId,
-                quality_score: 4.0 // High score for trained model questions
+                quality_score: 4.0
               });
 
               savedQuestions.push({
                 id: savedQuestion.id,
                 question: savedQuestion.question_text,
                 type: savedQuestion.question_type,
-                options: savedQuestion.options ? JSON.parse(savedQuestion.options) : null,
+                type_id: q.type_id, // Pass ID
+                options: q.options,
+                spec: q.spec,
                 source: 'AI Model',
                 confidence: 95,
                 created_at: savedQuestion.created_at
@@ -319,7 +453,7 @@ class LLMService {
           savedQuestions.push(...questions);
         }
 
-        this.logger.info(`✅ Generated ${savedQuestions.length} questions successfully`);
+        this.logger.info(` Generated ${savedQuestions.length} questions successfully`);
 
         return {
           questions: savedQuestions,
@@ -337,10 +471,10 @@ class LLMService {
         throw new Error(`Invalid response from trained model: ${JSON.stringify(response.data)}`);
       }
     } catch (error) {
-      this.logger.error(`❌ Error calling trained model: ${error.message}`);
+      this.logger.error(` Error calling trained model: ${error.message}`);
 
       // Fallback to simple questions if trained model fails
-      console.log('🔍 Using fallback, userId:', userId);
+      console.log('Using fallback, userId:', userId);
       return await this._generateSimpleFallbackQuestions(topic, count, category, error.message, userId);
     }
   }
@@ -481,17 +615,17 @@ class LLMService {
   // Lấy thông tin từ trained model
   async getTrainedModelInfo() {
     try {
-      const response = await axios.get(`${this.trainedModelConfig.baseURL}/api/model/info`, {
+      const response = await axios.get(`${this.trainedModelConfig.baseURL}/`, {
         timeout: 5000
       });
 
-      if (response.data && response.data.success) {
+      if (response.data) {
         return response.data;
       }
 
       return { categories: ['general', 'it', 'marketing', 'economics'] };
     } catch (error) {
-      this.logger.warn(`⚠️ Could not get model info: ${error.message}`);
+      this.logger.warn(`Could not get model info: ${error.message}`);
       return { categories: ['general', 'it', 'marketing', 'economics'] };
     }
   }
@@ -523,9 +657,9 @@ class LLMService {
         // Generic fallback if no keywords match but type is multiple_choice
         return ['Option 1', 'Option 2', 'Option 3', 'Option 4'];
       }
-    } else if (questionType === 'rating') {
-      return null; // Rating questions don't need predefined options
-    } else if (questionType === 'yes_no') {
+    } else if (questionType === 'rating' || questionType === 'likert_scale') {
+      return null; // Rating questions don't need predefined options (1-5 handled by UI)
+    } else if (questionType === 'yes_no' || questionType === 'boolean') {
       return ['Yes', 'No'];
     }
 
@@ -537,7 +671,7 @@ class LLMService {
     const models = require('../../../models');
     const { GeneratedQuestion } = models;
 
-    this.logger.warn(`🔄 Using simple fallback for topic: ${topic}`);
+    this.logger.warn(` Using simple fallback for topic: ${topic}`);
 
     const questions = [];
     const savedQuestions = [];
@@ -555,7 +689,7 @@ class LLMService {
       // Save to database
       if (userId) {
         try {
-          console.log('🔍 Attempting to save fallback question:', {
+          console.log(' Attempting to save fallback question:', {
             question_text: questionText,
             question_type: 'text',
             options: null,
@@ -577,12 +711,12 @@ class LLMService {
             quality_score: 2.5 // Average score for fallback questions
           });
 
-          console.log('✅ Fallback question saved successfully:', savedQuestion.toJSON()); savedQuestions.push({
+          console.log(' Fallback question saved successfully:', savedQuestion.toJSON()); savedQuestions.push({
             id: savedQuestion.id,
             question: savedQuestion.question_text,
             type: savedQuestion.question_type,
             source: 'Fallback',
-            confidence: 60,
+            confidence: 0.60,  // 0-1 scale, not 0-100
             created_at: savedQuestion.created_at
           });
         } catch (saveError) {
@@ -591,7 +725,7 @@ class LLMService {
             question: questionText,
             type: 'text',
             source: 'Fallback',
-            confidence: 60
+            confidence: 0.60  // 0-1 scale, not 0-100
           });
         }
       } else {
@@ -599,7 +733,7 @@ class LLMService {
           question: questionText,
           type: 'text',
           source: 'Fallback',
-          confidence: 60
+          confidence: 0.60  // 0-1 scale, not 0-100
         });
       }
     }
@@ -621,10 +755,10 @@ class LLMService {
   // Lấy thông tin từ trained model
   async getTrainedModelInfo() {
     try {
-      const response = await this.callTrainedModel('/api/model/info', 'GET');
+      const response = await this.callTrainedModel('/', 'GET');
       return response.data;
     } catch (error) {
-      this.logger.warn(`⚠️ Could not get trained model info (using defaults): ${error.message}`);
+      this.logger.warn(`Could not get trained model info (using defaults): ${error.message}`);
       return {
         name: 'Trained AI Model',
         version: '1.0.0',
@@ -640,29 +774,176 @@ class LLMService {
     return await this._generateSimpleFallbackQuestions(topic, count, category, errorMessage, userId);
   }
 
-  // Determine question type based on content
-  getQuestionType(questionData, index = 0) {
-    return this._getQuestionType(questionData, index);
+  /**
+   * Normalize AI question to canonical type and spec
+   * @param {Object|string} aiQuestion - Raw question from AI
+   * @returns {Object} { question_type_id, spec, question_text, type_string }
+   */
+  normalizeQuestion(aiQuestion) {
+    const questionText = (typeof aiQuestion === 'string' ? aiQuestion : aiQuestion.question || aiQuestion.text || aiQuestion.question_text || '').trim();
+    let rawType = (typeof aiQuestion === 'object' ? (aiQuestion.type || aiQuestion.question_type) : null) || '';
+
+    // If no explicit type, guess it
+    if (!rawType) {
+      rawType = this._getQuestionType(questionText);
+    }
+    rawType = rawType.toLowerCase();
+
+    // Canonical Mapping Rules
+    const { QUESTION_TYPES } = require('../../../constants/questionTypes');
+
+    // Defaults
+    let typeId = QUESTION_TYPES.TEXT;
+    let spec = { placeholder: "", multiline: false };
+    let canonicalType = 'text';
+
+    // 1. Text / Number / Email / Date -> Text (ID 3)
+    if (['text', 'short_text', 'number', 'email', 'date'].includes(rawType)) {
+      typeId = QUESTION_TYPES.TEXT;
+      canonicalType = 'text';
+      spec = { placeholder: "Your answer...", multiline: false };
+    }
+
+    // 2. Open Ended / Long Text -> Open Ended (ID 8)
+    else if (['open_ended', 'long_text', 'paragraph'].includes(rawType)) {
+      typeId = QUESTION_TYPES.OPEN_ENDED;
+      canonicalType = 'open_ended';
+      spec = { placeholder: "Your answer...", multiline: true };
+    }
+
+    // 3. Rating -> Rating (ID 4)
+    else if (['rating', 'star'].includes(rawType)) {
+      typeId = QUESTION_TYPES.RATING;
+      canonicalType = 'rating';
+      spec = { min: 1, max: 5, labels: null };
+    }
+
+    // 4. Likert -> Likert Scale (ID 5)
+    else if (['likert', 'likert_scale'].includes(rawType)) {
+      typeId = QUESTION_TYPES.LIKERT_SCALE;
+      canonicalType = 'likert_scale';
+      spec = { min: 1, max: 5, labels: null };
+    }
+
+    // 5. Yes/No -> Multiple Choice (ID 2) WITH options
+    else if (['yes_no', 'boolean'].includes(rawType)) {
+      typeId = QUESTION_TYPES.MULTIPLE_CHOICE; // Could be Single Choice (1) depending on strictness, but 2 is safer for options
+      canonicalType = 'single_choice'; // UI key
+      // Force Single Choice ID (1) if available, else 2
+      typeId = QUESTION_TYPES.SINGLE_CHOICE || 1;
+
+      spec = {
+        options: [
+          { text: "Yes", value: "yes" },
+          { text: "No", value: "no" }
+        ]
+      };
+    }
+
+    // 6. Choice Types
+    else if (['single_choice', 'multiple_choice', 'checkbox', 'dropdown', 'ranking'].includes(rawType)) {
+      if (rawType === 'checkbox' || rawType === 'multiple_choice') {
+        typeId = QUESTION_TYPES.MULTIPLE_CHOICE; // 2
+        canonicalType = 'multiple_choice';
+      } else if (rawType === 'dropdown') {
+        typeId = QUESTION_TYPES.DROPDOWN; // 6
+        canonicalType = 'dropdown';
+      } else {
+        typeId = QUESTION_TYPES.SINGLE_CHOICE; // 1
+        canonicalType = 'single_choice';
+      }
+
+      // REQUIRE options
+      let options = aiQuestion.options || [];
+
+      // Attempt to recover options if missing
+      if (!Array.isArray(options) || options.length === 0) {
+        if (questionText.match(/experience level/i)) options = ['Beginner', 'Intermediate', 'Advanced', 'Expert'];
+        else if (questionText.match(/frequency|how often/i)) options = ['Daily', 'Weekly', 'Monthly', 'Rarely', 'Never'];
+        else if (questionText.match(/agreement|agree/i)) options = ['Strongly Agree', 'Agree', 'Neutral', 'Disagree', 'Strongly Disagree'];
+        else if (questionText.match(/satisfaction|satisfied/i)) options = ['Very Satisfied', 'Satisfied', 'Neutral', 'Dissatisfied', 'Very Dissatisfied'];
+        else {
+          // Fallback to text if absolutely no options
+          typeId = QUESTION_TYPES.TEXT;
+          canonicalType = 'text';
+          spec = { placeholder: "Your answer...", multiline: false };
+        }
+      }
+
+      // Format options
+      if (options && options.length > 0) {
+        spec = {
+          options: options.map(opt => {
+            if (typeof opt === 'string') return { text: opt, value: opt.toLowerCase().replace(/\s+/g, '_') };
+            return { text: opt.text || opt.label, value: opt.value || opt.id };
+          })
+        };
+      }
+    } else {
+      // Unknown -> Text
+      typeId = QUESTION_TYPES.TEXT;
+      canonicalType = 'text';
+    }
+
+    return {
+      question_type_id: typeId,
+      canonical_type: canonicalType,
+      spec: spec,
+      question_text: questionText,
+      original_type: rawType
+    };
   }
 
-  // Internal method to determine question type
+  // Internal method to determine question type using intelligent pattern matching
   _getQuestionType(questionData, index = 0) {
+    // If type is explicitly provided, use it
     if (typeof questionData === 'object' && questionData.type) {
       return questionData.type;
     }
 
-    // Smart type assignment based on content
+    // Extract question text
     const questionText = (typeof questionData === 'string' ? questionData : questionData.question || '').toLowerCase();
 
-    if (questionText.includes('rate') || questionText.includes('scale') || questionText.includes('how much')) {
+    // INTELLIGENT TYPE DETECTION ALGORITHM
+
+    // 1. Rating/Scale questions - ONLY for explicit rating requests
+    if (questionText.match(/rate|how (satisfied|likely)|on a scale|level of (satisfaction|agreement)/i)) {
       return 'rating';
-    } else if (questionText.includes('choose') || questionText.includes('select') || questionText.includes('experience level')) {
-      return 'multiple_choice';
-    } else if (questionText.includes('yes') || questionText.includes('no') || questionText.includes('do you')) {
-      return 'yes_no';
-    } else {
-      return 'text';
     }
+
+    // 2. Yes/No (Boolean) questions - Questions starting with auxiliary verbs
+    if (questionText.match(/^(do|does|is|are|can|could|would|should|will|has|have)\s/i)) {
+      return 'boolean';
+    }
+
+    // 3. Multiple choice - When asking to select/choose
+    if (questionText.match(/which|select|choose|pick one|experience level/i)) {
+      return 'single_choice';
+    }
+
+    // 4. Numeric questions
+    if (questionText.match(/how many|number of|count|quantity/i)) {
+      return 'number';
+    }
+
+    // 5. Email questions
+    if (questionText.match(/email|e-mail address/i)) {
+      return 'email';
+    }
+
+    // 6. Date questions
+    if (questionText.match(/when|date|time|year/i)) {
+      return 'date';
+    }
+
+    // 7. Open-ended questions - DEFAULT for What/How/Why questions
+    // These require detailed text answers, NOT ratings!
+    if (questionText.match(/^(what|how|why|describe|explain|list|name|identify)/i)) {
+      return 'open_ended';
+    }
+
+    // 8. Fallback to text for any other question
+    return 'text';
   }
 
   /**
@@ -670,16 +951,26 @@ class LLMService {
    */
   _getQuestionTypeId(typeName) {
     const typeMapping = {
-      'multiple_choice': 1,
-      'checkbox': 2,
-      'likert_scale': 3,
-      'open_ended': 4,
-      'dropdown': 5,
-      'text': 4, // map text to open_ended
-      'yes_no': 1, // map yes_no to multiple_choice
-      'rating': 3, // map rating to likert_scale
-      'email': 4, // map email to open_ended
-      'date': 4 // map date to open_ended
+      // Canonical Mapping to Supported DB Types (1-5)
+      'open_ended': 4,      // 4: Open Ended
+      'text': 4,            // 4: Open Ended
+
+      'rating': 3,          // 3: Likert Scale (Frontend supports 1-5 buttons)
+      'likert_scale': 3,    // 3: Likert Scale
+
+      'boolean': 1,         // 1: Multiple Choice (Must have Yes/No options)
+      'yes_no': 1,          // 1: Multiple Choice (Must have Yes/No options)
+      'single_choice': 1,   // 1: Multiple Choice
+      'multiple_choice': 1, // 1: Multiple Choice
+
+      'checkbox': 2,        // 2: Checkbox
+      'dropdown': 5,        // 5: Dropdown
+
+      // Fallbacks for types not yet supported in DB/Frontend Utils
+      'number': 4,          // Fallback to text
+      'email': 4,           // Fallback to text
+      'date': 4,            // Fallback to text
+      'ranking': 1,         // Fallback to multiple choice
     };
 
     return typeMapping[typeName] || 4; // default to open_ended
@@ -733,31 +1024,31 @@ class LLMService {
 
       // Add selected questions from generation
       for (const selectedQ of surveyData.selectedQuestions) {
-        const questionType = this._getQuestionType(selectedQ);
-        const questionTypeId = this._getQuestionTypeId(questionType);
+        // Normalize the selected question (it might be raw or already normalized, safer to re-normalize)
+        const normalized = this.normalizeQuestion(selectedQ);
 
         const question = await Question.create({
           template_id: template.id,
           survey_id: survey.id,
-          question_text: selectedQ.question || selectedQ.text,
-          label: (selectedQ.question || selectedQ.text || '').substring(0, 255), // Use question text as label
-          question_type: questionType,
-          question_type_id: questionTypeId,
+          label: normalized.question_text.length > 50 ? normalized.question_text.substring(0, 47) + '...' : normalized.question_text,
+          question_text: normalized.question_text,
+          question_type_id: normalized.question_type_id,
+          required: selectedQ.required !== undefined ? selectedQ.required : true,
           display_order: questionOrder++,
-          required: selectedQ.required || false
+          is_ai_generated: true
         });
 
-        // Add options for multiple choice questions
-        if (questionType === 'multiple_choice' && selectedQ.options) {
-          for (let i = 0; i < selectedQ.options.length; i++) {
-            await QuestionOption.create({
-              question_id: question.id,
-              option_text: selectedQ.options[i],
-              option_order: i + 1
-            });
-          }
-        }
+        // Add options if needed
+        if (normalized.spec.options && normalized.spec.options.length > 0) {
+          const optionsToCreate = normalized.spec.options.map((opt, idx) => ({
+            question_id: question.id,
+            option_text: typeof opt === 'object' ? opt.text : opt,
+            option_order: idx + 1
+          }));
 
+          // QuestionOption model creation
+          await QuestionOption.bulkCreate(optionsToCreate);
+        }
         createdQuestions.push(question);
       }
 
@@ -778,12 +1069,20 @@ class LLMService {
             required: customQ.is_required || false
           });
 
-          // Add options for multiple choice questions
-          if (customQ.question_type === 'multiple_choice' && customQ.options) {
-            for (let i = 0; i < customQ.options.length; i++) {
+          // Handle options for multiple choice and yes/no
+          let optionsToCreate = [];
+
+          if (questionType === 'multiple_choice' && customQ.options && customQ.options.length > 0) {
+            optionsToCreate = customQ.options;
+          } else if (questionType === 'yes_no') {
+            optionsToCreate = ['Yes', 'No'];
+          }
+
+          if (optionsToCreate.length > 0) {
+            for (let i = 0; i < optionsToCreate.length; i++) {
               await QuestionOption.create({
                 question_id: question.id,
-                option_text: customQ.options[i],
+                option_text: optionsToCreate[i],
                 option_order: i + 1
               });
             }
@@ -793,10 +1092,99 @@ class LLMService {
         }
       }
 
+      // If target audience is internal (workspace), add survey to workspace
+      if (surveyData.targetAudience === 'internal' && surveyData.workspaceId) {
+        const { WorkspaceSurvey, Workspace, WorkspaceMember } = require('../../../models');
+
+        try {
+          // CHECK PERMISSION: Only owner/admin/editor can add surveys
+          const member = await WorkspaceMember.findOne({
+            where: {
+              user_id: userId,
+              workspace_id: surveyData.workspaceId,
+              is_active: true
+            }
+          });
+
+          if (!member) {
+            throw new Error('You are not a member of this workspace');
+          }
+
+          // Check if user has permission to add surveys
+          const allowedRoles = ['owner', 'admin', 'editor'];
+          if (!allowedRoles.includes(member.role)) {
+            throw new Error(`Permission denied: Role '${member.role}' cannot add surveys to workspace. Only owner, admin, or editor can add surveys.`);
+          }
+
+          // Permission granted - add survey to workspace
+          await WorkspaceSurvey.create({
+            workspace_id: surveyData.workspaceId,
+            survey_id: survey.id,
+            added_by: userId,
+            added_at: new Date()
+          });
+          this.logger.info(` Survey ${survey.id} added to workspace ${surveyData.workspaceId} by ${member.role}`);
+
+          // Send notifications to workspace members
+          const workspace = await Workspace.findByPk(surveyData.workspaceId);
+          if (workspace) {
+            const notificationService = require('../../notifications/service/notification.service');
+            await notificationService.notifyWorkspaceMembers(
+              surveyData.workspaceId,
+              {
+                type: 'workspace_survey_added',
+                title: `New survey in ${workspace.name}`,
+                message: `A new survey "${survey.title}" has been added to the workspace`,
+                actionUrl: `/surveys/${survey.id}`,
+                actorId: userId,
+                relatedSurveyId: survey.id,
+                relatedWorkspaceId: surveyData.workspaceId,
+                category: 'workspace',
+                priority: 'normal'
+              },
+              userId // Exclude creator from notifications
+            );
+            this.logger.info(`📧 Notifications sent to workspace ${workspace.name} members`);
+          }
+        } catch (workspaceError) {
+          this.logger.error(` Failed to add survey to workspace: ${workspaceError.message}`);
+          // Don't fail the entire operation, just log the error
+        }
+      }
+
+      // Handle Quick Invite if provided
+      let invitationResults = null;
+      if (surveyData.quickInvite &&
+        surveyData.quickInvite.sendImmediately &&
+        surveyData.quickInvite.emails &&
+        surveyData.quickInvite.emails.length > 0) {
+
+        try {
+          const surveyInviteService = require('../../surveys/service/surveyInvite.service');
+
+          // Create invites
+          invitationResults = await surveyInviteService.createInvites(
+            survey.id,
+            surveyData.quickInvite.emails,
+            userId
+          );
+
+          this.logger.info(` Quick Invite: Sent ${invitationResults.length} invitations for survey ${survey.id}`);
+        } catch (inviteError) {
+          this.logger.error(` Quick Invite failed: ${inviteError.message}`);
+          // Don't fail survey creation, just log the error
+          // Frontend will show partial success message
+        }
+      }
+
       return {
         survey,
         questions: createdQuestions,
-        totalQuestions: createdQuestions.length
+        totalQuestions: createdQuestions.length,
+        invitations: invitationResults ? {
+          sent: invitationResults.length,
+          emails: invitationResults.map(inv => inv.email)
+        } : null
       };
 
     } catch (error) {
@@ -1009,6 +1397,24 @@ class LLMService {
         throw new Error('Survey not found');
       }
 
+      // Helper to map question_type_id to type string
+      const getTypeString = (typeId) => {
+        const typeMap = {
+          1: 'multiple_choice',
+          2: 'checkbox',
+          3: 'likert_scale',
+          4: 'open_ended',
+          5: 'dropdown',
+          6: 'rating',
+          7: 'number',
+          8: 'email',
+          9: 'date',
+          10: 'yes_no',
+          11: 'ranking'
+        };
+        return typeMap[typeId] || 'open_ended';
+      };
+
       return {
         id: survey.id,
         title: survey.title,
@@ -1016,7 +1422,8 @@ class LLMService {
         questions: survey.questions.map(q => ({
           id: q.id,
           text: q.question_text,
-          type: q.question_type,
+          label: q.label || q.question_text,
+          type: getTypeString(q.question_type_id), // Map ID to string
           required: q.is_required,
           order: q.question_order,
           options: q.options ? q.options.map(opt => ({
@@ -1041,7 +1448,7 @@ class LLMService {
     const models = require('../../../models');
     const { Survey, Question, SurveyResponse, ResponseAnswer, SurveyLink } = models;
 
-    this.logger.info('🔍 Models loaded:', {
+    this.logger.info('Models loaded:', {
       Survey: !!Survey,
       Question: !!Question,
       SurveyResponse: !!SurveyResponse,
@@ -1049,7 +1456,7 @@ class LLMService {
       SurveyLink: !!SurveyLink
     });
 
-    this.logger.info('🔍 Response data received:', responseData);
+    this.logger.info('Response data received:', responseData);
 
     try {
       // Verify survey link
@@ -1065,11 +1472,19 @@ class LLMService {
       }
 
       // Create survey response with anonymous respondent
+      const completionTime = new Date();
+      // Use realistic start time (3-6 minutes before completion for LLM responses)
+      const estimatedDuration = (3 + Math.random() * 3) * 60; // 3-6 minutes in seconds
+      const startTime = new Date(completionTime.getTime() - (estimatedDuration * 1000));
+
+      console.log(`[LLMService] Creating response with realistic timing: ${estimatedDuration}s duration`);
+
       const surveyResponse = await SurveyResponse.create({
         survey_id: surveyLink.survey_id,
         respondent_id: null, // Allow anonymous responses
-        start_time: new Date(),
-        completion_time: new Date(),
+        start_time: startTime,
+        completion_time: completionTime,
+        time_taken: Math.floor(estimatedDuration),
         status: 'completed'
       });
 

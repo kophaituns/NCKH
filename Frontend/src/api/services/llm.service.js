@@ -68,10 +68,43 @@ const LLMService = {
 
   /**
    * Generate questions using AI
+   * @param {Object} data - Request data
+   * @param {string} data.keyword - The keyword/topic to generate questions for
+   * @param {number} [data.num_questions=5] - Number of questions to generate
+   * @param {string} [data.category_hint=null] - Category hint
+   * @param {number} [data.offset=0] - Offset for regenerate functionality (0 = first batch)
+   * @returns {Promise<Object>} Response with questions, metadata, and confidence
    */
   async generateQuestions(data) {
-    const response = await http.post('/llm/generate-questions', data);
-    return response.data;
+    try {
+      const response = await http.post('/llm/generate-questions', {
+        keyword: data.keyword || data.topic,
+        num_questions: data.num_questions || data.count || 5,
+        category_hint: data.category_hint || data.category || null,
+        offset: data.offset || 0
+      }, {
+        timeout: 60000 // 60 seconds for AI processing
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Generate questions error:', error);
+      throw error;
+    }
+  },
+
+  /**
+   * Regenerate questions (get different questions for same keyword)
+   * @param {string} keyword - The keyword/topic
+   * @param {number} num_questions - Number of questions
+   * @param {number} currentOffset - Current offset, will be incremented by count
+   * @returns {Promise<Object>} Response with new questions
+   */
+  async regenerateQuestions(keyword, num_questions = 5, currentOffset = 0) {
+    return this.generateQuestions({
+      keyword,
+      num_questions,
+      offset: currentOffset + num_questions  // Skip to next batch
+    });
   },
 
   /**
@@ -121,13 +154,13 @@ const LLMService = {
     const response = await http.get(`/llm/export-pdf/${surveyId}`, {
       responseType: 'text'
     });
-    
+
     // Create a new window with the HTML content for PDF printing
     const newWindow = window.open('', '_blank');
     if (newWindow) {
       newWindow.document.write(response.data);
       newWindow.document.close();
-      
+
       // Auto-trigger print dialog after content loads
       newWindow.onload = () => {
         setTimeout(() => {
@@ -135,7 +168,7 @@ const LLMService = {
         }, 500);
       };
     }
-    
+
     return { success: true, message: 'PDF đã mở để in. Chọn "Save as PDF" trong hộp thoại in để tải xuống.' };
   },
 

@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js';
 import { Doughnut } from 'react-chartjs-2';
 import { useToast } from '../../../contexts/ToastContext';
-import SurveyService from '../../../api/services/survey.service';
+import AnalyticsService from '../../../api/services/analytics.service';
 import StatCard from '../../../components/UI/StatCard';
 import ChartCard from '../../../components/UI/ChartCard';
 import Loader from '../../../components/common/Loader/Loader';
@@ -32,28 +32,21 @@ const CreatorDashboard = () => {
   const fetchCreatorData = useCallback(async () => {
     setLoading(true);
     try {
-      // Fetch creator's surveys
-      const surveysResponse = await SurveyService.getMySurveys();
+      // Fetch dashboard stats from backend
+      const stats = await AnalyticsService.getCreatorDashboard();
 
-      // getMySurveys returns { surveys: [...], pagination: {...} }
-      const surveys = surveysResponse.surveys || [];
-
-      // Calculate summary
-      const draft = surveys.filter(s => s.status === 'draft').length;
-      const active = surveys.filter(s => s.status === 'active').length;
-      const closed = surveys.filter(s => s.status === 'closed').length;
-
+      // stats = { totalSurveys, activeSurveys, draftSurveys, closedSurveys }
       setSummary({
-        totalSurveys: surveys.length,
-        activeSurveys: active,
-        closedSurveys: closed,
-        draftSurveys: draft
+        totalSurveys: stats.totalSurveys || 0,
+        activeSurveys: stats.activeSurveys || 0,
+        closedSurveys: stats.closedSurveys || 0,
+        draftSurveys: stats.draftSurveys || 0
       });
 
       setStatusDistribution({
-        draft,
-        active,
-        closed
+        draft: stats.draftSurveys || 0,
+        active: stats.activeSurveys || 0,
+        closed: stats.closedSurveys || 0
       });
 
     } catch (error) {
@@ -160,25 +153,41 @@ const CreatorDashboard = () => {
       {/* Stats Cards */}
       <div className={styles.statsGrid}>
         <StatCard
-          icon="📊"
+          icon={
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+              <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          }
           title="Total Surveys"
           value={summary.totalSurveys}
           color="primary"
         />
         <StatCard
-          icon="🟢"
+          icon={
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+              <path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          }
           title="Active Surveys"
           value={summary.activeSurveys}
           color="success"
         />
         <StatCard
-          icon="🔴"
+          icon={
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+              <path d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          }
           title="Closed Surveys"
           value={summary.closedSurveys}
           color="danger"
         />
         <StatCard
-          icon="📝"
+          icon={
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+              <path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          }
           title="Draft Surveys"
           value={summary.draftSurveys}
           color="info"

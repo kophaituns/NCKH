@@ -1,18 +1,27 @@
 // src/modules/templates/service/template.service.js
 const { SurveyTemplate, Question, QuestionOption, QuestionType, User } = require('../../../models');
-const { Op } = require('sequelize');
+const { QUESTION_TYPES } = require('../../../constants/questionTypes');
 
 class TemplateService {
   /**
-   * Get all templates
+   * Get all templates with scope support
    */
   async getAllTemplates(options = {}, user) {
-    const { page = 1, limit = 10, search } = options;
+    const { page = 1, limit = 10, scope = 'my', search = '' } = options;
     const offset = (page - 1) * limit;
+
+    // Build where clause based on scope
     const where = {};
 
-    // Search filter
-    if (search) {
+    // If scope is 'my' OR user is not admin, filter by user's own templates
+    if (scope === 'my' || user.role !== 'admin') {
+      where.created_by = user.id;
+    }
+    // If scope is 'all' and user is admin, show all templates (no created_by filter)
+
+    // Add search filter if provided
+    if (search && search.trim()) {
+      const { Op } = require('sequelize');
       where[Op.or] = [
         { title: { [Op.like]: `%${search}%` } },
         { description: { [Op.like]: `%${search}%` } }
@@ -27,13 +36,24 @@ class TemplateService {
         {
           model: User,
           attributes: ['id', 'username', 'full_name']
+        },
+        {
+          model: Question,
+          as: 'Questions',
+          attributes: ['id']
         }
       ],
       order: [['created_at', 'DESC']]
     });
 
+    // Add question count to each template
+    const templatesWithCount = rows.map(template => ({
+      ...template.toJSON(),
+      questionCount: template.Questions ? template.Questions.length : 0
+    }));
+
     return {
-      templates: rows,
+      templates: templatesWithCount,
       pagination: {
         total: count,
         page: parseInt(page),
@@ -200,10 +220,10 @@ class TemplateService {
    */
   async addQuestion(templateId, questionData, user) {
     const sequelize = require('../../../models').sequelize;
-    
+
     // Use a transaction to ensure atomicity
     const transaction = await sequelize.transaction();
-    
+
     try {
       const template = await SurveyTemplate.findByPk(templateId, { transaction });
 
@@ -218,12 +238,19 @@ class TemplateService {
         throw new Error('Access denied. You do not own this template.');
       }
 
+      // Validate Question Type
+      const typeId = parseInt(questionData.question_type_id);
+      if (!Object.values(QUESTION_TYPES).includes(typeId)) {
+        await transaction.rollback();
+        throw new Error(`Invalid Question Type ID: ${typeId}`);
+      }
+
       // Create the question
       const question = await Question.create({
         template_id: templateId,
         label: questionData.label || questionData.question_text, // Use label if provided, otherwise use question_text
         question_text: questionData.question_text,
-        question_type_id: questionData.question_type_id,
+        question_type_id: typeId,
         required: questionData.required || questionData.is_required || false,
         display_order: questionData.display_order || 1
       }, { transaction });
@@ -236,15 +263,15 @@ class TemplateService {
           if (typeof opt === 'string') {
             return opt.trim().length > 0;
           }
-          
+
           // Handle object options
           if (opt && typeof opt === 'object') {
             const optionText = opt.option_text || opt.text || opt.label || opt.value;
-            return optionText && 
-                   typeof optionText === 'string' && 
-                   optionText.trim().length > 0;
+            return optionText &&
+              typeof optionText === 'string' &&
+              optionText.trim().length > 0;
           }
-          
+
           return false;
         });
 
@@ -252,10 +279,10 @@ class TemplateService {
         if (validOptions.length > 0) {
           for (let i = 0; i < validOptions.length; i++) {
             const opt = validOptions[i];
-            
+
             let optionText;
             let displayOrder = i + 1;
-            
+
             // Handle string options (from frontend filter)
             if (typeof opt === 'string') {
               optionText = opt.trim();
@@ -264,7 +291,7 @@ class TemplateService {
               optionText = (opt.option_text || opt.text || opt.label || opt.value).trim();
               displayOrder = opt.display_order !== undefined ? opt.display_order : i + 1;
             }
-            
+
             // Create each option individually with proper error handling
             await QuestionOption.create({
               question_id: question.id,
@@ -277,9 +304,9 @@ class TemplateService {
 
       // Commit the transaction
       await transaction.commit();
-      
+
       return this.getTemplateById(templateId);
-      
+
     } catch (error) {
       // Rollback the transaction in case of error
       await transaction.rollback();
