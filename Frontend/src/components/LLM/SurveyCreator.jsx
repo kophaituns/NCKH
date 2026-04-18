@@ -8,6 +8,7 @@ import Checkbox from '../UI/Checkbox';
 import { useToast } from '../../contexts/ToastContext';
 import LLMService from '../../api/services/llm.service';
 import WorkspaceService from '../../api/services/workspace.service';
+import { MailIcon, BarChartIcon, XIcon, CheckIcon, SparklesIcon } from '../Icons';
 import styles from './SurveyCreator.module.scss';
 
 const SurveyCreator = ({ generatedQuestions, onSurveyCreated, initialSelectedIndices }) => {
@@ -282,7 +283,7 @@ const SurveyCreator = ({ generatedQuestions, onSurveyCreated, initialSelectedInd
 
         if (!allowedRoles.includes(userRole)) {
           showToast(
-            `❌ Permission Denied: Only workspace owners, admins, and editors can add surveys. Your current role: "${userRole}"`,
+            `Permission Denied: Only workspace owners, admins, and editors can add surveys. Your current role: "${userRole}"`,
             'error'
           );
           return;
@@ -515,7 +516,7 @@ const SurveyCreator = ({ generatedQuestions, onSurveyCreated, initialSelectedInd
 
           {/* Quick Invite Section for Private Surveys */}
           {surveyData.targetAudience === 'private' && (
-            <Card title="📧 Quick Invitation (Optional)" className={styles.quickInviteCard}>
+            <Card title={<><MailIcon size={18} className={styles.iconInline} /> Quick Invitation (Optional)</>} className={styles.quickInviteCard}>
               <div className={styles.quickInviteSection}>
                 <div className={styles.formGroup}>
                   <label>Email Addresses</label>
@@ -551,7 +552,7 @@ const SurveyCreator = ({ generatedQuestions, onSurveyCreated, initialSelectedInd
                 {quickInvite.emails && (
                   <div className={styles.emailPreview}>
                     <small className={styles.previewText}>
-                      📊 Will invite {quickInvite.emails.split(/[,\n]/).filter(email => email.trim()).length} recipients
+                      <BarChartIcon size={14} className={styles.iconInline} /> Will invite {quickInvite.emails.split(/[,\n]/).filter(email => email.trim()).length} recipients
                     </small>
                   </div>
                 )}

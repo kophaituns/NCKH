@@ -213,6 +213,8 @@ def build_prompt(user_input: str, intent_info: dict, retrieved: list, num_q: int
     
     TASK:
     Generate a complete, professional form based on the user's goal. 
+    - Ensure ALL generated questions are unique and non-repetitive.
+    - Each question must explore a distinct dimension of the topic.
     - Use the provided context where relevant to ensure scientific accuracy.
     - If context is insufficient for a {intent} (e.g. missing Name field), synthesize standard fields naturally.
     - Return a STRICT JSON matching the schema.
@@ -454,7 +456,17 @@ async def generate_questions_compat(request: GenerateQuestionsRequest):
 
     logger.info("generate-questions: keyword='%s' n=%d offset=%d", keyword, num_q, offset)
 
-    retrieved = retrieve_questions(keyword, k=RETRIEVE_K + offset)
+    # Upgrade to SIR-AG v2 Stage 1: Intent Analysis
+    intent_info = analyze_intent(keyword)
+    
+    # Refresh keyword if intent analyzer found better search terms
+    search_keyword = intent_info.get("keywords", keyword)
+
+    retrieved = retrieve_questions(search_keyword, k=RETRIEVE_K + offset)
+    if not retrieved:
+        # Fallback to original keyword if optimized keyword failed
+        retrieved = retrieve_questions(keyword, k=RETRIEVE_K + offset)
+
     if not retrieved:
         return JSONResponse(content={
             "success": False,
@@ -469,7 +481,8 @@ async def generate_questions_compat(request: GenerateQuestionsRequest):
     # Try Gemini RAG first
     form_data = None
     if gemini_ready:
-        prompt = build_prompt(keyword, retrieved, num_q, "vi")
+        # FIXED: Corect argument order: (user_input, intent_info, retrieved, num_q)
+        prompt = build_prompt(keyword, intent_info, retrieved, num_q)
         form_data = call_gemini(prompt)
 
     # Build flat question list from form_data or fallback
