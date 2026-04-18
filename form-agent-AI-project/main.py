@@ -82,8 +82,8 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 # Pydantic models for request/response
 class KeywordRequest(BaseModel):
     keyword: str = Field(..., min_length=1, max_length=500, description="Từ khóa để tạo form")
-    category: Optional[str] = Field(None, regex="^(it|economics|marketing)$", description="Lĩnh vực (tự động phát hiện nếu không cung cấp)")
-    complexity: Optional[str] = Field(None, regex="^(Simple|Moderate|Complex)$", description="Độ phức tạp")
+    category: Optional[str] = Field(None, pattern="^(it|economics|marketing)$", description="Lĩnh vực (tự động phát hiện nếu không cung cấp)")
+    complexity: Optional[str] = Field(None, pattern="^(Simple|Moderate|Complex)$", description="Độ phức tạp")
     form_type: Optional[str] = Field(None, description="Loại form cụ thể")
     additional_requirements: Optional[str] = Field(None, max_length=1000, description="Yêu cầu bổ sung")
     

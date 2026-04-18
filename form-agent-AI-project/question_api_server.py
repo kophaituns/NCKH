@@ -508,7 +508,7 @@ class CategoryPrediction(BaseModel):
 class HealthResponse(BaseModel):
     status: str
     timestamp: str
-    model_loaded: bool
+    is_model_loaded: bool
     api_version: str
 
 # Load model on startup
@@ -601,7 +601,7 @@ async def health_check():
     return HealthResponse(
         status="healthy" if question_ai else "unhealthy",
         timestamp=datetime.now().isoformat(),
-        model_loaded=question_ai is not None,
+        is_model_loaded=question_ai is not None,
         api_version="1.0.0"
     )
 
