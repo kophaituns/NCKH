@@ -31,17 +31,29 @@ class ChromaQuestionAI:
                 name=COLLECTION_NAME,
                 embedding_function=self.embedding_fn
             )
-            logger.info(f"✅ Connected to ChromaDB collection: {COLLECTION_NAME}")
+            logger.info("ChromaDB connected: %s", COLLECTION_NAME)
         except Exception as e:
-            logger.error(f"❌ Could not find collection {COLLECTION_NAME}: {e}")
+            logger.error("ChromaDB collection not found %s: %s", COLLECTION_NAME, e)
             self.collection = None
 
-    def query_questions(self, keyword, num_results=5, offset=0, categories=None):
+    def query_questions(self, keyword, num_results=5, offset=0, categories=None, collection_name=COLLECTION_NAME):
         """
         Search for questions semantically similar to the keyword.
         """
-        if not self.collection:
-            logger.error("ChromaDB collection not initialized.")
+        # Targeted collection retrieval
+        collection = self.collection
+        if collection_name != COLLECTION_NAME:
+            try:
+                collection = self.client.get_collection(
+                    name=collection_name,
+                    embedding_function=self.embedding_fn
+                )
+            except Exception:
+                logger.warning("Collection %s not found, falling back.", collection_name)
+                return []
+
+        if not collection:
+            logger.error("No valid collection to query.")
             return []
 
         try:
@@ -54,9 +66,7 @@ class ChromaQuestionAI:
                     where_filter = {"category": categories}
 
             # Query Chroma
-            # Note: Chroma doesn't natively support offset in the query method as of now,
-            # so we fetch offset + num_results and then slice.
-            results = self.collection.query(
+            results = collection.query(
                 query_texts=[keyword],
                 n_results=offset + num_results,
                 where=where_filter,

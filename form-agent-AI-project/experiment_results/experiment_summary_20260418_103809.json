@@ -1,0 +1,19 @@
+{
+  "timestamp": "20260418_103809",
+  "eval_keywords_count": 20,
+  "K": 5,
+  "summary": {
+    "TF-IDF (Baseline)": {
+      "Precision@K": 0.73,
+      "MRR": 0.8,
+      "Avg Latency (ms)": 1.3136899990058737,
+      "Avg Similarity": 0.26710856511816
+    },
+    "Template (Fallback)": {
+      "Precision@K": 1.0,
+      "MRR": 1.0,
+      "Avg Latency (ms)": 0.00594000011915341,
+      "Avg Similarity": null
+    }
+  }
+}

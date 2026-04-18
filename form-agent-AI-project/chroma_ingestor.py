@@ -7,6 +7,12 @@ import json
 import uuid
 import time
 from pathlib import Path
+from dotenv import load_dotenv
+from google import genai
+from google.genai import types as genai_types
+
+load_dotenv()
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
 # Configuration
 DATASETS_PATH = Path("question_datasets")
@@ -51,6 +57,34 @@ def save_checkpoint(processed_files, total_ingested):
             "last_updated": time.strftime("%Y-%m-%d %H:%M:%S")
         }, f, indent=2)
 
+def validate_data_quality(file_path: Path, sample_text: str) -> bool:
+    """Vệ Sĩ AI: Check if content is safe and relevant."""
+    if not GEMINI_API_KEY:
+        return True # Skip if no key
+    
+    client = genai.Client(api_key=GEMINI_API_KEY)
+    prompt = f"""Analyze this data sample from file '{file_path.name}':
+    ---
+    {sample_text[:2000]}
+    ---
+    Is this content SAFE, RELEVANT to survey/form generation, and HIGH QUALITY?
+    Return a JSON: {{"safe": true/false, "reason": "..."}}"""
+    
+    try:
+        response = client.models.generate_content(
+            model="gemini-2.0-flash",
+            contents=prompt,
+            config=genai_types.GenerateContentConfig(response_mime_type="application/json")
+        )
+        result = json.loads(response.text.strip())
+        if not result.get("safe"):
+            print(f" 🛡️  Guardrail REJECTED {file_path.name}: {result.get('reason')}")
+            return False
+        return True
+    except Exception as e:
+        print(f" ⚠️  Guardrail bypass error: {e}")
+        return True
+
 def ingest_data(sample_limit=None):
     print(f" Starting ChromaDB Ingestion...")
     collection = get_ingestor()
@@ -78,6 +112,13 @@ def ingest_data(sample_limit=None):
                 # Read CSV
                 df = pd.read_csv(file_path, low_memory=False)
                 
+                # Vệ Sĩ AI: Validate first 5 rows
+                sample_data = df.head(5).to_string()
+                if not validate_data_quality(file_path, sample_data):
+                    processed_files.append(file_path.name)
+                    save_checkpoint(processed_files, total_ingested)
+                    continue
+
                 # Filter valid rows
                 df = df.dropna(subset=['question', 'keyword'])
                 
