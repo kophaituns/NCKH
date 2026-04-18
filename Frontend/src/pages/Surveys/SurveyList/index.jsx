@@ -12,6 +12,7 @@ import { useToast } from '../../../contexts/ToastContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import styles from './SurveyList.module.scss';
 import Button from '../../../components/UI/Button';
+import { MailIcon, FolderIcon, CalendarIcon } from '../../../components/Icons';
 import {
   LuPencil,
   LuSend,
@@ -356,7 +357,9 @@ const SurveyList = () => {
               <div className={styles.emptyState}>
                 {respondentTab === 'pending' ? (
                   <>
-                    <div className={styles.emptyIcon}>📂</div>
+                    <div className={styles.emptyIcon}>
+                        <FolderIcon size={48} />
+                    </div>
                     <h3>No surveys available</h3>
                     <p>You have no pending surveys at the moment.</p>
                     <div className={styles.emptyActions}>
@@ -372,7 +375,9 @@ const SurveyList = () => {
                   </>
                 ) : (
                   <>
-                    <div className={styles.emptyIcon}></div>
+                    <div className={styles.emptyIcon}>
+                        <MailIcon size={48} />
+                    </div>
                     <h3>No completed surveys</h3>
                     <p>Surveys you complete will appear here.</p>
                   </>
@@ -525,7 +530,9 @@ const SurveyList = () => {
 
           {surveys.length === 0 && !loading ? (
             <div className={styles.emptyState}>
-              <div className={styles.emptyIcon}></div>
+              <div className={styles.emptyIcon}>
+                <FolderIcon size={48} />
+              </div>
               <h3>{t('no_surveys_found')}</h3>
               <p>{t('create_first_survey_desc') || 'Create your first survey to start collecting responses'}</p>
               <Button
@@ -617,7 +624,10 @@ const SurveyList = () => {
                           <td>
                             <span className={styles.nextAction}>{nextAction}</span>
                           </td>
-                          <td>{new Date(survey.created_at).toLocaleDateString()}</td>
+                          <td>
+                            <CalendarIcon size={14} style={{ display: 'inline', marginRight: '4px' }} />
+                            {new Date(survey.created_at).toLocaleDateString()}
+                          </td>
                           <td>
                             <div className={styles.iconActions}>
                               <Button

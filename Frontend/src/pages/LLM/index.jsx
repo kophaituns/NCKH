@@ -16,7 +16,8 @@ import Modal from '../../components/common/Modal/Modal';
 import { useAuth } from '../../contexts/AuthContext';
 import UpgradeModal from '../../components/UpgradeToCreator/UpgradeModal';
 import UpgradeUpsellModal from '../../components/UI/UpgradeUpsellModal/UpgradeUpsellModal';
-import { LuSparkles, LuBrain, LuSettings, LuFileText, LuWand, LuCircleCheck, LuInfo, LuArrowRight, LuLock, LuTriangleAlert } from 'react-icons/lu';
+import { LuSparkles, LuBrain, LuSettings, LuFileText, LuWand, LuCircleCheck, LuInfo, LuArrowRight, LuLock, LuTriangleAlert, LuWifiOff, LuClock } from 'react-icons/lu';
+import { XIcon } from '../../components/Icons';
 import styles from './LLM.module.scss';
 
 // Import validation utilities
@@ -219,7 +220,7 @@ const LLM = () => {
       // Check for 503 Service Unavailable status
       if (error.response?.status === 503) {
         showToast(
-          '🔌 AI Server is currently offline. Please contact the administrator or try again later.',
+          'AI Server is currently offline. Please try again later.',
           'error'
         );
         return;
@@ -231,14 +232,14 @@ const LLM = () => {
 
       if (reason === 'AI_SERVER_UNAVAILABLE') {
         showToast(
-          '🔌 AI Server is currently offline. Please contact the administrator or try again later.',
+          'AI Server is currently offline. Please try again later.',
           'error'
         );
       } else if (error.code === 'ECONNABORTED' || error.message?.includes('timeout')) {
-        showToast('⏱️ Request timed out. The AI server may be overloaded. Please try again.', 'error');
+        showToast('Request timed out. The AI server may be overloaded. Please try again.', 'error');
       } else if (!error.response) {
         // Network error - no response received
-        showToast('🔌 Cannot connect to the server. Please check your internet connection.', 'error');
+        showToast('Cannot connect to the server. Please check your internet connection.', 'error');
       } else {
         showToast('Error predicting category. Please try again.', 'error');
       }
@@ -324,7 +325,7 @@ const LLM = () => {
       // Check for 503 Service Unavailable status
       if (error.response?.status === 503) {
         showToast(
-          '🔌 AI Server is currently offline. Please contact the administrator or try again later.',
+          'AI Server is currently offline. Please try again later.',
           'error'
         );
         return;
@@ -336,7 +337,7 @@ const LLM = () => {
 
       if (reason === 'AI_SERVER_UNAVAILABLE') {
         showToast(
-          '🔌 AI Server is currently offline. Please contact the administrator or try again later.',
+          'AI Server is currently offline. Please try again later.',
           'error'
         );
         return;
@@ -352,10 +353,10 @@ const LLM = () => {
           showToast(errorData?.message || 'Error generating questions', 'error');
         }
       } else if (error.code === 'ECONNABORTED' || error.message?.includes('timeout')) {
-        showToast('⏱️ Request timed out. The AI server may be overloaded. Please try again.', 'error');
+        showToast('Request timed out. The AI server may be overloaded. Please try again.', 'error');
       } else if (!error.response) {
         // Network error - no response received
-        showToast('🔌 Cannot connect to the server. Please check your internet connection.', 'error');
+        showToast('Cannot connect to the server. Please check your internet connection.', 'error');
       } else {
         showToast(
           'Error generating questions: ' + (error.response?.data?.message || error.message),

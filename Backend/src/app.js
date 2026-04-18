@@ -8,6 +8,7 @@ const morgan = require('morgan');
 const http = require('http');
 const logger = require('./utils/logger');
 const SocketService = require('./services/socketService');
+const trafficLogger = require('./middleware/traffic.middleware');
 
 const app = express();
 const server = http.createServer(app);
@@ -41,6 +42,9 @@ app.use(express.urlencoded({ extended: true }));
 
 // HTTP request logger
 app.use(morgan('dev'));
+
+// Traffic Capture Logger (Audit Log for all requests/responses)
+app.use(trafficLogger);
 
 // Basic health check endpoint (legacy)
 app.get('/health', (req, res) => {

@@ -4,6 +4,7 @@ import ResponseService from '../../../api/services/response.service';
 import Loader from '../../../components/common/Loader/Loader';
 import Pagination from '../../../components/common/Pagination/Pagination';
 import { useToast } from '../../../contexts/ToastContext';
+import { CalendarIcon, FolderIcon } from '../../../components/Icons';
 import styles from './MyResponses.module.scss';
 
 const MyResponses = () => {
@@ -114,9 +115,10 @@ const MyResponses = () => {
         </span>
       </div>
 
-      {currentResponses.length === 0 ? (
         <div className={styles.emptyState}>
-          <div className={styles.emptyIcon}></div>
+          <div className={styles.emptyIcon}>
+            <FolderIcon size={48} />
+          </div>
           <h3>No responses yet</h3>
           <p>You haven't submitted any survey responses yet</p>
           <button
@@ -148,7 +150,8 @@ const MyResponses = () => {
                     </h3>
                     <div className={styles.metadata}>
                       <span className={styles.date}>
-                        📅 {new Date(response.created_at).toLocaleDateString()}
+                        <CalendarIcon size={14} style={{ display: 'inline', marginRight: '4px' }} />
+                        {new Date(response.created_at).toLocaleDateString()}
                       </span>
                       <span className={styles.identity}>
                         {getIdentityDisplay(response)}

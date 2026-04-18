@@ -6,23 +6,33 @@ from tqdm import tqdm
 import json
 import uuid
 import time
+import re
 from pathlib import Path
 from dotenv import load_dotenv
 from google import genai
 from google.genai import types as genai_types
+
+# Multi-format parsers
+import pypdf
+import docx
+import openpyxl
 
 load_dotenv()
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
 # Configuration
 DATASETS_PATH = Path("question_datasets")
+USER_DATA_PATH = Path("user_data")
 CHROMA_PATH = Path("chroma_db")
 COLLECTION_NAME = "question_bank"
 CHECKPOINT_FILE = Path("logs/ingestion_checkpoint.json")
-BATCH_SIZE = 200  # Smaller batches for stability
+BATCH_SIZE = 100
+CHUNK_SIZE = 800  # Characters for non-CSV documents
+CHUNK_OVERLAP = 100
 
 # Ensure directories exist
 os.makedirs("logs", exist_ok=True)
+os.makedirs(USER_DATA_PATH, exist_ok=True)
 CHROMA_PATH.mkdir(exist_ok=True)
 
 def get_ingestor():
@@ -57,22 +67,54 @@ def save_checkpoint(processed_files, total_ingested):
             "last_updated": time.strftime("%Y-%m-%d %H:%M:%S")
         }, f, indent=2)
 
+class UnifiedParser:
+    """U-Ingestor: Support for PDF, Word, Excel, and Text."""
+    @staticmethod
+    def parse_pdf(path: Path) -> str:
+        text = ""
+        with open(path, "rb") as f:
+            reader = pypdf.PdfReader(f)
+            for page in reader.pages:
+                text += page.extract_text() + "\n"
+        return text
+
+    @staticmethod
+    def parse_docx(path: Path) -> str:
+        doc = docx.Document(path)
+        return "\n".join([para.text for para in doc.paragraphs])
+
+    @staticmethod
+    def parse_excel(path: Path) -> str:
+        df = pd.read_excel(path)
+        # Convert entire spreadsheet to a text representation
+        return df.to_string()
+
+    @staticmethod
+    def chunk_text(text: str) -> list:
+        """Recursive chunking to keep context together."""
+        text = re.sub(r'\s+', ' ', text).strip()
+        chunks = []
+        for i in range(0, len(text), CHUNK_SIZE - CHUNK_OVERLAP):
+            chunks.append(text[i:i + CHUNK_SIZE])
+        return [c for c in chunks if len(c) > 100]
+
 def validate_data_quality(file_path: Path, sample_text: str) -> bool:
     """Vệ Sĩ AI: Check if content is safe and relevant."""
     if not GEMINI_API_KEY:
         return True # Skip if no key
     
-    client = genai.Client(api_key=GEMINI_API_KEY)
-    prompt = f"""Analyze this data sample from file '{file_path.name}':
-    ---
-    {sample_text[:2000]}
-    ---
-    Is this content SAFE, RELEVANT to survey/form generation, and HIGH QUALITY?
-    Return a JSON: {{"safe": true/false, "reason": "..."}}"""
-    
     try:
+        client = genai.Client(api_key=GEMINI_API_KEY)
+        # Use flash-latest for guardrails
+        prompt = f"""Analyze this data sample from file '{file_path.name}':
+        ---
+        {sample_text[:3000]}
+        ---
+        Is this content SAFE to ingest, HIGH QUALITY, and containing meaningful info for creating surveys/forms?
+        Return a JSON: {{"safe": true/false, "reason": "..."}}"""
+        
         response = client.models.generate_content(
-            model="gemini-2.0-flash",
+            model="gemini-2.0-flash-latest",
             contents=prompt,
             config=genai_types.GenerateContentConfig(response_mime_type="application/json")
         )
@@ -86,90 +128,92 @@ def validate_data_quality(file_path: Path, sample_text: str) -> bool:
         return True
 
 def ingest_data(sample_limit=None):
-    print(f" Starting ChromaDB Ingestion...")
+    print(f"🚀 SIR-AG v2: Starting Multi-Format Ingestion...")
     collection = get_ingestor()
     checkpoint = load_checkpoint()
     
     processed_files = checkpoint["processed_files"]
     total_ingested = checkpoint["total_ingested"]
     
-    # Get all CSV files
-    csv_files = sorted([f for f in DATASETS_PATH.glob("*.csv") if f.name not in processed_files])
+    # 1. Collect all files from datasets and user_data
+    extensions = [".csv", ".pdf", ".docx", ".xlsx", ".xls"]
+    all_files = []
+    for folder in [DATASETS_PATH, USER_DATA_PATH]:
+        if not folder.exists(): continue
+        for ext in extensions:
+            all_files.extend(list(folder.glob(f"*{ext}")))
     
-    if not csv_files:
-        print(" All files already processed or no files found.")
+    files_to_process = sorted([f for f in all_files if f.name not in processed_files])
+    
+    if not files_to_process:
+        print(" ✅ All files already synced.")
         return
 
-    print(f" Found {len(csv_files)} new files to process.")
+    print(f" 📦 Found {len(files_to_process)} new files to process.")
+    parser = UnifiedParser()
     
-    try:
-        for file_path in tqdm(csv_files, desc="Processing CSV files"):
-            if sample_limit and total_ingested >= sample_limit:
-                print(f" Sample limit reached ({sample_limit}). Stopping.")
-                break
-                
-            try:
-                # Read CSV
+    for file_path in tqdm(files_to_process, desc="Syncing Documents"):
+        if sample_limit and total_ingested >= sample_limit:
+            break
+            
+        try:
+            ext = file_path.suffix.lower()
+            documents = []
+            metadatas = []
+            
+            # --- PARSING STAGE ---
+            if ext == ".csv":
                 df = pd.read_csv(file_path, low_memory=False)
-                
-                # Vệ Sĩ AI: Validate first 5 rows
-                sample_data = df.head(5).to_string()
-                if not validate_data_quality(file_path, sample_data):
+                df = df.dropna(subset=['question'])
+                # Sample for guardrail
+                if not validate_data_quality(file_path, df.head(5).to_string()):
                     processed_files.append(file_path.name)
-                    save_checkpoint(processed_files, total_ingested)
                     continue
+                
+                documents = df['question'].astype(str).tolist()
+                for _, row in df.iterrows():
+                    metadatas.append({
+                        "source": file_path.name,
+                        "keyword": str(row.get('keyword', 'unknown')),
+                        "type": "question"
+                    })
+            else:
+                # Binary files (PDF, Word, Excel)
+                full_text = ""
+                if ext == ".pdf": full_text = parser.parse_pdf(file_path)
+                elif ext in [".docx", ".doc"]: full_text = parser.parse_docx(file_path)
+                elif ext in [".xlsx", ".xls"]: full_text = parser.parse_excel(file_path)
+                
+                if not full_text.strip(): continue
+                
+                # Guardrail check
+                if not validate_data_quality(file_path, full_text[:3000]):
+                    processed_files.append(file_path.name)
+                    continue
+                    
+                chunks = parser.chunk_text(full_text)
+                documents = chunks
+                metadatas = [{"source": file_path.name, "type": "document_chunk"} for _ in chunks]
 
-                # Filter valid rows
-                df = df.dropna(subset=['question', 'keyword'])
+            # --- UPSERT STAGE ---
+            for i in range(0, len(documents), BATCH_SIZE):
+                batch_docs = documents[i:i+BATCH_SIZE]
+                batch_meta = metadatas[i:i+BATCH_SIZE]
+                ids = [f"doc_{uuid.uuid5(uuid.NAMESPACE_DNS, doc)}_{i+idx}" 
+                       for idx, doc in enumerate(batch_docs)]
                 
-                # Prepare batches
-                for i in range(0, len(df), BATCH_SIZE):
-                    if sample_limit and total_ingested >= sample_limit:
-                        break
-                        
-                    batch_df = df.iloc[i:i+BATCH_SIZE]
-                    
-                    documents = batch_df['question'].tolist()
-                    
-                    # Metadata must be simple types (str, int, float, bool)
-                    metadatas = []
-                    for _, row in batch_df.iterrows():
-                        metadatas.append({
-                            "keyword": str(row.get('keyword', '')),
-                            "category": str(row.get('category', '')),
-                            "sub_category": str(row.get('sub_category', '')),
-                            "level": str(row.get('level', '')),
-                            "language": str(row.get('language', 'en'))
-                        })
-                        
-                    # Generate unique IDs to avoid "duplicated ID" errors even for same questions
-                    ids = [f"{uuid.uuid5(uuid.NAMESPACE_DNS, doc)}_{int(time.time()*1000)}_{i+idx}" 
-                           for idx, doc in enumerate(documents)]
-                    
-                    try:
-                        # Upsert into Chroma
-                        collection.upsert(
-                            documents=documents,
-                            metadatas=metadatas,
-                            ids=ids
-                        )
-                        total_ingested += len(documents)
-                    except Exception as batch_error:
-                        print(f"   Error in batch: {batch_error}")
-                        continue
-                
-                # Update checkpoint
-                processed_files.append(file_path.name)
-                save_checkpoint(processed_files, total_ingested)
-                
-            except Exception as e:
-                print(f" Error processing {file_path.name}: {e}")
-                continue
-                
-    except KeyboardInterrupt:
-        print("\n Ingestion interrupted by user. Progress saved.")
+                collection.upsert(documents=batch_docs, metadatas=batch_meta, ids=ids)
+                total_ingested += len(batch_docs)
+
+            processed_files.append(file_path.name)
+            save_checkpoint(processed_files, total_ingested)
+            
+        except Exception as e:
+            print(f" ❌ Error processing {file_path.name}: {e}")
+            continue
     
-    print(f" Ingestion complete! Total questions in ChromaDB: {total_ingested}")
+    print(f" ✨ Ingestion complete! Total items in ChromaDB: {total_ingested}")
+
 
 if __name__ == "__main__":
     # For testing, we can limit to 1000 questions first

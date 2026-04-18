@@ -23,7 +23,8 @@ import re
 import uuid
 from datetime import datetime
 from pathlib import Path
-from typing import Optional
+from typing import Optional, List, Dict, Any
+from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
 
 # Windows DLL fix for torch / sentence-transformers
 if os.name == 'nt':
@@ -58,10 +59,12 @@ logger = logging.getLogger(__name__)
 # CONFIG
 # ---------------------------------------------------------------------------
 GEMINI_API_KEY   = os.getenv("GEMINI_API_KEY", "")
-GEMINI_MODEL     = "gemini-2.0-flash"
+GEMINI_MODEL     = "gemini-flash-latest"
 CHROMA_PATH      = Path("chroma_db")
 COLLECTION_GLOBAL  = "question_bank"
 COLLECTION_REFINED = "human_refined"
+LOG_DIR          = Path("logs")
+LOG_DIR.mkdir(exist_ok=True)
 RETRIEVE_K       = 15
 DEFAULT_NUM_Q    = 7
 
@@ -121,6 +124,25 @@ class GenerateFormRequest(BaseModel):
 # ---------------------------------------------------------------------------
 # RAG PIPELINE
 # ---------------------------------------------------------------------------
+@retry(
+    wait=wait_exponential(multiplier=1, min=4, max=60),
+    stop=stop_after_attempt(3),
+    retry=retry_if_exception_type(Exception), # Typically you'd check for 429 specifically if using a wrapper
+    reraise=True
+)
+def _gemini_call_wrapper(prompt: str, mime_type: str = "application/json"):
+    """Internal wrapper with retry logic for Gemini."""
+    if not gemini_ready: return None
+    response = gemini_model.models.generate_content(
+        model=GEMINI_MODEL,
+        contents=prompt,
+        config=genai_types.GenerateContentConfig(
+            temperature=0.3,
+            max_output_tokens=4096,
+            response_mime_type=mime_type,
+        ),
+    )
+    return response.text.strip()
 
 def analyze_intent(user_prompt: str) -> dict:
     """Stage 1: Use Gemini to understand what the user REALLY wants."""
@@ -140,15 +162,13 @@ def analyze_intent(user_prompt: str) -> dict:
     }}"""
     
     try:
-        response = gemini_model.models.generate_content(
-            model=GEMINI_MODEL,
-            contents=analysis_prompt,
-            config=genai_types.GenerateContentConfig(response_mime_type="application/json")
-        )
-        return json.loads(response.text.strip())
+        raw_response = _gemini_call_wrapper(analysis_prompt)
+        result = json.loads(raw_response)
+        logger.info("Audit: Intent Analysis [In: %s] [Out: %s]", user_prompt, result)
+        return result
     except Exception as exc:
         logger.error("Intent analysis failed: %s", exc)
-        return {"intent": "survey", "keywords": user_prompt, "category": "it", "language": "vi"}
+        return {"intent": "survey", "keywords": user_prompt, "category": "it"}
 
 
 def retrieve_questions(keyword: str, k: int = RETRIEVE_K) -> list:
@@ -225,18 +245,19 @@ def build_prompt(user_input: str, intent_info: dict, retrieved: list, num_q: int
       "title": "Professional Title",
       "description": "Short purpose description",
       "intent": "{intent}",
+      "questions": [
+        {{
+          "id": "q1",
+          "question": "...",
+          "type": "single_choice|multiple_choice|text|rating|likert_scale",
+          "required": true,
+          "options": ["if applicable"]
+        }}
+      ],
       "sections": [
         {{
           "title": "Section Title",
-          "questions": [
-            {{
-              "id": "q1",
-              "text": "...",
-              "type": "single_choice|multiple_choice|text|rating|likert_scale",
-              "required": true,
-              "options": ["if applicable"]
-            }}
-          ]
+          "questions": ["References to the IDs above"]
         }}
       ],
       "metadata": {{
@@ -251,24 +272,26 @@ def call_gemini(prompt: str) -> dict | None:
     if not gemini_ready or not gemini_model:
         return None
     try:
-        response = gemini_model.models.generate_content(
-            model=GEMINI_MODEL,
-            contents=prompt,
-            config=genai_types.GenerateContentConfig(
-                temperature=0.3,
-                max_output_tokens=4096,
-                response_mime_type="application/json",
-            ),
-        )
-        raw = response.text.strip()
+        raw = _gemini_call_wrapper(prompt)
+        if not raw: return None
+        
         raw = re.sub(r"^```(?:json)?\s*", "", raw, flags=re.MULTILINE)
         raw = re.sub(r"\s*```$", "", raw, flags=re.MULTILINE)
-        return json.loads(raw)
-    except json.JSONDecodeError as exc:
-        logger.error("Gemini JSON parse error: %s", exc)
-        return None
+        result = json.loads(raw)
+        
+        # Traffic Capture (Audit Log)
+        log_file = LOG_DIR / f"rag_traffic_{datetime.now().strftime('%Y%m%d')}.jsonl"
+        with open(log_file, "a", encoding="utf-8") as f:
+            f.write(json.dumps({
+                "timestamp": datetime.now().isoformat(),
+                "type": "generation",
+                "prompt_sample": prompt[:200] + "...",
+                "response": result
+            }, ensure_ascii=False) + "\n")
+            
+        return result
     except Exception as exc:
-        logger.error("Gemini error: %s", exc)
+        logger.error("Gemini call failed: %s", exc)
         return None
 
 

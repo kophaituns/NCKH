@@ -6,6 +6,12 @@ import Loader from '../../../components/common/Loader/Loader';
 import FeedbackForm from '../../../components/Surveys/FeedbackForm';
 import { useNotificationTriggers } from '../../../components/Notifications';
 import Button from '../../../components/UI/Button';
+import { 
+  XIcon, 
+  CheckIcon, 
+  BarChartIcon,
+  SpinnerIcon 
+} from '../../../components/Icons';
 import styles from './ResponseForm.module.scss';
 
 const PublicResponseForm = () => {
@@ -31,7 +37,12 @@ const PublicResponseForm = () => {
       const response = await ResponseService.getSurveyByToken(token);
 
       if (!response.ok) {
-        setError(response.message || 'Invalid or inactive survey link');
+        setError(
+          <>
+            <XIcon className="mr-2" size={20} /> 
+            {response.message || 'Invalid or inactive survey link'}
+          </>
+        );
         return;
       }
 
@@ -515,7 +526,9 @@ const PublicResponseForm = () => {
   if (error) {
     return (
       <div className={styles.errorPage}>
-        <div className={styles.errorIcon}>❌</div>
+        <div className={styles.errorIcon}>
+          <XIcon size={48} />
+        </div>
         <h2>Survey Unavailable</h2>
         <p>{error}</p>
       </div>
@@ -525,7 +538,9 @@ const PublicResponseForm = () => {
   if (submitted) {
     return (
       <div className={styles.successPage}>
-        <div className={styles.successIcon}>✓</div>
+        <div className={styles.successIcon}>
+          <CheckIcon size={48} />
+        </div>
         <h2>Thank you!</h2>
         <p>Your response has been submitted successfully.</p>
         <div className={styles.successDetails}>
@@ -560,7 +575,9 @@ const PublicResponseForm = () => {
           <div className={styles.progressSection}>
             <div className={styles.progressLabel}>
               <div className={styles.progressText}>
-                <span className={styles.progressIcon}>📊</span>
+                <span className={styles.progressIcon}>
+  <BarChartIcon size={20} />
+</span>
                 Progress
               </div>
               <span className={styles.progressPercentage}>
