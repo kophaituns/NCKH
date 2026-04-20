@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useReducer, useEffect } from 'react';
+import React, { createContext, useContext, useReducer, useEffect, useCallback } from 'react';
 import { TokenService } from '../api/services/token.service.js';
 import AuthService from '../api/services/auth.service.js';
 import socketService from '../api/services/socket.service.js';
@@ -265,7 +265,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   // Refetch user data function
-  const refetchUserData = async () => {
+  const refetchUserData = useCallback(async () => {
     try {
       const response = await AuthService.getProfile();
       if (response.success) {
@@ -287,7 +287,7 @@ export const AuthProvider = ({ children }) => {
     } catch (error) {
       console.error('Failed to refetch user data:', error);
     }
-  };
+  }, [dispatch]);
 
   // Listen for role updates
   useEffect(() => {

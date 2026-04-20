@@ -565,7 +565,6 @@ const SurveyList = () => {
                     {surveys.map((survey) => {
                       // Handle both camelCase (responseCount) and snake_case (response_count) from backend
                       const responseCount = survey.responseCount ?? survey.response_count ?? 0;
-                      const myResponseCount = survey.my_response_count || 0;
 
                       // Next Action Logic
                       let nextAction = '';

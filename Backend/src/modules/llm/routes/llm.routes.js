@@ -3,6 +3,9 @@ const express = require('express');
 const router = express.Router();
 const llmController = require('../controller/llm.controller');
 const { authenticate } = require('../../auth-rbac/middleware/auth.middleware');
+const multer = require('multer');
+const upload = multer({ dest: 'uploads/' });
+const knowledgeController = require('../controller/knowledge.controller');
 
 // Public routes (no authentication needed)
 const publicRoutes = require('./public.routes');
@@ -175,6 +178,24 @@ router.post('/generate-protected', llmController.generateQuestionsProtected);
  * @access  Private
  */
 router.post('/validate-input', llmController.validateInput);
+
+// ============================================================================
+// KNOWLEDGE BASE (U-INGESTOR) ROUTES
+// ============================================================================
+
+/**
+ * @route   POST /api/modules/llm/ingest
+ * @desc    Upload documents to Knowledge Base (U-Ingestor)
+ * @access  Private
+ */
+router.post('/ingest', upload.array('files'), knowledgeController.ingestDocuments);
+
+/**
+ * @route   GET /api/modules/llm/knowledge-status
+ * @desc    Get Knowledge Base ingestion status
+ * @access  Private
+ */
+router.get('/knowledge-status', knowledgeController.getStatus);
 
 // Health check
 router.get('/health', (req, res) => {

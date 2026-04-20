@@ -8,7 +8,7 @@ import Checkbox from '../UI/Checkbox';
 import { useToast } from '../../contexts/ToastContext';
 import LLMService from '../../api/services/llm.service';
 import WorkspaceService from '../../api/services/workspace.service';
-import { MailIcon, BarChartIcon, XIcon, CheckIcon, SparklesIcon } from '../Icons';
+import { MailIcon, BarChartIcon } from '../Icons';
 import styles from './SurveyCreator.module.scss';
 
 const SurveyCreator = ({ generatedQuestions, onSurveyCreated, initialSelectedIndices }) => {

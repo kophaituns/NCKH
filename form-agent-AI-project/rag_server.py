@@ -25,6 +25,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Optional, List, Dict, Any
 from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
+from chroma_ingestor import ingest_data
 
 # Windows DLL fix for torch / sentence-transformers
 if os.name == 'nt':
@@ -405,6 +406,19 @@ async def generate_form(request: GenerateFormRequest):
     return JSONResponse(content=form_data)
 
 
+@app.post("/api/ingest")
+async def trigger_ingestion():
+    """Trigger the U-Ingestor to sync files from user_data."""
+    try:
+        # Run ingestion in the background or synchronously if it's small
+        # For now, we run it sync for simplicity but could use BackgroundTasks
+        ingest_data(sample_limit=None)  # Full ingest
+        return {"success": True, "message": "Ingestion complete."}
+    except Exception as exc:
+        logger.error("Ingestion failed: %s", exc)
+        return JSONResponse(status_code=500, content={"success": False, "error": str(exc)})
+
+
 class LearnRequest(BaseModel):
     prompt: str
     questions: list # List of question text strings
@@ -433,11 +447,38 @@ async def status():
             chroma_count = chroma_ai.collection.count()
         except Exception:
             pass
+            
+    # Calculate storage stats
+    total_files = 0
+    total_size_bytes = 0
+    if os.path.exists("user_data"):
+        for f in os.listdir("user_data"):
+            f_path = os.path.join("user_data", f)
+            if os.path.isfile(f_path):
+                total_files += 1
+                total_size_bytes += os.path.getsize(f_path)
+    
+    # Load processed count from checkpoint
+    processed_count = 0
+    try:
+        if os.path.exists("logs/ingestion_checkpoint.json"):
+            with open("logs/ingestion_checkpoint.json", "r") as f:
+                ckpt = json.load(f)
+                processed_count = len(ckpt.get("processed_files", []))
+    except Exception:
+        pass
+
     return {
         "gemini_api_key_configured": bool(GEMINI_API_KEY and GEMINI_API_KEY != "YOUR_GEMINI_API_KEY_HERE"),
         "gemini_model": GEMINI_MODEL,
         "chromadb_path": str(CHROMA_PATH),
         "chromadb_vectors": chroma_count,
+        "storage": {
+            "total_files": total_files,
+            "processed_files": processed_count,
+            "total_size_mb": round(total_size_bytes / (1024 * 1024), 2),
+            "sync_percent": round((processed_count / total_files * 100), 1) if total_files > 0 else 0
+        },
         "retrieve_k": RETRIEVE_K,
         "default_num_questions": DEFAULT_NUM_Q,
     }
@@ -504,30 +545,44 @@ async def generate_questions_compat(request: GenerateQuestionsRequest):
     # Try Gemini RAG first
     form_data = None
     if gemini_ready:
-        # FIXED: Corect argument order: (user_input, intent_info, retrieved, num_q)
         prompt = build_prompt(keyword, intent_info, retrieved, num_q)
         form_data = call_gemini(prompt)
 
     # Build flat question list from form_data or fallback
     questions = []
-    if form_data and "sections" in form_data:
-        for section in form_data.get("sections", []):
-            for q in section.get("questions", []):
-                questions.append(q)
-        category = form_data.get("category", "it")
+    if form_data and "questions" in form_data:
+        # SUCCESS: Normalize Gemini output
+        raw_questions = form_data.get("questions", [])
+        for i, q in enumerate(raw_questions):
+            questions.append({
+                "id": q.get("id", f"q{i+1}"),
+                "text": q.get("question", q.get("text", "")),
+                "question": q.get("question", q.get("text", "")),
+                "type": q.get("type", "text"),
+                "required": q.get("required", True),
+                "options": q.get("options", []),
+                "category": form_data.get("category", intent_info.get("category", "general")),
+                "method": "sir_ag_v2_gemini"
+            })
+        category = form_data.get("category", intent_info.get("category", "general"))
     else:
-        # Fallback: return raw ChromaDB results as question list
+        # FALLBACK: Clean up generic fallback questions
         for i, r in enumerate(retrieved):
+            q_text = r["question"]
+            # Filter out low-quality generic questions like "What is your opinion about {X}? (Question {n})"
+            if "(Question" in q_text and len(q_text) < 50:
+                q_text = f"Considering {keyword}, how would you evaluate its current impact on {r.get('category', 'your field')}?"
+            
             q_type = r.get("question_type", "text")
             entry = {
                 "id": f"q{i+1}",
-                "text": r["question"],
-                "question": r["question"],
+                "text": q_text,
+                "question": q_text,
                 "type": q_type,
                 "required": True,
                 "confidence": r.get("similarity_score", 0),
                 "category": r.get("category", "it"),
-                "method": "chromadb_semantic",
+                "method": "chromadb_semantic_fallback",
             }
             if q_type == "rating":
                 entry["options"] = ["1", "2", "3", "4", "5"]

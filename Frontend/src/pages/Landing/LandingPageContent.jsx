@@ -12,8 +12,7 @@ import {
   LuCircleCheck,
   LuChartLine,
   LuRepeat,
-  LuArrowRight,
-  LuMousePointerClick
+  LuArrowRight
 } from 'react-icons/lu';
 import styles from './Landing.module.scss';
 // Image import removed

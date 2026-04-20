@@ -9,9 +9,7 @@ import Button from '../../../components/UI/Button';
 import { 
   XIcon, 
   CheckIcon, 
-  BarChartIcon,
-  SpinnerIcon 
-} from '../../../components/Icons';
+  BarChartIcon} from '../../../components/Icons';
 import styles from './ResponseForm.module.scss';
 
 const PublicResponseForm = () => {

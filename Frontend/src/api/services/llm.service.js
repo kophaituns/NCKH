@@ -227,6 +227,38 @@ const LLMService = {
     const response = await http.post(`/llm/surveys/${surveyId}/questions`, questionData);
     return response.data;
   },
+
+  /**
+   * Ingest documents into the Knowledge Base (U-Ingestor)
+   * @param {FileList|File[]} files - Files to upload
+   */
+  async ingestDocuments(files) {
+    const formData = new FormData();
+    if (Array.isArray(files)) {
+      files.forEach(file => formData.append('files', file));
+    } else {
+      // Assuming FileList
+      for (let i = 0; i < files.length; i++) {
+        formData.append('files', files[i]);
+      }
+    }
+
+    const response = await http.post('/llm/ingest', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      },
+      timeout: 120000 // Ingestion can take longer
+    });
+    return response.data;
+  },
+
+  /**
+   * Get knowledge base status
+   */
+  async getKnowledgeStatus() {
+    const response = await http.get('/llm/knowledge-status');
+    return response.data;
+  }
 };
 
 export default LLMService;

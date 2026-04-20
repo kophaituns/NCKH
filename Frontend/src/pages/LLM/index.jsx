@@ -16,8 +16,7 @@ import Modal from '../../components/common/Modal/Modal';
 import { useAuth } from '../../contexts/AuthContext';
 import UpgradeModal from '../../components/UpgradeToCreator/UpgradeModal';
 import UpgradeUpsellModal from '../../components/UI/UpgradeUpsellModal/UpgradeUpsellModal';
-import { LuSparkles, LuBrain, LuSettings, LuFileText, LuWand, LuCircleCheck, LuInfo, LuArrowRight, LuLock, LuTriangleAlert, LuWifiOff, LuClock } from 'react-icons/lu';
-import { XIcon } from '../../components/Icons';
+import { LuSparkles, LuBrain, LuSettings, LuFileText, LuWand, LuCircleCheck, LuInfo, LuArrowRight, LuLock, LuTriangleAlert, LuDatabase, LuUpload, LuCheck, LuSearch, LuActivity } from 'react-icons/lu';
 import styles from './LLM.module.scss';
 
 // Import validation utilities
@@ -42,11 +41,16 @@ const LLM = () => {
   const [activeTab, setActiveTab] = useState('generate');
   const [formData, setFormData] = useState({
     keyword: '',
-    category: '',
+    category: 'general',
     questionCount: 5,
     prompt: ''
   });
   const [generatedQuestions, setGeneratedQuestions] = useState([]);
+  // Knowledge Base State
+  const [knowledgeStatus, setKnowledgeStatus] = useState(null);
+  const [isIngesting, setIsIngesting] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+  const [selectedFiles, setSelectedFiles] = useState([]);
   // const [categories, setCategories] = useState([]); // Unused
   const [prompts, setPrompts] = useState([]);
   const [selectedPrompt, setSelectedPrompt] = useState('');
@@ -75,6 +79,22 @@ const LLM = () => {
   const [offset, setOffset] = useState(0);
   const [canRegenerate, setCanRegenerate] = useState(false);
   const [metadata, setMetadata] = useState(null);
+
+  // Load knowledge status
+  const fetchKnowledgeStatus = useCallback(async () => {
+    try {
+      const res = await LLMService.getKnowledgeStatus();
+      setKnowledgeStatus(res.data);
+    } catch (err) {
+      console.warn('Could not fetch knowledge status:', err);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (activeTab === 'knowledge') {
+      fetchKnowledgeStatus();
+    }
+  }, [activeTab, fetchKnowledgeStatus]);
 
   const isLockedForRoleMismatch = () => {
     return user?.role === 'user';
@@ -143,110 +163,8 @@ const LLM = () => {
     loadInitialData();
   }, [loadInitialData]);
 
-  // ============================================================================
-  // PREDICT CATEGORY HANDLER - With validation and error handling
-  // ============================================================================
-
-  const handlePredictCategory = async () => {
-    // Check role permission
-    if (isLockedForRoleMismatch()) {
-      setShowUpsellModal(true);
-      return;
-    }
-
-    // Validate input first
-    const validation = validateAIInput(formData.keyword);
-    setInputValidation(validation);
-
-    if (!validation.isValid) {
-      // Show specific error based on error type
-      if (validation.errorType === 'INVALID_CHARS') {
-        showToast('Keyword contains invalid characters. Please use letters or numbers only.', 'error');
-      } else if (validation.errorType === 'TOO_SHORT') {
-        showToast('Keyword is too short. Please enter at least 3 characters.', 'error');
-      } else {
-        showToast(validation.errorMessage || 'Invalid keyword', 'error');
-      }
-      return;
-    }
-
-    try {
-      setIsPredicting(true);
-
-      // Sanitize input before sending
-      const cleanedKeyword = sanitizeInput(formData.keyword);
-
-      const response = await LLMService.predictCategory({
-        keyword: cleanedKeyword
-      });
-
-      const { category, confidence } = response.data || {};
-
-      // Validate category result
-      const categoryValidation = validateCategoryResult(category, confidence);
-      setCategoryPrediction(categoryValidation);
-
-      if (categoryValidation.isValid) {
-        // Valid category - update form and show success
-        setFormData(prev => ({
-          ...prev,
-          category: category
-        }));
-        showToast(
-          `Category identified: ${category} (${Math.round(categoryValidation.confidence * 100)}%)`,
-          'success'
-        );
-      } else if (categoryValidation.isUnknownCategory) {
-        // Unknown category - show helpful message explaining the limitation
-        showToast(
-          `"${formData.keyword}" is not in our training dataset. Our AI is trained on IT, Economics, and Marketing topics. Try: "machine learning", "digital marketing", "financial analysis"`,
-          'warning'
-        );
-      } else if (categoryValidation.isLowConfidence) {
-        // Low confidence - show warning but allow to continue
-        setFormData(prev => ({
-          ...prev,
-          category: category
-        }));
-        showToast(
-          `Low confidence (${Math.round(categoryValidation.confidence * 100)}%). Results may not be accurate.`,
-          'warning'
-        );
-      }
-    } catch (error) {
-      console.error('Error predicting category:', error);
-      setCategoryPrediction(null);
-
-      // Check for 503 Service Unavailable status
-      if (error.response?.status === 503) {
-        showToast(
-          'AI Server is currently offline. Please try again later.',
-          'error'
-        );
-        return;
-      }
-
-      // Check if response contains AI server unavailable error
-      const errorData = error.response?.data;
-      const reason = errorData?.reason || errorData?.data?.reason;
-
-      if (reason === 'AI_SERVER_UNAVAILABLE') {
-        showToast(
-          'AI Server is currently offline. Please try again later.',
-          'error'
-        );
-      } else if (error.code === 'ECONNABORTED' || error.message?.includes('timeout')) {
-        showToast('Request timed out. The AI server may be overloaded. Please try again.', 'error');
-      } else if (!error.response) {
-        // Network error - no response received
-        showToast('Cannot connect to the server. Please check your internet connection.', 'error');
-      } else {
-        showToast('Error predicting category. Please try again.', 'error');
-      }
-    } finally {
-      setIsPredicting(false);
-    }
-  };
+  // Predict category is now handled AUTOMATICALLY within generateQuestions
+  // or explicitly if the user wants but removed from the main flow for "SIR-AG v2 Gấu" speed.
 
   // ============================================================================
   // GENERATE QUESTIONS HANDLER - With validation layers
@@ -268,25 +186,8 @@ const LLM = () => {
       return;
     }
 
-    // Layer 2: Check if category has been predicted
-    if (!categoryPrediction) {
-      // Show guidance modal instead of blocking
-      setShowGuidanceModal(true);
-      return;
-    }
-
-    // Layer 3: Check if category prediction is valid
-    if (!categoryPrediction.canGenerate) {
-      if (categoryPrediction.isUnknownCategory) {
-        showToast(
-          `"${formData.keyword}" is not available in our training data. Please use keywords from IT, Economics, or Marketing fields (e.g., "cloud computing", "supply chain", "brand strategy")`,
-          'error'
-        );
-      } else {
-        showToast(categoryPrediction.warningMessage || 'Cannot generate questions with this keyword', 'error');
-      }
-      return;
-    }
+    // PREDICT CATEGORY is now implicit
+    let currentCategory = formData.category || 'general';
 
     try {
       setLoading(true);
@@ -296,14 +197,20 @@ const LLM = () => {
       const cleanedKeyword = sanitizeInput(formData.keyword);
       const count = parseInt(formData.questionCount) || 5;
 
-      console.log('Generating questions with:', { keyword: cleanedKeyword, category: formData.category, offset: 0 });
+      console.log('>>> [RAG REQUEST] Sending data to AI Server:', { 
+        keyword: cleanedKeyword, 
+        category: currentCategory, 
+        num_questions: count 
+      });
 
       const response = await LLMService.generateQuestions({
         keyword: cleanedKeyword,
         num_questions: count,
-        category_hint: formData.category || categoryPrediction?.category || null,
+        category_hint: currentCategory || null,
         offset: 0
       });
+
+      console.log('<<< [RAG RESPONSE] Received from AI Server:', response.data);
 
       const questions = response.data?.questions || response.questions || [];
       const meta = response.data?.metadata || response.metadata || null;
@@ -515,23 +422,146 @@ const LLM = () => {
           justifyContent: 'flex-end'
         }}>
           <Button
-            variant="secondary"
             onClick={() => setShowGuidanceModal(false)}
           >
-            Close
-          </Button>
-          <Button
-            onClick={() => {
-              setShowGuidanceModal(false);
-              handlePredictCategory();
-            }}
-          >
-            <LuBrain size={16} /> Predict Category
+            I Understand
           </Button>
         </div>
       </div>
     </Modal>
   );
+
+  const handleIngest = async (filesToIngest) => {
+    if (!filesToIngest || filesToIngest.length === 0) return;
+    try {
+      setIsIngesting(true);
+      console.log('>>> [INGESTION REQUEST] Sending files to pipeline:', filesToIngest.map(f => f.name));
+      
+      const response = await LLMService.ingestDocuments(filesToIngest);
+      console.log('<<< [INGESTION RESPONSE] Pipeline result:', response);
+      
+      showToast('Knowledge synchronized successfully!', 'success');
+      setSelectedFiles([]);
+      fetchKnowledgeStatus();
+    } catch (err) {
+      showToast('Sync failed: ' + (err.response?.data?.message || err.message), 'error');
+    } finally {
+      setIsIngesting(false);
+    }
+  };
+
+  const renderKnowledgeBase = () => {
+    const syncPercent = knowledgeStatus?.storage?.sync_percent || 0;
+    const isReady = (knowledgeStatus?.status === 'ready' || knowledgeStatus?.status === 'healthy');
+
+    return (
+      <div className={styles.knowledgeContainer}>
+        <div className={styles.dashboardGrid}>
+          <Card className={styles.progressCard}>
+            <div className={styles.circleContainer}>
+              <svg viewBox="0 0 36 36" className={styles.circularChart}>
+                <path className={styles.circleBg} d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                <path className={styles.circle} strokeDasharray={`${syncPercent}, 100`} d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+              </svg>
+              <div className={styles.percentage}>{syncPercent}%</div>
+            </div>
+            <div className={styles.progressLabel}>
+              <h4>Library Sync</h4>
+              <p>{isReady ? 'System fully optimized' : 'Processing units...'}</p>
+            </div>
+          </Card>
+
+          <Card className={styles.quickStats}>
+            <div className={styles.statsList}>
+              <div className={styles.statItem}>
+                <span className={styles.label}>Documents</span>
+                <span className={styles.value}>{knowledgeStatus?.storage?.total_files || 0}</span>
+              </div>
+              <div className={styles.statItem}>
+                <span className={styles.label}>Disk Usage</span>
+                <span className={styles.value}>{knowledgeStatus?.storage?.total_size_mb || 0} MB</span>
+              </div>
+              <div className={styles.statItem}>
+                <span className={styles.label}>Synced Units</span>
+                <span className={styles.value}>{knowledgeStatus?.chromadb_vectors?.toLocaleString() || 0}</span>
+              </div>
+            </div>
+          </Card>
+        </div>
+
+        <div className={styles.mainKnowledgeArea}>
+          <Card 
+            className={`${styles.uploadCard} ${isDragging ? styles.activeDrag : ''}`}
+            onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+            onDragLeave={() => setIsDragging(false)}
+            onDrop={(e) => { 
+                e.preventDefault(); 
+                setIsDragging(false); 
+                const files = Array.from(e.dataTransfer.files);
+                setSelectedFiles(prev => [...prev, ...files]);
+            }}
+          >
+            <div className={styles.uploadInner}>
+              <LuUpload size={40} className={styles.uploadIcon} />
+              <h4>Feed Your Assistant</h4>
+              <p>Drag & drop or click to upload research assets.</p>
+              <input 
+                type="file" 
+                multiple 
+                onChange={(e) => setSelectedFiles(prev => [...prev, ...Array.from(e.target.files)])} 
+                id="file-upload" 
+                className={styles.hiddenInput}
+                accept=".pdf,.docx,.xlsx,.txt"
+              />
+              <Button onClick={() => document.getElementById('file-upload').click()} variant="secondary" className={styles.browseBtn}>
+                Browse Files
+              </Button>
+
+              {selectedFiles.length > 0 && (
+                <div className={styles.selectedQueue}>
+                  <div className={styles.queueHeader}>
+                    <span>{selectedFiles.length} files pending</span>
+                    <button onClick={() => setSelectedFiles([])}>Clear All</button>
+                  </div>
+                  <div className={styles.queueList}>
+                    {selectedFiles.map((f, i) => (
+                      <div key={i} className={styles.queueItem}>
+                        <LuFileText size={14} /> <span>{f.name}</span>
+                      </div>
+                    ))}
+                  </div>
+                  <Button onClick={() => handleIngest(selectedFiles)} loading={isIngesting} className={styles.ingestAction}>
+                    <LuBrain /> Sync to Library
+                  </Button>
+                </div>
+              )}
+            </div>
+          </Card>
+
+          <Card className={styles.recentHistory}>
+            <h4>Recently Processed</h4>
+            <ul>
+              {knowledgeStatus?.processed_files?.length > 0 ? (
+                knowledgeStatus.processed_files.slice(-8).map((f, i) => (
+                  <li key={i}><LuCircleCheck size={14} /> {f}</li>
+                ))
+              ) : (
+                <div className={styles.emptyFeed}>
+                  <LuBrain size={32} />
+                  <p>Processing queue is empty.</p>
+                </div>
+              )}
+            </ul>
+          </Card>
+        </div>
+      </div>
+    );
+  };
+
+  const handleEditSurvey = (surveyId) => {
+    setEditingSurveyId(surveyId);
+    setActiveTab('edit');
+  };
 
   const handleGenerateSurvey = async () => {
     if (isLockedForRoleMismatch()) {
@@ -549,11 +579,11 @@ const LLM = () => {
         prompt: formData.prompt,
         prompt_id: selectedPrompt,
         description: 'Generated by AI',
-        target_audience: 'General', // LLM might ignore this, but our survey creation needs it
-        access_type: targetAudience === 'internal' ? 'internal' : 'public', // Custom field to pass to createSurvey
+        target_audience: 'General',
+        access_type: targetAudience === 'internal' ? 'internal' : 'public',
         workspace_id: targetAudience === 'internal' ? targetWorkspace : null,
-        title: 'AI Generated Survey', // Provide a default or extract from prompt
-        course_name: 'AI Course' // Legacy?
+        title: 'AI Generated Survey',
+        course_name: 'AI Course'
       });
 
       showToast('Survey generated successfully!', 'success');
@@ -570,18 +600,13 @@ const LLM = () => {
     }
   };
 
-  const handleEditSurvey = (surveyId) => {
-    setEditingSurveyId(surveyId);
-    setActiveTab('edit');
-  };
-
   const renderQuestionGeneration = () => (
     <div className={styles.tabContent}>
       <Card className={styles.formCard}>
-        <h3><LuSparkles /> {activeTab === 'generate' ? 'Generate Questions' : 'Generate Survey'}</h3>
+        <h3><LuSparkles /> Content Intelligence</h3>
 
         <div className={styles.formGroup}>
-          <label>Topic or Keyword</label>
+          <label>Inquiry Goal or Topic</label>
           <Input
             type="text"
             placeholder={dynamicPlaceholder}
@@ -599,67 +624,35 @@ const LLM = () => {
           )}
 
           {formData.keyword.length === 0 && (
-            <p className={styles.helpText}>Enter keywords from categories: IT, Marketing, Sales, or Education.</p>
+            <p className={styles.helpText}>Enter keywords or a research topic to generate context-aware questions.</p>
           )}
-
-          {/* Category Prediction Status */}
-          {categoryPrediction && (
-            <div style={{
-              marginTop: '8px',
-              padding: '8px 12px',
-              borderRadius: '6px',
-              background: categoryPrediction.canGenerate ? '#D1FAE5' : '#FEE2E2',
-              border: `1px solid ${categoryPrediction.canGenerate ? '#10B981' : '#EF4444'}`,
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px'
-            }}>
-              {categoryPrediction.canGenerate ? (
-                <LuCircleCheck size={16} color="#059669" />
-              ) : (
-                <LuTriangleAlert size={16} color="#DC2626" />
-              )}
-
-              <span style={{ fontSize: '13px', color: categoryPrediction.canGenerate ? '#065F46' : '#991B1B' }}>
-                {categoryPrediction.canGenerate
-                  ? (
-                    <>
-                      Category: <strong>{categoryPrediction.category}</strong>
-                    </>
-                  )
-                  : categoryPrediction.warningMessage
-                }
-              </span>
-            </div>
-          )}
-
-          <div className={styles.predictWrapper}>
-            <button
-              onClick={handlePredictCategory}
-              disabled={loading || isPredicting || !isInputValid}
-              className={styles.predictBtn}
-              title={!isInputValid ? 'Please enter a valid keyword first' : 'Predict category for keyword'}
-            >
-              {isPredicting ? (
-                <>Analyzing...</>
-              ) : (
-                <><LuBrain size={16} /> Predict Category</>
-              )}
-            </button>
-          </div>
         </div>
 
-        <div className={styles.formGroup}>
-          <label>Number of questions</label>
-          <Select
-            value={formData.questionCount}
-            onChange={(value) => handleInputChange('questionCount', parseInt(value))}
-          >
-            <option value={3}>3 questions</option>
-            <option value={5}>5 questions</option>
-            <option value={10}>10 questions</option>
-            <option value={15}>15 questions</option>
-          </Select>
+        <div className={styles.formRow}>
+          <div className={styles.formGroup}>
+            <label>Knowledge Category</label>
+            <Select
+              value={formData.category}
+              onChange={(value) => handleInputChange('category', value)}
+            >
+              <option value="general">General (Broad knowledge)</option>
+              <option value="it">Information Technology (Dev, Infrastructure)</option>
+              <option value="economics">Economics & Finance (Market, Investment)</option>
+              <option value="marketing">Marketing & Sales (Behavior, Branding)</option>
+            </Select>
+          </div>
+          
+          <div className={styles.formGroup} style={{display:'block'}} >
+            <label>Quantity</label>
+            <Select
+              value={formData.questionCount}
+              onChange={(value) => handleInputChange('questionCount', parseInt(value))}
+            >
+              <option value={3}>3 questions</option>
+              <option value={5}>5 questions</option>
+              <option value={10}>10 questions</option>
+            </Select>
+          </div>
         </div>
 
         <Button
@@ -669,22 +662,15 @@ const LLM = () => {
           title={
             !isInputValid
               ? 'Please enter a valid keyword'
-              : !categoryPrediction
-                ? 'Recommended: Click Predict Category first'
-                : 'Generate questions with AI'
+              : 'Execute AI sequence'
           }
         >
           {loading ? (
-            <>Generating questions...</>
+            <>Processing Intel...</>
           ) : (
             <>
               {isLockedForRoleMismatch() ? <LuLock size={18} /> : <LuWand size={18} />}
-              Generate Questions
-              {!categoryPrediction && isInputValid && (
-                <span style={{ marginLeft: '8px', fontSize: '11px', opacity: 0.8 }}>
-                  (Not predicted)
-                </span>
-              )}
+              Generate Insightful Content
             </>
           )}
         </Button>
@@ -797,12 +783,12 @@ const LLM = () => {
   const renderSurveyGeneration = () => (
     <div className={`${styles.tabContent} ${styles.fullWidth}`}>
       <Card className={styles.formCard} style={{ position: 'relative', top: 0, maxWidth: '100%', margin: '0 auto' }}>
-        <h3><LuSettings /> Survey Generation Settings</h3>
+        <h3><LuSettings /> Form Architect</h3>
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '32px' }}>
           <div>
             <div className={styles.formGroup}>
-              <label>Select prompt</label>
+              <label>Select Template</label>
               <Select
                 value={selectedPrompt}
                 onChange={(value) => setSelectedPrompt(value)}
@@ -818,9 +804,9 @@ const LLM = () => {
             </div>
 
             <div className={styles.formGroup}>
-              <label>Custom prompt</label>
+              <label>Custom Objective</label>
               <TextArea
-                placeholder="Describe the survey you want to create..."
+                placeholder="Define your research goals or custom survey structure..."
                 value={formData.prompt}
                 onChange={(e) => handleInputChange('prompt', e.target.value)}
                 rows={4}
@@ -879,11 +865,11 @@ const LLM = () => {
               style={{ marginTop: '24px' }}
             >
               {loading ? (
-                <>Generating survey...</>
+                <>Deploying system...</>
               ) : (
                 <>
                   {isLockedForRoleMismatch() ? <LuLock size={18} /> : <LuWand size={18} />}
-                  Generate Complete Survey
+                  Execute Form Deployment
                 </>
               )}
             </Button>
@@ -893,110 +879,77 @@ const LLM = () => {
     </div>
   );
 
-  if (loading && activeTab === 'generate' && generatedQuestions.length === 0) {
-    return (
-      <div className={styles.container}>
-        <div className={styles.header}>
-          <h1>AI Question &amp; Survey Generator</h1>
-          <p>Create smart questions and surveys with AI</p>
-        </div>
-        <div className={styles.loadingContainer}>
-          <Loader />
-          <p>Generating content...</p>
-        </div>
-      </div>
-    );
-  }
+  const isReady = knowledgeStatus?.status === 'ready' || knowledgeStatus?.status === 'healthy';
 
   return (
     <div className={styles.container}>
-      <div className={styles.header}>
-        <h1>AI Question &amp; Survey Generator</h1>
-        <p>Create smart questions and surveys with AI</p>
-      </div>
+      <header className={styles.header}>
+        <div className={styles.titleInfo}>
+          <h1>AI <span className={styles.brand}>Assistant</span> System</h1>
+          <div className={`${styles.statusDot} ${isReady ? styles.online : styles.offline}`} title="AI System Status" />
+        </div>
+        <p>Scientific Intelligent Retrieval & AI Generation Platform</p>
+      </header>
 
       <div className={styles.tabs}>
         <button
           className={`${styles.tab} ${activeTab === 'generate' ? styles.active : ''}`}
           onClick={() => setActiveTab('generate')}
         >
-          <LuSparkles size={16} /> Generate Questions
+          <LuSparkles size={18} /> Generation
         </button>
         <button
           className={`${styles.tab} ${activeTab === 'survey' ? styles.active : ''}`}
           onClick={() => setActiveTab('survey')}
-          disabled={generatedQuestions.length === 0}
         >
-          <LuFileText size={16} /> Create Survey ({selectedIndices.size || generatedQuestions.length})
+          <LuFileText size={18} /> Builder
         </button>
         <button
-          className={`${styles.tab} ${activeTab === 'prompt' ? styles.active : ''}`}
-          onClick={() => setActiveTab('prompt')}
+          className={`${styles.tab} ${activeTab === 'knowledge' ? styles.active : ''}`}
+          onClick={() => setActiveTab('knowledge')}
         >
-          <LuArrowRight size={16} /> Advanced Prompt
+          <LuDatabase size={18} /> Library
+        </button>
+        <button
+          className={`${styles.tab} ${activeTab === 'edit' ? styles.active : ''}`}
+          onClick={() => setActiveTab('edit')}
+          disabled={!editingSurveyId}
+        >
+          <LuSettings size={18} /> Editor
         </button>
       </div>
 
-      {activeTab === 'generate' && renderQuestionGeneration()}
-      {activeTab === 'survey' && generatedQuestions.length > 0 && (
-        <SurveyCreator
-          generatedQuestions={generatedQuestions}
-          initialSelectedIndices={selectedIndices}
-          onSurveyCreated={(survey) => {
-            setCreatedSurvey(survey);
-            setActiveTab('result');
-          }}
-        />
-      )}
-      {activeTab === 'prompt' && renderSurveyGeneration()}
-      {activeTab === 'result' && createdSurvey && (
-        <SurveyActions
-          survey={createdSurvey}
-          onClose={() => setActiveTab('generate')}
-          onEditSurvey={handleEditSurvey}
-        />
-      )}
-      {activeTab === 'edit' && editingSurveyId && (
-        <SurveyQuestionEditor
-          surveyId={editingSurveyId}
-          onClose={() => setActiveTab('result')}
-          onSurveyUpdated={() => {
-            // Survey has been updated successfully
-            showToast('Survey has been updated', 'success');
-          }}
-        />
-      )}
+      <div style={{ marginTop: '24px' }}>
+        {activeTab === 'generate' && renderQuestionGeneration()}
+        {activeTab === 'survey' && renderSurveyGeneration()}
+        {activeTab === 'knowledge' && renderKnowledgeBase()}
+        {activeTab === 'edit' && editingSurveyId && (
+          <SurveyQuestionEditor
+            surveyId={editingSurveyId}
+            onClose={() => {
+              setEditingSurveyId(null);
+              setActiveTab('generate');
+            }}
+          />
+        )}
+      </div>
 
-      {showManageMembers && targetWorkspace && (
-        <Modal
-          isOpen={showManageMembers}
-          onClose={() => setShowManageMembers(false)}
-          title="Manage Workspace Members"
-          size="lg"
-        >
-          <div style={{ padding: '20px' }}>
-            <p>Redirecting to workspace management...</p>
-            <Button onClick={() => window.open(`/workspaces/${targetWorkspace}/invitations`, '_blank')}>
-              Go to Member Management
-            </Button>
-          </div>
-        </Modal>
-      )}
+      {renderGuidanceModal()}
 
       {/* Upgrade Modals Integration */}
       <UpgradeUpsellModal
         isOpen={showUpsellModal}
         onClose={() => setShowUpsellModal(false)}
-        onUpgrade={() => setShowUpgradeModal(true)}
+        onUpgrade={() => {
+          setShowUpsellModal(false);
+          setShowUpgradeModal(true);
+        }}
       />
 
       <UpgradeModal
         isOpen={showUpgradeModal}
         onClose={() => setShowUpgradeModal(false)}
       />
-
-      {/* Guidance Modal for AI Generator */}
-      {renderGuidanceModal()}
     </div>
   );
 };

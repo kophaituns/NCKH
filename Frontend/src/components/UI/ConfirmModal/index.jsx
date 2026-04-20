@@ -23,14 +23,6 @@ const ConfirmModal = ({
   const handleClose = onCancel || onClose;
   const effectiveColor = isDanger ? 'danger' : confirmColor;
 
-  const getConfirmButtonClass = () => {
-    switch (effectiveColor) {
-      case 'danger': return styles.danger;
-      case 'warning': return styles.warning;
-      case 'primary': return styles.primary;
-      default: return styles.danger;
-    }
-  };
 
   return (
     <Modal

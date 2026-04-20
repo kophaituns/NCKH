@@ -7,7 +7,7 @@ import Loader from '../../../components/common/Loader/Loader';
 import styles from './WorkspaceList.module.scss';
 
 import { useAuth } from '../../../contexts/AuthContext';
-import { LuBox, LuUser, LuPlus, LuSettings, LuUsers, LuSearch } from 'react-icons/lu';
+import { LuBox, LuUser, LuPlus, LuSettings, LuUsers } from 'react-icons/lu';
 import Button from '../../../components/UI/Button';
 
 const WorkspaceList = () => {
@@ -231,7 +231,6 @@ const WorkspaceList = () => {
     return <Loader />;
   }
 
-  const isAdmin = user && user.role === 'admin';
   const canCreateWorkspace = user && (user.role === 'creator' || user.role === 'admin');
 
   return (

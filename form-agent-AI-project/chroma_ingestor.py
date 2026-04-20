@@ -7,6 +7,7 @@ import json
 import uuid
 import time
 import re
+import csv
 from pathlib import Path
 from dotenv import load_dotenv
 from google import genai
@@ -114,21 +115,21 @@ def validate_data_quality(file_path: Path, sample_text: str) -> bool:
         Return a JSON: {{"safe": true/false, "reason": "..."}}"""
         
         response = client.models.generate_content(
-            model="gemini-2.0-flash-latest",
+            model="gemini-1.5-flash-latest",
             contents=prompt,
             config=genai_types.GenerateContentConfig(response_mime_type="application/json")
         )
         result = json.loads(response.text.strip())
         if not result.get("safe"):
-            print(f" 🛡️  Guardrail REJECTED {file_path.name}: {result.get('reason')}")
+            print(f"[GUARDRAIL] REJECTED {file_path.name}: {result.get('reason')}")
             return False
         return True
     except Exception as e:
-        print(f" ⚠️  Guardrail bypass error: {e}")
+        print(f"[ERROR] Guardrail bypass error: {e}")
         return True
 
 def ingest_data(sample_limit=None):
-    print(f"🚀 SIR-AG v2: Starting Multi-Format Ingestion...")
+    print(f"[START] SIR-AG v2: Starting Multi-Format Ingestion...")
     collection = get_ingestor()
     checkpoint = load_checkpoint()
     
@@ -146,13 +147,13 @@ def ingest_data(sample_limit=None):
     files_to_process = sorted([f for f in all_files if f.name not in processed_files])
     
     if not files_to_process:
-        print(" ✅ All files already synced.")
+        print("[INFO] All files already synced.")
         return
 
-    print(f" 📦 Found {len(files_to_process)} new files to process.")
+    print(f"[INFO] Found {len(files_to_process)} new files to process.")
     parser = UnifiedParser()
     
-    for file_path in tqdm(files_to_process, desc="Syncing Documents"):
+    for file_path in tqdm(files_to_process, desc="Syncing Documents", ascii=True):
         if sample_limit and total_ingested >= sample_limit:
             break
             
@@ -163,7 +164,12 @@ def ingest_data(sample_limit=None):
             
             # --- PARSING STAGE ---
             if ext == ".csv":
-                df = pd.read_csv(file_path, low_memory=False)
+                try:
+                    df = pd.read_csv(file_path, low_memory=False, on_bad_lines='skip', quoting=csv.QUOTE_MINIMAL)
+                except Exception:
+                    # Falback to more robust but slower python engine if C entry fails
+                    df = pd.read_csv(file_path, low_memory=False, on_bad_lines='skip', engine='python')
+                
                 df = df.dropna(subset=['question'])
                 # Sample for guardrail
                 if not validate_data_quality(file_path, df.head(5).to_string()):
@@ -209,10 +215,10 @@ def ingest_data(sample_limit=None):
             save_checkpoint(processed_files, total_ingested)
             
         except Exception as e:
-            print(f" ❌ Error processing {file_path.name}: {e}")
+            print(f"[ERROR] Error processing {file_path.name}: {e}")
             continue
     
-    print(f" ✨ Ingestion complete! Total items in ChromaDB: {total_ingested}")
+    print(f"[DONE] Ingestion complete! Total items in ChromaDB: {total_ingested}")
 
 
 if __name__ == "__main__":
