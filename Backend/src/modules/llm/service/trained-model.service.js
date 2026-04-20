@@ -4,7 +4,7 @@ const logger = require('../../../utils/logger');
 class TrainedModelService {
     constructor(user = null) {
         this.baseUrl = process.env.TRAINED_MODEL_API_URL || 'http://localhost:9000';
-        this.timeout = 30000;
+        this.timeout = 120000; // Increased to 120s for deep RAG retrieval
         this.user = user; // Store user for permission checks
     }
 
@@ -78,22 +78,27 @@ class TrainedModelService {
         }
     }
 
-    async generateQuestions(keyword, numQuestions = 5, category = null, offset = 0) {
+    async generateQuestions(params) {
         try {
             // Check AI permission before making request
             await this.checkAIPermission();
 
-            const payload = {
-                keyword: keyword,
-                num_questions: numQuestions,
-                offset: offset  // Add offset for regenerate functionality
-            };
-
-            if (category) {
-                payload.category_hint = category;  // Use category_hint instead of category
+            // Support both old positional arguments and new object-based params for backward compatibility
+            let payload = {};
+            if (typeof params === 'string') {
+                // Legacy positional call: (keyword, numQuestions, category, offset)
+                payload = {
+                    keyword: params,
+                    num_questions: arguments[1] || 5,
+                    category_hint: arguments[2] || null,
+                    offset: arguments[3] || 0
+                };
+            } else {
+                // Modern object-based call
+                payload = params;
             }
 
-            logger.info(`Generating questions for keyword: ${keyword} (offset: ${offset}) by user ${this.user?.id}`);
+            logger.info(`>>> [GAU SERVICE] Executing Intelligence Sequence for: ${payload.keywords || payload.keyword} (User: ${this.user?.id})`);
 
             const response = await axios.post(`${this.baseUrl}/api/generate-questions`, payload, {
                 headers: {
@@ -101,6 +106,8 @@ class TrainedModelService {
                 },
                 timeout: this.timeout
             });
+
+            return response.data;
 
             return response.data;
         } catch (error) {

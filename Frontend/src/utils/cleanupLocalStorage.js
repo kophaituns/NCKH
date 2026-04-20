@@ -1,5 +1,4 @@
 // src/utils/cleanupLocalStorage.js - Clean up corrupted localStorage data
-import safeLocalStorage from './localStorage';
 
 export const cleanupLocalStorage = () => {
   const keysToCheck = ['user', 'authToken', 'refreshToken', 'token'];

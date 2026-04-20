@@ -126,9 +126,9 @@ class GenerateFormRequest(BaseModel):
 # RAG PIPELINE
 # ---------------------------------------------------------------------------
 @retry(
-    wait=wait_exponential(multiplier=1, min=4, max=60),
-    stop=stop_after_attempt(3),
-    retry=retry_if_exception_type(Exception), # Typically you'd check for 429 specifically if using a wrapper
+    wait=wait_exponential(multiplier=0.5, min=1, max=10),
+    stop=stop_after_attempt(2),
+    retry=retry_if_exception_type(Exception),
     reraise=True
 )
 def _gemini_call_wrapper(prompt: str, mime_type: str = "application/json"):
@@ -203,71 +203,110 @@ def retrieve_questions(keyword: str, k: int = RETRIEVE_K) -> list:
         logger.error("ChromaDB query error: %s", exc)
         return []
 
+def build_prompt(user_input: str, intent_info: dict, retrieved: list, num_q: int, form_type: str = "survey", fine_tune: str = "", language: str = "vi") -> str:
+    """Stage 3: Build the final grounded prompt with Mathematical Diversity Logic (Gấu v2)."""
+    
+    # 1. Calculate Exact Question Distribution (Golden Ratio 60-20-20)
+    def get_distribution(n, f_type):
+        if f_type == "survey":
+            # Rule: 60% Quant, 20% Mixed, 20% Qual
+            quant = max(1, round(n * 0.6))
+            mixed = max(1, round(n * 0.2))
+            qual = max(1, n - quant - mixed)
+            # Adjustment to match total N exactly
+            while quant + mixed + qual > n and (quant > 1 or mixed > 1 or qual > 1):
+                if qual > 1: qual -= 1
+                elif mixed > 1: mixed -= 1
+                else: quant -= 1
+            while quant + mixed + qual < n:
+                quant += 1 # Priority: Quantitative first
+            return quant, mixed, qual
+        elif f_type == "assessment":
+            # Rule: 80% Quant, 20% Qual
+            quant = max(1, round(n * 0.8))
+            qual = n - quant
+            return quant, 0, qual
+        elif f_type == "registration":
+            # Rule: 20% Quant, 80% Qual
+            quant = max(1, round(n * 0.2))
+            qual = n - quant
+            return quant, 0, qual
+        elif f_type == "application":
+            # Rule: 40% Quant, 60% Qual
+            quant = max(1, round(n * 0.4))
+            qual = n - quant
+            return quant, 0, qual
+        else:
+            return n, 0, 0
 
-def build_prompt(user_input: str, intent_info: dict, retrieved: list, num_q: int) -> str:
-    language = intent_info.get("language", "vi")
-    intent   = intent_info.get("intent", "survey")
-    lang_instruction = "Respond entirely in Vietnamese." if language == "vi" else "Respond entirely in English."
-
+    x_quant, y_mixed, z_qual = get_distribution(num_q, form_type)
+    
+    # 2. Context Synthesis
     context = "\n".join(
-        f"  {i+1}. [{r.get('source', '')}] {r['question']}"
+        f"  {i+1}. [{r.get('source', 'Library')}] {r['question']}"
         for i, r in enumerate(retrieved)
     )
 
-    intent_instructions = {
-        "registration": "This is a REGISTRATION FORM. Ensure you include standard contact fields (Name, Email, etc.) and logistical questions.",
-        "survey": "This is a RESEARCH SURVEY. Focus on objective feedback, opinions, and data gathering.",
-        "feedback": "This is a FEEDBACK FORM. Focus on satisfaction levels, ratings, and open-ended comments.",
-        "quiz": "This is a QUIZ/TEST. Focus on knowledge verification and specific correct answers."
+    # 3. Instruction Mapping (Research-Grade)
+    architecture_instructions = {
+        "survey": f"""Mục tiêu: ĐO LƯỜNG KHÁCH QUAN.
+        Phân bổ câu hỏi (Tỉ lệ Vàng 60-20-20):
+        - {x_quant} câu Định lượng (Giúp thống kê): Sử dụng type 'likert_scale' hoặc 'single_choice'.
+        - {y_mixed} câu Hỗn hợp (Phân tích đa chiều): Sử dụng type 'multiple_choice' hoặc 'rating'.
+        - {z_qual} câu Định tính (Hành vi/Cảm xúc sâu): Sử dụng type 'text' (đoạn văn).""",
+        
+        "assessment": f"""Mục tiêu: KIỂM TRA NĂNG LỰC. 
+        Phân bổ: {x_quant} câu trắc nghiệm (quant) và {z_qual} câu tự luận ngắn (qual).""",
+        
+        "registration": f"""Mục tiêu: THU THẬP THÔNG TIN.
+        Phân bổ: Tập trung vào {z_qual} trường nhập liệu (Name, Email, Organization) và {x_quant} lựa chọn tùy chọn.""",
+        
+        "application": f"""Mục tiêu: ĐÁNH GIÁ ỨNG VIÊN.
+        Phân bổ: {x_quant} câu kiểm tra tiêu chuẩn và {z_qual} câu trình bày quan điểm/hồ sơ."""
     }
 
-    return f"""You are an elite {intent} designer. {lang_instruction}
-    
-    USER GOAL: "{user_input}"
-    INTENT: {intent.upper()}
-    SPECIFIC CATEGORY: {intent_info.get('category', 'general')}
-    
-    {intent_instructions.get(intent, "")}
-    
-    RELEVANT CONTEXT (From Question Bank):
-    {context}
-    
-    TASK:
-    Generate a complete, professional form based on the user's goal. 
-    - Ensure ALL generated questions are unique and non-repetitive.
-    - Each question must explore a distinct dimension of the topic.
-    - Use the provided context where relevant to ensure scientific accuracy.
-    - If context is insufficient for a {intent} (e.g. missing Name field), synthesize standard fields naturally.
-    - Return a STRICT JSON matching the schema.
+    prompt = f"""Bạn là SIR-AG v2 "Research Executive", chuyên gia trí tuệ nhân tạo cấp cao trong nghiên cứu khoa học. 
+Ngôn ngữ phản hồi: TIẾNG VIỆT CHUYÊN NGÀNH.
 
-    JSON SCHEMA:
+BỐI CẢNH NGHIÊN CỨU:
+- Mục tiêu người dùng: "{user_input}"
+- Loại kiến trúc: {form_type.upper()}
+- Ghi chú tinh chỉnh: "{fine_tune if fine_tune else 'Không có'}"
+- Lĩnh vực: {intent_info.get('category', 'Chung')}
+
+THƯ VIỆN KIẾN THỨC NỀN TẢNG (Grounding Source):
+{context if context else 'KHÔNG TÌM THẤY DỮ LIỆU THƯ VIỆN PHÙ HỢP.'}
+
+YÊU CẦU KIẾN TRÚC ({form_type.upper()}):
+{architecture_instructions.get(form_type, architecture_instructions["survey"])}
+
+QUY TẮC BẮT BUỘC:
+1. NGUYÊN TẮC NỀN TẢNG (Strict Grounding): 100% các câu hỏi chuyên môn PHẢI được trích xuất hoặc suy luận từ THƯ VIỆN KIẾN THỨC. Tuyệt đối không tự bịa đặt thông tin.
+2. CHUẨN KHOA HỌC: Câu hỏi ngắn gọn, không dẫn dắt trái chiều, đúng thuật ngữ chuyên ngành {intent_info.get('category', 'chung')}.
+3. ĐA DẠNG HÓA: Phải phân bổ đúng số lượng câu hỏi theo từng loại (quant, mixed, qual) như đã chỉ định ở trên.
+4. TÓM TẮT INSIGHT: Phải tạo mục "metadata.expected_insights" bằng tiếng Việt, giải thích những giá trị tri thức mà nhà nghiên cứu sẽ thu được.
+
+JSON SCHEMA:
+{{
+  "form_id": "{uuid.uuid4().hex[:8]}",
+  "title": "Tiêu đề chuyên nghiệp",
+  "description": "Mô tả ngắn gọn mục đích nghiên cứu",
+  "questions": [
     {{
-      "form_id": "{uuid.uuid4().hex[:8]}",
-      "title": "Professional Title",
-      "description": "Short purpose description",
-      "intent": "{intent}",
-      "questions": [
-        {{
-          "id": "q1",
-          "question": "...",
-          "type": "single_choice|multiple_choice|text|rating|likert_scale",
-          "required": true,
-          "options": ["if applicable"]
-        }}
-      ],
-      "sections": [
-        {{
-          "title": "Section Title",
-          "questions": ["References to the IDs above"]
-        }}
-      ],
-      "metadata": {{
-        "generation_method": "sir_ag_v2",
-        "intent": "{intent}",
-        "context_sources": {list(set(r.get("source") for r in retrieved))}
-      }}
-    }}"""
-
+      "id": "q1",
+      "question": "Nội dung câu hỏi",
+      "type": "single_choice | multiple_choice | likert_scale | rating | text",
+      "required": true,
+      "options": ["Tùy chọn 1", "Tùy chọn 2"] // Chỉ dùng cho single/multiple choice hoặc likert
+    }}
+  ],
+  "metadata": {{
+    "expected_insights": "Giải trình khoa học về dữ liệu thu được...",
+    "category": "{intent_info.get('category', 'general')}",
+    "ratio_applied": "{x_quant}-{y_mixed}-{z_qual}"
+  }}
+}}"""
+    return prompt
 
 def call_gemini(prompt: str) -> dict | None:
     if not gemini_ready or not gemini_model:
@@ -490,10 +529,19 @@ async def status():
 # ---------------------------------------------------------------------------
 
 class GenerateQuestionsRequest(BaseModel):
-    keyword: str = Field(..., min_length=1, max_length=500)
+    # Support both single keyword (legacy) and multi-keywords (v2)
+    keyword: Optional[str] = Field(None, min_length=1, max_length=500)
+    keywords: Optional[List[str]] = Field(default_factory=list)
+    
     num_questions: Optional[int] = Field(DEFAULT_NUM_Q, ge=1, le=50)
+    category: Optional[str] = Field("general")
     category_hint: Optional[str] = Field(None)
     offset: Optional[int] = Field(0, ge=0)
+    
+    # GẤU v2 Features
+    form_type: Optional[str] = Field("survey")
+    fine_tune_note: Optional[str] = Field("")
+    language: Optional[str] = Field("en")
 
 
 class PredictCategoryRequest(BaseModel):
@@ -508,98 +556,104 @@ class BatchGenerateRequest(BaseModel):
 @app.post("/api/generate-questions")
 async def generate_questions_compat(request: GenerateQuestionsRequest):
     """
-    Compatibility endpoint — called by Backend trained-model.service.js.
-    Wraps the RAG pipeline and returns questions in a flat list format.
+    GẤU SIR-AG v2 Gấu Pipeline — called by Node.js Backend.
+    Handles Multi-keywords, Form Architectures, and Fine-tuning.
     """
-    keyword = request.keyword.strip()
-    num_q   = request.num_questions or DEFAULT_NUM_Q
-    offset  = request.offset or 0
-
-    if not keyword:
-        raise HTTPException(status_code=400, detail="keyword must not be empty")
-
-    logger.info("generate-questions: keyword='%s' n=%d offset=%d", keyword, num_q, offset)
-
-    # Upgrade to SIR-AG v2 Stage 1: Intent Analysis
-    intent_info = analyze_intent(keyword)
+    keywords = request.keywords or ([request.keyword] if request.keyword else [])
+    num_q    = request.num_questions or DEFAULT_NUM_Q
+    offset   = request.offset or 0
+    language = request.language or "en"
     
-    # Refresh keyword if intent analyzer found better search terms
-    search_keyword = intent_info.get("keywords", keyword)
+    if not keywords:
+        raise HTTPException(status_code=400, detail="At least one keyword is required.")
 
-    retrieved = retrieve_questions(search_keyword, k=RETRIEVE_K + offset)
-    if not retrieved:
-        # Fallback to original keyword if optimized keyword failed
-        retrieved = retrieve_questions(keyword, k=RETRIEVE_K + offset)
+    logger.info(">>> [GAU PIPELINE] keywords=%s n=%d form_type=%s", keywords, num_q, request.form_type)
 
-    if not retrieved:
+    # 1. Multi-tier Retrieval Aggregate
+    retrieved_all = []
+    seen_ids = set()
+    
+    # Retrieve for each keyword and merge
+    for kw in keywords:
+        k_results = retrieve_questions(kw.strip(), k=RETRIEVE_K)
+        for r in k_results:
+            if r["id"] not in seen_ids:
+                retrieved_all.append(r)
+                seen_ids.add(r["id"])
+    
+    # Sort by similarity score across all results
+    retrieved_all = sorted(retrieved_all, key=lambda x: x.get("similarity_score", 0), reverse=True)
+
+    if not retrieved_all:
         return JSONResponse(content={
             "success": False,
             "questions": [],
-            "keyword": keyword,
-            "error": "No results from ChromaDB."
+            "error": "No grounded knowledge found for these library pillars."
         })
 
-    # Apply offset (for regenerate functionality)
-    retrieved = retrieved[offset:offset + num_q]
+    # Apply offset for diversity
+    retrieved_slice = retrieved_all[offset:offset + num_q]
 
-    # Try Gemini RAG first
+    # 2. Reasoning & Synthesis (Gemini)
     form_data = None
     if gemini_ready:
-        prompt = build_prompt(keyword, intent_info, retrieved, num_q)
+        # Use first keyword or join them for the goal description
+        goal_text = ", ".join(keywords)
+        intent_info = {"category": request.category or "general", "language": language}
+        
+        prompt = build_prompt(
+            user_input=goal_text,
+            intent_info=intent_info,
+            retrieved=retrieved_slice,
+            num_q=num_q,
+            form_type=request.form_type,
+            fine_tune=request.fine_tune_note,
+            language=language
+        )
         form_data = call_gemini(prompt)
 
-    # Build flat question list from form_data or fallback
+    # 3. Grounded Fallback if Gemini fails
     questions = []
     if form_data and "questions" in form_data:
-        # SUCCESS: Normalize Gemini output
         raw_questions = form_data.get("questions", [])
         for i, q in enumerate(raw_questions):
             questions.append({
                 "id": q.get("id", f"q{i+1}"),
-                "text": q.get("question", q.get("text", "")),
-                "question": q.get("question", q.get("text", "")),
+                "question": q.get("question", ""),
                 "type": q.get("type", "text"),
                 "required": q.get("required", True),
                 "options": q.get("options", []),
-                "category": form_data.get("category", intent_info.get("category", "general")),
-                "method": "sir_ag_v2_gemini"
+                "category": request.category or "general",
+                "method": "gau_v2_intelligence"
             })
-        category = form_data.get("category", intent_info.get("category", "general"))
+        metadata_out = {
+            "expected_insights": form_data.get("metadata", {}).get("expected_insights", "N/A"),
+            "can_regenerate": len(retrieved_all) > offset + num_q,
+            "fidelity": form_data.get("metadata", {}).get("grounding_fidelity", 1.0)
+        }
     else:
-        # FALLBACK: Clean up generic fallback questions
-        for i, r in enumerate(retrieved):
-            q_text = r["question"]
-            # Filter out low-quality generic questions like "What is your opinion about {X}? (Question {n})"
-            if "(Question" in q_text and len(q_text) < 50:
-                q_text = f"Considering {keyword}, how would you evaluate its current impact on {r.get('category', 'your field')}?"
-            
-            q_type = r.get("question_type", "text")
-            entry = {
+        # Grounded Fallback (Knowledge Highlights)
+        for i, r in enumerate(retrieved_slice):
+            questions.append({
                 "id": f"q{i+1}",
-                "text": q_text,
-                "question": q_text,
-                "type": q_type,
+                "question": r["question"],
+                "type": r.get("question_type", "text"),
                 "required": True,
+                "options": r.get("options", []),
+                "category": r.get("category", request.category),
                 "confidence": r.get("similarity_score", 0),
-                "category": r.get("category", "it"),
-                "method": "chromadb_semantic_fallback",
-            }
-            if q_type == "rating":
-                entry["options"] = ["1", "2", "3", "4", "5"]
-            elif q_type == "likert_scale":
-                entry["options"] = ["Strongly Disagree", "Disagree", "Neutral", "Agree", "Strongly Agree"]
-            elif q_type in ("single_choice", "multiple_choice"):
-                entry["options"] = ["Option A", "Option B", "Option C", "Option D"]
-            questions.append(entry)
-        category = retrieved[0].get("category", "it") if retrieved else "it"
+                "method": "gau_v2_grounded_fallback"
+            })
+        metadata_out = {
+            "expected_insights": "Direct knowledge highlights from the library (Grounded Fallback).",
+            "can_regenerate": len(retrieved_all) > offset + num_q,
+            "fidelity": retrieved_slice[0].get("similarity_score", 0) if retrieved_slice else 0
+        }
 
     return JSONResponse(content={
         "success": True,
         "questions": questions,
-        "keyword": keyword,
-        "category": category,
-        "total": len(questions),
-        "generation_method": "rag_gemini" if form_data else "rag_chromadb_fallback",
+        "metadata": metadata_out
     })
 
 
@@ -652,7 +706,8 @@ async def batch_generate_compat(request: BatchGenerateRequest):
 
         form_data = None
         if gemini_ready:
-            prompt = build_prompt(str(kw), retrieved, request.num_questions or DEFAULT_NUM_Q, "vi")
+            dummy_intent = {"category": "it", "language": "vi"}
+            prompt = build_prompt(str(kw), dummy_intent, retrieved, request.num_questions or DEFAULT_NUM_Q)
             form_data = call_gemini(prompt)
 
         questions = []
