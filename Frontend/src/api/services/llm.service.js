@@ -78,7 +78,7 @@ const LLMService = {
   async generateQuestions(data) {
     try {
       const response = await http.post('/llm/generate-questions', {
-        keyword: data.keyword || data.topic,
+        keyword: data.keyword || (data.keywords ? data.keywords.join(', ') : data.topic),
         num_questions: data.num_questions || data.count || 5,
         category_hint: data.category_hint || data.category || null,
         offset: data.offset || 0

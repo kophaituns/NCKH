@@ -142,6 +142,28 @@ const SurveyEditor = () => {
           didRestoreRef.current = true;
           setDirty(true); // Mark as dirty so it saves again if modified
         }
+
+        // NEW: Check for AI Research Draft (from GẤU Intelligence Pipeline)
+        const aiDraftRaw = localStorage.getItem('ai_research_draft');
+        if (aiDraftRaw && !didRestoreRef.current) {
+          try {
+            const aiDraft = JSON.parse(aiDraftRaw);
+            setFormData(prev => ({
+              ...prev,
+              title: aiDraft.title || '',
+              description: aiDraft.description || '',
+              template_id: aiDraft.template_id || '', // Auto-select the generated blueprint
+              category: aiDraft.category || 'general'
+            }));
+            
+            showToast('AI Intelligence imported successfully', 'success');
+            localStorage.removeItem('ai_research_draft'); // Clean up after consumption
+            setDirty(true);
+            didRestoreRef.current = true;
+          } catch (e) {
+            console.warn('Failed to parse AI draft', e);
+          }
+        }
       }
     };
     initData();

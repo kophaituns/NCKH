@@ -56,6 +56,14 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+# Suppress noisy library logs
+logging.getLogger("huggingface_hub").setLevel(logging.WARNING)
+logging.getLogger("transformers").setLevel(logging.WARNING)
+logging.getLogger("httpx").setLevel(logging.WARNING)
+logging.getLogger("urllib3").setLevel(logging.WARNING)
+os.environ["TOKENIZERS_PARALLELISM"] = "false"
+os.environ["HF_HUB_DISABLE_TELEMETRY"] = "1"
+
 # ---------------------------------------------------------------------------
 # CONFIG
 # ---------------------------------------------------------------------------
@@ -203,6 +211,19 @@ def retrieve_questions(keyword: str, k: int = RETRIEVE_K) -> list:
         logger.error("ChromaDB query error: %s", exc)
         return []
 
+def log_grounding_data(keywords: str, retrieved: list):
+    """Debug utility to show what we are sending for grounding."""
+    print("\n" + "="*80)
+    print(f"DEBUG: GROUNDING DATA FOR KEYWORDS: [{keywords}]")
+    print(f"SOURCE: ChromaDB Memory")
+    print("-" * 80)
+    if not retrieved:
+        print("!!! NO DATA FOUND IN CHROMADB — AI WILL OPERATE IN ZERO-SHOT MODE !!!")
+    else:
+        for i, r in enumerate(retrieved):
+            print(f"[{i+1}] (Dist: {r.get('similarity_score', 'N/A')}) {r['question']}")
+    print("="*80 + "\n")
+
 def build_prompt(user_input: str, intent_info: dict, retrieved: list, num_q: int, form_type: str = "survey", fine_tune: str = "", language: str = "vi") -> str:
     """Stage 3: Build the final grounded prompt with Mathematical Diversity Logic (Gấu v2)."""
     
@@ -249,59 +270,67 @@ def build_prompt(user_input: str, intent_info: dict, retrieved: list, num_q: int
 
     # 3. Instruction Mapping (Research-Grade)
     architecture_instructions = {
-        "survey": f"""Mục tiêu: ĐO LƯỜNG KHÁCH QUAN.
-        Phân bổ câu hỏi (Tỉ lệ Vàng 60-20-20):
-        - {x_quant} câu Định lượng (Giúp thống kê): Sử dụng type 'likert_scale' hoặc 'single_choice'.
-        - {y_mixed} câu Hỗn hợp (Phân tích đa chiều): Sử dụng type 'multiple_choice' hoặc 'rating'.
-        - {z_qual} câu Định tính (Hành vi/Cảm xúc sâu): Sử dụng type 'text' (đoạn văn).""",
+        "survey": f"""Goal: OBJECTIVE MEASUREMENT & ANALYSIS.
+        Question Distribution (Golden Ratio 60-20-20):
+        - {x_quant} Quantitative questions (for statistics): Use type 'likert_scale' or 'single_choice'.
+        - {y_mixed} Mixed questions (multi-dimensional analysis): Use type 'multiple_choice' or 'rating'.
+        - {z_qual} Qualitative questions (deep behavior/emotions): Use type 'text' (paragraph).""",
         
-        "assessment": f"""Mục tiêu: KIỂM TRA NĂNG LỰC. 
-        Phân bổ: {x_quant} câu trắc nghiệm (quant) và {z_qual} câu tự luận ngắn (qual).""",
+        "assessment": f"""Goal: ACADEMIC COMPETENCY ASSESSMENT. 
+        Focus: Validating specific knowledge, critical thinking, and objective learning outcomes.
+        Distribution: {x_quant} standard multiple-choice questions (quant) and {z_qual} detailed open-ended reasoning questions (qual).""",
         
-        "registration": f"""Mục tiêu: THU THẬP THÔNG TIN.
-        Phân bổ: Tập trung vào {z_qual} trường nhập liệu (Name, Email, Organization) và {x_quant} lựa chọn tùy chọn.""",
+        "registration": f"""Goal: MEMBER REGISTRATION & DATA INTAKE.
+        Focus: Collecting structured participant profiles and demographics.
+        Distribution: Focus on {z_qual} essential data fields (Name, Contact, Bio) and {x_quant} eligibility/preference checkboxes.""",
         
-        "application": f"""Mục tiêu: ĐÁNH GIÁ ỨNG VIÊN.
-        Phân bổ: {x_quant} câu kiểm tra tiêu chuẩn và {z_qual} câu trình bày quan điểm/hồ sơ."""
+        "application": f"""Goal: FORMAL APPLICATION EVALUATION.
+        Focus: Screening candidates based on qualifications, experience, and statement of purpose.
+        Distribution: {x_quant} objective criteria checks and {z_qual} subjective motivation/portfolio questions.""",
+
+        "custom": f"""Goal: HIGHLY CUSTOMIZED RESEARCH STRUCTURE.
+        Focus: Directly following the 'Fine-tune Notes' and 'Research Goal' with maximum flexibility.
+        Distribution: Allocate {num_q} items logically across quant, mixed, and qual types based on the user's specific context."""
     }
 
-    prompt = f"""Bạn là SIR-AG v2 "Research Executive", chuyên gia trí tuệ nhân tạo cấp cao trong nghiên cứu khoa học. 
-Ngôn ngữ phản hồi: TIẾNG VIỆT CHUYÊN NGÀNH.
+    prompt = f"""You are SIR-AG v2 "Research Executive", a high-level artificial intelligence specialist in scientific research. 
+Response Language: STRICT SCIENTIFIC ENGLISH.
 
-BỐI CẢNH NGHIÊN CỨU:
-- Mục tiêu người dùng: "{user_input}"
-- Loại kiến trúc: {form_type.upper()}
-- Ghi chú tinh chỉnh: "{fine_tune if fine_tune else 'Không có'}"
-- Lĩnh vực: {intent_info.get('category', 'Chung')}
+RESEARCH CONTEXT:
+- Research Goal: "{user_input}"
+- Architecture Type: {form_type.upper()}
+- Fine-tune Notes: "{fine_tune if fine_tune else 'None'}"
+- Field: {intent_info.get('category', 'General')}
 
-THƯ VIỆN KIẾN THỨC NỀN TẢNG (Grounding Source):
-{context if context else 'KHÔNG TÌM THẤY DỮ LIỆU THƯ VIỆN PHÙ HỢP.'}
+FOUNDATIONAL KNOWLEDGE LIBRARY (Grounding Source):
+{context if context else 'NO RELEVANT LIBRARY DATA FOUND.'}
 
-YÊU CẦU KIẾN TRÚC ({form_type.upper()}):
+ARCHITECTURAL REQUIREMENTS ({form_type.upper()}):
 {architecture_instructions.get(form_type, architecture_instructions["survey"])}
 
-QUY TẮC BẮT BUỘC:
-1. NGUYÊN TẮC NỀN TẢNG (Strict Grounding): 100% các câu hỏi chuyên môn PHẢI được trích xuất hoặc suy luận từ THƯ VIỆN KIẾN THỨC. Tuyệt đối không tự bịa đặt thông tin.
-2. CHUẨN KHOA HỌC: Câu hỏi ngắn gọn, không dẫn dắt trái chiều, đúng thuật ngữ chuyên ngành {intent_info.get('category', 'chung')}.
-3. ĐA DẠNG HÓA: Phải phân bổ đúng số lượng câu hỏi theo từng loại (quant, mixed, qual) như đã chỉ định ở trên.
-4. TÓM TẮT INSIGHT: Phải tạo mục "metadata.expected_insights" bằng tiếng Việt, giải thích những giá trị tri thức mà nhà nghiên cứu sẽ thu được.
+MANDATORY RULES:
+1. STRICT GROUNDING: 100% of technical questions MUST be extracted or inferred from the KNOWLEDGE LIBRARY. Do not fabricate facts.
+2. SCIENTIFIC STANDARD: Questions must be concise, unbiased, and use professional {intent_info.get('category', 'general')} terminology.
+3. DIVERSIFICATION: strictly follow the count distribution for (quant, mixed, qual) types.
+4. OPTIONS GENERATION: For all selection-based types (single_choice, multiple_choice, likert), you MUST generate 4-5 realistic, context-aware options. Do not use generic placeholders like "Option A".
+5. EXPECTED INSIGHTS: Create a "metadata.expected_insights" field explaining the scientific value gained from this data.
 
 JSON SCHEMA:
 {{
   "form_id": "{uuid.uuid4().hex[:8]}",
-  "title": "Tiêu đề chuyên nghiệp",
-  "description": "Mô tả ngắn gọn mục đích nghiên cứu",
+  "title": "Professional Survey Title",
+  "description": "Brief summary of the research objective",
   "questions": [
     {{
       "id": "q1",
-      "question": "Nội dung câu hỏi",
+      "question": "Question content in English",
       "type": "single_choice | multiple_choice | likert_scale | rating | text",
       "required": true,
-      "options": ["Tùy chọn 1", "Tùy chọn 2"] // Chỉ dùng cho single/multiple choice hoặc likert
+      "options": ["Realistic Option 1", "Realistic Option 2", "Realistic Option 3", "Realistic Option 4"]
     }}
   ],
   "metadata": {{
-    "expected_insights": "Giải trình khoa học về dữ liệu thu được...",
+    "expected_insights": "Detailed analysis of what this data reveals...",
     "category": "{intent_info.get('category', 'general')}",
     "ratio_applied": "{x_quant}-{y_mixed}-{z_qual}"
   }}
@@ -573,16 +602,29 @@ async def generate_questions_compat(request: GenerateQuestionsRequest):
     retrieved_all = []
     seen_ids = set()
     
-    # Retrieve for each keyword and merge
+    # Pre-process keywords: split by comma if a single pill contains multi-concepts
+    expanded_keywords = []
     for kw in keywords:
-        k_results = retrieve_questions(kw.strip(), k=RETRIEVE_K)
+        if "," in kw:
+            expanded_keywords.extend([sub.strip() for sub in kw.split(",") if sub.strip()])
+        else:
+            expanded_keywords.append(kw.strip())
+    
+    # Retrieve for each resolved keyword and merge
+    for kw in expanded_keywords:
+        k_results = retrieve_questions(kw, k=RETRIEVE_K)
         for r in k_results:
-            if r["id"] not in seen_ids:
+            # Defensive deduplication: Use ID if exists, otherwise fallback to question text
+            q_uid = r.get("id") or r.get("question")
+            if q_uid not in seen_ids:
                 retrieved_all.append(r)
-                seen_ids.add(r["id"])
+                seen_ids.add(q_uid)
     
     # Sort by similarity score across all results
     retrieved_all = sorted(retrieved_all, key=lambda x: x.get("similarity_score", 0), reverse=True)
+
+    # Log the grounding data for audit
+    log_grounding_data(", ".join(keywords), retrieved_all[:RETRIEVE_K])
 
     if not retrieved_all:
         return JSONResponse(content={

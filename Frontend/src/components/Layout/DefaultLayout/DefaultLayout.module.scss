@@ -22,9 +22,17 @@
   overflow-y: auto;
   font-size: var(--font-size-base);
 
+  &.fluidMain {
+    padding: 0;
+  }
+
   @media (max-width: 768px) {
     margin-left: 0;
     padding: 1.5rem 1rem;
+    
+    &.fluidMain {
+      padding: 0;
+    }
   }
 }
 
@@ -40,7 +48,20 @@
   font-size: var(--font-size-base);
   line-height: var(--line-height-base);
 
+  &.fluidContent {
+    max-width: none;
+    margin: 0;
+    padding: 0;
+    background-color: transparent;
+    box-shadow: none;
+    border-radius: 0;
+  }
+
   @media (max-width: 768px) {
     padding: 1.5rem;
+    
+    &.fluidContent {
+      padding: 0;
+    }
   }
 }

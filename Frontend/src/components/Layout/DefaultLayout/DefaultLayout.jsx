@@ -11,7 +11,7 @@ import styles from './DefaultLayout.module.scss';
  * Main layout wrapper with Navbar and Sidebar
  * Provides consistent layout structure for all protected pages
  */
-const DefaultLayout = ({ children }) => {
+const DefaultLayout = ({ children, fluid = false }) => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const { state } = useAuth();
 
@@ -37,8 +37,8 @@ const DefaultLayout = ({ children }) => {
       <div className={styles.container}>
         <Sidebar isOpen={isSidebarOpen} onClose={closeSidebar} />
         
-        <main className={styles.main}>
-          <div className={styles.content}>
+        <main className={`${styles.main} ${fluid ? styles.fluidMain : ''}`}>
+          <div className={`${styles.content} ${fluid ? styles.fluidContent : ''}`}>
             {children || <Outlet />}
           </div>
         </main>

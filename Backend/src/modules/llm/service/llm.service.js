@@ -231,7 +231,7 @@ class LLMService {
           const questionData = {
             question_text: normalized.question_text,
             question_type: normalized.canonical_type, // Persist string type for AI history (if supported)
-            options: normalized.spec.options || null,
+            options: normalized.spec.options ? JSON.stringify(normalized.spec.options) : null,
             keyword: topic,
             category: q.category || category,
             source_model: 'trained_model',
@@ -251,7 +251,7 @@ class LLMService {
                 question: savedQuestion.question_text,
                 type: savedQuestion.question_type,
                 type_id: normalized.question_type_id,
-                options: savedQuestion.options,
+                options: savedQuestion.options ? JSON.parse(savedQuestion.options) : null,
                 spec: normalized.spec,
                 source: 'AI Model',
                 confidence: q.confidence || 0.85,

@@ -9,7 +9,6 @@ CHROMA_PATH = Path("chroma_db")
 COLLECTION_NAME = "question_bank"
 
 # Setup logging
-logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 class ChromaQuestionAI:
@@ -65,31 +64,44 @@ class ChromaQuestionAI:
                 else:
                     where_filter = {"category": categories}
 
-            # Query Chroma
+            # Query Chroma with oversampling to allow for deduplication
+            # Oversample to ensure we find enough unique results
+            oversample_factor = 3
+            query_limit = max(50, (offset + num_results) * oversample_factor)
+            
             results = collection.query(
                 query_texts=[keyword],
-                n_results=offset + num_results,
+                n_results=query_limit,
                 where=where_filter,
                 include=["documents", "metadatas", "distances"]
             )
 
-            if not results or not results["documents"]:
+            if not results or not results["documents"] or len(results["documents"][0]) == 0:
                 return []
 
-            # Process results
+            # Process results with deduplication
+            seen_content = set()
             formatted_questions = []
             
-            # Slicing for offset
-            docs = results["documents"][0][offset:]
-            metas = results["metadatas"][0][offset:]
-            dists = results["distances"][0][offset:]
+            docs = results["documents"][0]
+            metas = results["metadatas"][0]
+            dists = results["distances"][0]
+            ids = results["ids"][0]
 
-            for i, (doc, meta, dist) in enumerate(zip(docs, metas, dists)):
+            for doc, meta, dist, q_id in zip(docs, metas, dists, ids):
+                # Normalize content for comparison
+                content_norm = doc.strip().lower()
+                
+                # Deduplication check
+                if content_norm in seen_content:
+                    continue
+                seen_content.add(content_norm)
+                
                 # dist is cosine distance (0 is identical, 2 is opposite)
-                # Convert to confidence score (1 - dist)
                 confidence = max(0, 1 - dist)
                 
                 formatted_questions.append({
+                    "id": q_id,
                     "question": doc,
                     "category": meta.get("category", "unknown"),
                     "confidence": confidence,
@@ -100,7 +112,14 @@ class ChromaQuestionAI:
                     "similarity_score": round(1 - dist, 4)
                 })
 
-            return formatted_questions
+            # Apply offset and limit AFTER deduplication
+            final_results = formatted_questions[offset : offset + num_results]
+            
+            # Diagnostic log if we retrieved fewer unique items than requested
+            if len(final_results) < num_results and len(formatted_questions) < query_limit:
+                logger.info("Retrieved only %d unique questions for '%s'", len(final_results), keyword)
+                
+            return final_results
 
         except Exception as e:
             logger.error(f"Error querying ChromaDB: {e}")

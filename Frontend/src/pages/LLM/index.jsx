@@ -1,16 +1,18 @@
 // src/pages/LLM/index.jsx
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Card from '../../components/UI/Card';
 import Button from '../../components/UI/Button';
 import Select from '../../components/UI/Select';
 import Loader from '../../components/common/Loader/Loader';
 import { useToast } from '../../contexts/ToastContext';
 import LLMService from '../../api/services/llm.service';
+import TemplateService from '../../api/services/template.service';
+import { QUESTION_TYPE_MAP } from '../../utils/questionTypeMap';
 import { useAuth } from '../../contexts/AuthContext';
 import UpgradeModal from '../../components/UpgradeToCreator/UpgradeModal';
 import UpgradeUpsellModal from '../../components/UI/UpgradeUpsellModal/UpgradeUpsellModal';
 import { LuSparkles, LuBrain, LuFileText, LuCircleCheck, LuDatabase, LuUpload, LuCheck, LuSearch, LuActivity, LuX, LuLayoutGrid, LuList, LuPencil } from 'react-icons/lu';
-import Toast from '../../components/common/Toast/Toast';
 import styles from './LLM.module.scss';
 
 // Import validation utilities
@@ -20,6 +22,7 @@ import {
 } from '../../utils/aiHelpers';
 
 const LLM = () => {
+  const navigate = useNavigate();
   const { showToast } = useToast();
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('generate');
@@ -36,7 +39,7 @@ const LLM = () => {
 
   // Workspace & Target Audience State
   const [metadata, setMetadata] = useState(null);
-  const [toast, setToast] = useState({ message: '', type: 'info' });
+  const [launching, setLaunching] = useState(false);
 
   // ============================================================================
   // WIZARD & INTELLIGENCE STATE (GAU UPDATE)
@@ -47,12 +50,34 @@ const LLM = () => {
   const [formType, setFormType] = useState('survey');
   const [customNote, setCustomNote] = useState('');
 
-  // Mock "Hot Keywords" extracted from dataset summary logic
+  const [showLibraryModal, setShowLibraryModal] = useState(false);
+
+  // Mock "Hot Keywords" expanded to a full research dataset
   const hotKeywordsByCat = useMemo(() => ({
-    it: ['Python', 'Data Science', 'Security', 'React', 'FastAPI'],
-    marketing: ['SEO', 'Digital Ads', 'Branding', 'Social Media', 'Leads'],
-    economics: ['Inflation', 'GDP', 'Markets', 'Banking', 'Trade'],
-    general: ['Research', 'Quality', 'Performance', 'Strategy', 'Ethics']
+    it: [
+      'Python', 'Data Science', 'Security', 'React', 'FastAPI', 
+      'Cloud Architecture', 'DevOps', 'Machine Learning', 'Database Optimization', 
+      'Cybersecurity', 'Microservices', 'API Design', 'Quantum Computing', 
+      'Edge Computing', 'NLP'
+    ],
+    marketing: [
+      'SEO', 'Digital Ads', 'Branding', 'Social Media', 'Leads', 
+      'Content Strategy', 'Customer Journey', 'Conversion Rate', 'Influencer Marketing', 
+      'Market Segmentation', 'Email Automation', 'Public Relations', 'Affiliate Marketing', 
+      'Brand Equity', 'CRM'
+    ],
+    economics: [
+      'Inflation', 'GDP', 'Markets', 'Banking', 'Trade', 
+      'Microeconomics', 'Macroeconomics', 'Econometrics', 'Fiscal Policy', 
+      'Monetary Policy', 'Stock Exchange', 'Interest Rates', 'Economic Growth', 
+      'Global South', 'Risk Analysis'
+    ],
+    general: [
+      'Research', 'Quality', 'Performance', 'Strategy', 'Ethics', 
+      'Decision Making', 'Sustainability', 'Innovation', 'Critical Thinking', 
+      'Methodology', 'Analytical Skills', 'Collaborative Research', 'Peer Review', 
+      'Survey Design', 'Case Studies'
+    ]
   }), []);
 
   const currentHotKeywords = useMemo(() => 
@@ -134,6 +159,7 @@ const LLM = () => {
 
       // Bundle hierarchical data for the unified pipeline
       const payload = {
+        keyword: selectedKeywords.join(', ') || formData.keyword,
         keywords: selectedKeywords.length > 0 ? selectedKeywords : (formData.keyword ? [formData.keyword] : []),
         category: formData.category,
         form_type: formType,
@@ -162,9 +188,77 @@ const LLM = () => {
 
       setGeneratedQuestions(questions);
       setMetadata(meta);
-      showToast('Intelligence extraction complete!', 'success');
+      // Automatically select all questions by default for faster launch
+      setSelectedIndices(new Set(questions.keys()));
+      showToast(`Intelligence extracted: ${questions.length} scientific pillars found.`, 'success');
+    } catch (error) {
+      console.error('>>> [GAU PIPELINE] Fatal Chain Error:', error);
+      showToast('AI Pipeline Interruption. Check server logs.', 'error');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleLaunchProject = async () => {
+    if (selectedIndices.size === 0) {
+      showToast('Select at least one pillar to launch the project.', 'warning');
+      return;
+    }
+
+    try {
+      setLaunching(true);
+      const finalQuestions = generatedQuestions.filter((_, idx) => selectedIndices.has(idx));
+      const topicLabel = formData.keyword || selectedKeywords.join(', ');
+      const title = `${topicLabel} Research Project`;
+
+      // 1. Create Template (Research Blueprint)
+      showToast('Creating Research Blueprint...', 'info');
+      const tplResponse = await TemplateService.create({
+        title: title,
+        description: metadata?.expected_insights || `Intelligence blueprint for ${topicLabel}.`
+      });
+
+      if (!tplResponse || !tplResponse.ok || !tplResponse.id) {
+        throw new Error('Failed to create template blueprint.');
+      }
+
+      const templateId = tplResponse.id;
+
+      // 2. Add Questions to Template
+      showToast(`Syncing ${finalQuestions.length} research pillars...`, 'info');
+      
+      // Sequential addition to maintain order and prevent server overwhelm
+      for (let i = 0; i < finalQuestions.length; i++) {
+        const q = finalQuestions[i];
+        const payload = {
+          label: q.question_text,
+          question_text: q.question_text,
+          question_type_id: QUESTION_TYPE_MAP[q.type] || 3, // fallback to text (short answer)
+          required: true,
+          display_order: i,
+          options: q.options && Array.isArray(q.options) 
+            ? q.options.map(opt => (typeof opt === 'object' ? opt.text : opt)).filter(Boolean)
+            : []
+        };
+        
+        await TemplateService.addQuestion(templateId, payload);
+      }
+
+      // 3. Save to session draft so SurveyEditor can pick it up
+      localStorage.setItem('ai_research_draft', JSON.stringify({
+        title: title,
+        description: metadata?.expected_insights || '',
+        template_id: templateId,
+        category: formData.category
+      }));
+
+      showToast('Intelligence Blueprint ready! Finalizing Survey...', 'success');
+      navigate('/surveys/new');
+    } catch (error) {
+      console.error('>>> [GAU LAUNCH] Fatal Error:', error);
+      showToast(error.message || 'Workflow interruption during project launch.', 'error');
+    } finally {
+      setLaunching(false);
     }
   };
 
@@ -221,11 +315,38 @@ const LLM = () => {
       </div>
 
       <div className={`${styles.stepItem} ${activeStep === 2 ? styles.active : (selectedKeywords.length > 0 ? styles.completed : '')}`}>
-        <div className={styles.stepLabel}><LuCircleCheck size={14} /> Step 2: Keyword Pillars ({selectedKeywords.length}/3)</div>
+        <div className={styles.stepLabel}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center' }}>
+            <span><LuCircleCheck size={14} /> Step 2: Keyword Library</span>
+            <button className={styles.browseLink} onClick={() => setShowLibraryModal(true)}>
+              <LuDatabase size={12} /> Browse Full Library
+            </button>
+          </div>
+        </div>
+        
+        {/* Selected Tray */}
+        <div className={styles.selectedTray}>
+          <div className={styles.trayHeader}>
+            <span className={styles.slotText}>Selected Pillars ({selectedKeywords.length}/3)</span>
+          </div>
+          <div className={styles.trayContent}>
+            {selectedKeywords.length === 0 ? (
+              <div className={styles.emptyTray}>No keywords selected yet.</div>
+            ) : (
+              selectedKeywords.map(kw => (
+                <span key={kw} className={`${styles.keywordPill} ${styles.selected}`} onClick={() => handleToggleKeyword(kw)}>
+                  {kw} <LuX size={12} className={styles.removeIcon} />
+                </span>
+              ))
+            )}
+          </div>
+        </div>
+
+        {/* Search Filter */}
         <div className={styles.searchContainer}>
           <LuSearch className={styles.searchIcon} size={16} />
           <input
-            placeholder="Search or add keyword..."
+            placeholder="Search or add custom keyword..."
             value={keywordSearch}
             onChange={(e) => setKeywordSearch(e.target.value)}
             onKeyDown={(e) => {
@@ -237,30 +358,28 @@ const LLM = () => {
           />
         </div>
         
-        <div className={styles.hotTagsContainer}>
-          <label>Common in {formData.category}</label>
-          <div className={styles.hotTags}>
-            {currentHotKeywords.map(kw => (
-              <span 
-                key={kw} 
-                className={`${styles.hotTag} ${selectedKeywords.includes(kw) ? styles.selected : ''}`}
-                onClick={() => handleToggleKeyword(kw)}
-              >
-                {kw}
-              </span>
-            ))}
-          </div>
+        {/* Scrollable Library Pool */}
+        <div className={styles.libraryPool}>
+          {currentHotKeywords
+            .filter(kw => !selectedKeywords.includes(kw))
+            .filter(kw => kw.toLowerCase().includes(keywordSearch.toLowerCase()))
+            .length === 0 ? (
+              <div className={styles.emptyPool}>No keywords found in library.</div>
+          ) : (
+            currentHotKeywords
+              .filter(kw => !selectedKeywords.includes(kw))
+              .filter(kw => kw.toLowerCase().includes(keywordSearch.toLowerCase()))
+              .map(kw => (
+                <span 
+                  key={kw} 
+                  className={styles.poolTag}
+                  onClick={() => handleToggleKeyword(kw)}
+                >
+                  + {kw}
+                </span>
+              ))
+          )}
         </div>
-
-        {selectedKeywords.length > 0 && (
-          <div className={styles.tagCloud}>
-            {selectedKeywords.map(kw => (
-              <span key={kw} className={styles.keywordPill} onClick={() => handleToggleKeyword(kw)}>
-                {kw} <LuX size={12} />
-              </span>
-            ))}
-          </div>
-        )}
       </div>
 
       <div className={`${styles.stepItem} ${activeStep === 3 ? styles.active : styles.completed}`}>
@@ -302,17 +421,17 @@ const LLM = () => {
             style={{ marginTop: '24px' }}
           >
             {loading ? <Loader size="sm" /> : <LuSparkles />} 
-            {loading ? 'Processing...' : 'Execute Gấu Pipeline'}
+            {loading ? 'Processing...' : 'Execute'}
           </Button>
         </Card>
       </aside>
 
       <main className={styles.mainPanel}>
-        <div className={styles.fineTuneCard} style={{ background: '#ffffff', borderRadius: '24px', padding: '32px', marginBottom: '24px', border: '1px solid #f1f5f9' }}>
-          <div className={styles.stepLabel} style={{ color: '#14B8A6', marginBottom: '16px', fontSize: '12px', fontWeight: 800 }}>
+        <div className={styles.fineTuneCard}>
+          <div className={styles.stepLabel}>
             <LuPencil size={14} /> STEP 5: RESEARCH FINE-TUNING (OPTIONAL)
           </div>
-          <div className={styles.fineTuneContainer} style={{ marginTop: 0 }}>
+          <div className={styles.fineTuneContainer}>
             <textarea
               placeholder="Provide extra instructions, tone requirements, or specific entities to extract... (e.g., 'Make it challenging for senior levels')"
               value={customNote}
@@ -323,16 +442,39 @@ const LLM = () => {
 
         <div className={styles.resultsCard}>
           <div className={styles.resultsHeader}>
-            <h3><LuActivity size={20} color="#14B8A6" /> Results Feed (Scrollable)</h3>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+              <h3 style={{ margin: 0 }}><LuActivity size={20} color="#14B8A6" /> Results Feed</h3>
+              {generatedQuestions.length > 0 && (
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                  <span className={styles.archBadge}>
+                    <LuLayoutGrid size={12} /> {formType.toUpperCase()} MODE
+                  </span>
+                  {metadata?.ratio_applied && (
+                    <span className={styles.ratioTag}>Ratio: {metadata.ratio_applied}</span>
+                  )}
+                </div>
+              )}
+            </div>
             
             {generatedQuestions.length > 0 && (
               <div className={styles.headerActions}>
                 <button className={styles.actionBtn} onClick={handleSelectAll}>Select All</button>
                 <div style={{ width: '1px', height: '16px', background: '#e2e8f0' }} />
                 <button className={styles.actionBtn} onClick={handleClearSelection}>Clear</button>
-                <span style={{ fontSize: '12px', fontWeight: 700, color: '#64748b', padding: '0 8px' }}>
-                  {selectedIndices.size || generatedQuestions.length} Items Selected
-                </span>
+                <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                  <span className={styles.selectionCount}>
+                    {selectedIndices.size || generatedQuestions.length} Items Selected
+                  </span>
+                  <Button 
+                    size="small" 
+                    variant="primary" 
+                    onClick={handleLaunchProject}
+                    disabled={launching}
+                    style={{ padding: '6px 16px', borderRadius: '8px' }}
+                  >
+                    {launching ? 'Launching...' : 'Launch Project'}
+                  </Button>
+                </div>
               </div>
             )}
           </div>
@@ -359,7 +501,19 @@ const LLM = () => {
                       {getQuestionTypeIcon(q.question_type || q.type)} {getQuestionTypeName(q.question_type || q.type)}
                     </div>
                     <p className={styles.questionText}>{q.question}</p>
-                    <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
+                    
+                    {/* Render Options if available (for MCQ/Likert) */}
+                    {q.options && q.options.length > 0 && (
+                      <div className={styles.optionsPreview}>
+                        {q.options.map((opt, i) => (
+                          <div key={i} className={styles.optItem}>
+                            <div className={styles.optDot} /> {opt.text || opt}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    <div style={{ display: 'flex', gap: '8px', marginTop: '12px' }}>
                       <span className={`${styles.metaBadge} ${styles.category}`}>
                         {q.category || formData.category}
                       </span>
@@ -403,14 +557,16 @@ const LLM = () => {
 
   const isReady = knowledgeStatus?.status === 'ready' || knowledgeStatus?.status === 'healthy';
   return (
-    <div className={styles.container}>
-      <header className={styles.header}>
-        <div className={styles.titleInfo}>
-          <h1>SIR-AG <span className={styles.brand}>Intelligence Hub</span></h1>
-          <div className={`${styles.statusDot} ${isReady ? styles.online : styles.offline}`} title="AI System Status" />
+    <div className={styles.pageContent}>
+      <div className={styles.dashboardHeader}>
+        <div className={styles.titleArea}>
+          <div className={styles.pageTitle}>
+            <h1>SIR-AG <span className={styles.brand}>Intelligence Hub</span></h1>
+            <div className={`${styles.statusDot} ${isReady ? styles.online : styles.offline}`} title="AI System Status" />
+          </div>
+          <p className={styles.pageSubtile}>Scientific Intelligent Retrieval & AI Generation Platform</p>
         </div>
-        <p>Scientific Intelligent Retrieval & AI Generation Platform</p>
-      </header>
+      </div>
 
       <div className={styles.tabs}>
         <button
@@ -433,25 +589,25 @@ const LLM = () => {
         </button>
       </div>
 
-      <div style={{ marginTop: '24px' }}>
+      <div className={styles.tabWrapper}>
         {activeTab === 'generate' && renderContentWorkspace()}
         {activeTab === 'knowledge' && (
           <div className={styles.tabContent}>
-            <div className={styles.knowledgeHeader} style={{ marginBottom: '24px', textAlign: 'center', padding: '40px', background: '#ffffff', borderRadius: '24px', border: '1px solid #f1f5f9' }}>
-              <LuBrain size={48} color="#14B8A6" style={{ marginBottom: '16px' }} />
+            <div className={styles.knowledgeHeader}>
+              <LuBrain size={48} color="#14B8A6" />
               <h2>Knowledge Synchronization</h2>
-              <p style={{ color: '#64748b', maxWidth: '600px', margin: '0 auto' }}>
+              <p>
                 Your library currently hosts <strong>{knowledgeStatus?.chromadb_vectors?.toLocaleString() || 0}</strong> intelligence units across <strong>{knowledgeStatus?.storage?.total_files || 0}</strong> research documents.
               </p>
               
-              <div style={{ marginTop: '32px', display: 'flex', justifyContent: 'center', gap: '20px' }}>
+              <div className={styles.syncActions}>
                 <input 
                   type="file" 
                   multiple 
                   onChange={(e) => handleIngest(Array.from(e.target.files))} 
                   id="file-sync" 
                   className={styles.hiddenInput}
-                  style={{ display: 'none' }}
+                  hidden
                 />
                 <Button onClick={() => document.getElementById('file-sync').click()} loading={isIngesting}>
                   <LuUpload /> {isIngesting ? 'Syncing...' : 'Sync New Research Assets'}
@@ -461,28 +617,28 @@ const LLM = () => {
           </div>
         )}
         {activeTab === 'monitoring' && (
-          <div className={styles.tabContent} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '24px' }}>
+          <div className={styles.monitoringGrid}>
             <Card>
-              <h3 style={{ marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '10px' }}><LuActivity /> System Health</h3>
-              <div style={{ padding: '24px', background: '#f0fdfa', borderRadius: '16px', border: '1px solid #14B8A6' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '15px', color: '#0F766E', fontWeight: 800 }}>
-                  <div className={styles.pulseIndicator} />   AI SERVER ONLINE
+              <h3 className={styles.cardHeader}><LuActivity size={18} /> System Health</h3>
+              <div className={styles.healthCard}>
+                <div className={styles.statusLabel}>
+                  <div className={styles.pulseIndicator} /> AI SERVER ONLINE
                 </div>
-                <p style={{ color: '#0F766E', fontSize: '13px', marginTop: '10px', opacity: 0.8 }}>
+                <p className={styles.meta}>
                   Latency: 120ms • Model: Gemini Flash 1.5
                 </p>
               </div>
             </Card>
             <Card>
-              <h3 style={{ marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '10px' }}><LuDatabase /> Memory Usage</h3>
-              <div style={{ padding: '24px', background: '#f8fafc', borderRadius: '16px', border: '1px solid #e2e8f0' }}>
-                <div style={{ fontSize: '32px', fontWeight: 900, color: '#1e293b' }}>
-                  {knowledgeStatus?.storage?.total_size_mb || 0} <span style={{ fontSize: '14px', color: '#64748b' }}>MB</span>
+              <h3 className={styles.cardHeader}><LuDatabase size={18} /> Memory Usage</h3>
+              <div className={styles.memoryCard}>
+                <div className={styles.usageValue}>
+                  {knowledgeStatus?.storage?.total_size_mb || 0} <span>MB</span>
                 </div>
-                <div style={{ height: '8px', width: '100%', background: '#e2e8f0', borderRadius: '4px', marginTop: '16px', overflow: 'hidden' }}>
-                  <div style={{ height: '100%', width: `${knowledgeStatus?.storage?.sync_percent || 0}%`, background: '#14B8A6' }} />
+                <div className={styles.progressBar}>
+                  <div className={styles.fill} style={{ width: `${knowledgeStatus?.storage?.sync_percent || 0}%` }} />
                 </div>
-                <p style={{ color: '#64748b', fontSize: '12px', marginTop: '12px' }}>
+                <p className={styles.note}>
                   Knowledge synchronization is {knowledgeStatus?.storage?.sync_percent || 0}% optimized.
                 </p>
               </div>
@@ -490,6 +646,49 @@ const LLM = () => {
           </div>
         )}
       </div>
+
+      {/* Keyword Library Modal Overlay */}
+      {showLibraryModal && (
+        <div className={styles.modalOverlay} onClick={() => setShowLibraryModal(false)}>
+          <div className={styles.libraryModal} onClick={(e) => e.stopPropagation()}>
+            <div className={styles.modalHeader}>
+              <div className={styles.headerTitle}>
+                <h2>📚 Intelligence Keyword Library</h2>
+                <p>Browse and select up to 3 pillars from our scientific dataset</p>
+              </div>
+              <button className={styles.closeModal} onClick={() => setShowLibraryModal(false)}>
+                <LuX size={24} />
+              </button>
+            </div>
+            
+            <div className={styles.modalBody}>
+              {Object.entries(hotKeywordsByCat).map(([cat, keywords]) => (
+                <div key={cat} className={styles.libraryCategory}>
+                  <h3>{cat.toUpperCase()}</h3>
+                  <div className={styles.modalTagGrid}>
+                    {keywords.map(kw => (
+                      <div 
+                        key={kw} 
+                        className={`${styles.modalKeyword} ${selectedKeywords.includes(kw) ? styles.selected : ''}`}
+                        onClick={() => handleToggleKeyword(kw)}
+                      >
+                        {selectedKeywords.includes(kw) && <LuCheck size={14} />} {kw}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+            
+            <div className={styles.modalFooter}>
+              <div className={styles.selectionCount}>
+                <strong>{selectedKeywords.length} / 3</strong> Pillars Selected
+              </div>
+              <Button onClick={() => setShowLibraryModal(false)}>Finish Selection</Button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <UpgradeUpsellModal
         isOpen={showUpsellModal}
@@ -504,7 +703,6 @@ const LLM = () => {
         isOpen={showUpgradeModal}
         onClose={() => setShowUpgradeModal(false)}
       />
-      <Toast message={toast.message} type={toast.type} onHide={() => setToast({ ...toast, message: '' })} />
     </div>
   );
 };

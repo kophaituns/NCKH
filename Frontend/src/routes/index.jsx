@@ -370,7 +370,7 @@ const AppRoutes = () => {
         path="/llm"
         element={
           <ProtectedRoute allowedRoles={['admin', 'creator', 'user']}>
-            <DefaultLayout>
+            <DefaultLayout fluid={true}>
               <LLM />
             </DefaultLayout>
           </ProtectedRoute>
