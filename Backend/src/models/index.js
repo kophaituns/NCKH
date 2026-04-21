@@ -21,6 +21,8 @@ const WorkspaceUser = require('./workspaceUser.model')(sequelize, DataTypes);
 const WorkspaceInvitation = require('./workspaceInvitation.model')(sequelize, DataTypes);
 const SystemSetting = require('./systemSetting.model')(sequelize, DataTypes);
 const GeneratedQuestion = require('./generatedQuestion.model')(sequelize, DataTypes);
+const SurveyFeedback = require('./surveyFeedback.model')(sequelize, DataTypes);
+const KnowledgeSource = require('./knowledgeSource.model')(sequelize, DataTypes);
 
 // Define associations
 User.hasMany(SurveyTemplate, { foreignKey: 'created_by' });
@@ -64,6 +66,13 @@ Answer.belongsTo(QuestionOption, { foreignKey: 'option_id' });
 Survey.hasMany(AnalysisResult, { foreignKey: 'survey_id' });
 AnalysisResult.belongsTo(Survey, { foreignKey: 'survey_id' });
 
+// Feedback associations
+Survey.hasMany(SurveyFeedback, { foreignKey: 'survey_id', as: 'feedbacks' });
+SurveyFeedback.belongsTo(Survey, { foreignKey: 'survey_id' });
+
+SurveyResponse.hasOne(SurveyFeedback, { foreignKey: 'response_id', as: 'feedback' });
+SurveyFeedback.belongsTo(SurveyResponse, { foreignKey: 'response_id' });
+
 // Notification associations
 User.hasMany(Notification, { foreignKey: 'user_id', as: 'notifications' });
 Notification.belongsTo(User, { foreignKey: 'user_id' });
@@ -104,6 +113,10 @@ WorkspaceUser.belongsTo(User, { foreignKey: 'user_id', as: 'user' });
 Workspace.hasMany(Survey, { foreignKey: 'workspace_id', as: 'surveys' });
 Survey.belongsTo(Workspace, { foreignKey: 'workspace_id', as: 'workspace' });
 
+// KnowledgeSource associations
+Workspace.hasMany(KnowledgeSource, { foreignKey: 'workspace_id', as: 'knowledgeSources' });
+KnowledgeSource.belongsTo(Workspace, { foreignKey: 'workspace_id', as: 'workspace' });
+
 // Survey Access associations (simplified)
 Survey.hasMany(SurveyInvite, { foreignKey: 'survey_id', as: 'invites' });
 SurveyInvite.belongsTo(Survey, { foreignKey: 'survey_id', as: 'survey' });
@@ -130,5 +143,7 @@ module.exports = {
   WorkspaceUser,
   WorkspaceInvitation,
   SystemSetting,
-  GeneratedQuestion
+  GeneratedQuestion,
+  SurveyFeedback,
+  KnowledgeSource
 };

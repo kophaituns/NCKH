@@ -21,9 +21,11 @@ import json
 import logging
 import re
 import uuid
+import trafilatura
 from datetime import datetime
 from pathlib import Path
 from typing import Optional, List, Dict, Any
+from validation_agent import ValidationAgent
 from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
 from chroma_ingestor import ingest_data
 
@@ -128,6 +130,8 @@ class GenerateFormRequest(BaseModel):
     prompt: str = Field(..., min_length=1, max_length=1000, description="Natural language prompt, e.g. 'Tạo form đăng kí marathon'")
     language: Optional[str] = Field("vi", description="vi or en")
     num_questions: Optional[int] = Field(DEFAULT_NUM_Q, ge=3, le=20)
+    workspace_id: Optional[str] = Field(None, description="Identify the isolated context for RAG")
+    visibility_scope: Optional[str] = Field("all", description="all | private | global")
 
 
 # ---------------------------------------------------------------------------
@@ -160,6 +164,9 @@ def analyze_intent(user_prompt: str) -> dict:
     
     analysis_prompt = f"""Analyze this user prompt for a form generation task: "{user_prompt}"
     
+    SPECIAL TASK: If the user explicitly mentions specific counts for question types (e.g. "3 multiple choice, 2 open ended"), extract them into the 'distribution' object. 
+    Notes: 'quant' = single/multiple choice/likert; 'mixed' = rating; 'qual' = open-ended/text.
+    
     Return a STRICT JSON object:
     {{
       "intent": "survey | registration | feedback | quiz | contact",
@@ -167,8 +174,10 @@ def analyze_intent(user_prompt: str) -> dict:
       "category": "it | economics | marketing | general",
       "language": "vi | en",
       "tone": "professional | casual | academic",
-      "extra_fields": ["standard fields needed for this intent, e.g. Full Name, Phone"]
-    }}"""
+      "distribution": {{ "quant": int, "mixed": int, "qual": int }},
+      "extra_fields": ["standard fields needed, e.g. Full Name"]
+    }}
+    If no explicit counts are mentioned, set 'distribution' to null."""
     
     try:
         raw_response = _gemini_call_wrapper(analysis_prompt)
@@ -180,35 +189,95 @@ def analyze_intent(user_prompt: str) -> dict:
         return {"intent": "survey", "keywords": user_prompt, "category": "it"}
 
 
+def normalize_scores(items: list) -> list:
+    """Apply Min-Max scaling to similarity scores within a set of results."""
+    if not items: return []
+    scores = [item.get("similarity_score", 0) for item in items]
+    min_s = min(scores)
+    max_s = max(scores)
+    
+    if max_s == min_s:
+        for item in items: item["normalized_score"] = 1.0 if max_s > 0 else 0.0
+    else:
+        for item in items:
+            item["normalized_score"] = (item["similarity_score"] - min_s) / (max_s - min_s)
+    return items
+
 def retrieve_questions(keyword: str, k: int = RETRIEVE_K) -> list:
     if not chroma_ai:
         return []
     
     try:
-        # Dual-Stream Retrieval: Search both Global Bank and Refinement Bank
-        results = []
+        # Dual-Stream Retrieval
+        all_candidate_pools = []
         
-        # 1. Search Human Refined (High Priority)
+        # 1. Search Human Refined (Priority Memory)
         try:
-            refined_results = chroma_ai.query_questions(keyword, num_results=k, collection_name=COLLECTION_REFINED)
-            for r in refined_results:
-                r["similarity_score"] *= 1.5 # Boost score for human-refined questions
-                r["source"] = "human_refined"
-            results.extend(refined_results)
+            refined = chroma_ai.query_questions(keyword, num_results=k, collection_name=COLLECTION_REFINED)
+            if refined:
+                for r in refined:
+                    r["source"] = "human_refined"
+                    # Apply Min-Max score & Human Boost
+                    base_score = r["normalized_score"] * 1.5 
+                    
+                    # Apply Frequency Boost (Selection Bias)
+                    # Formula: 1.0 + log2(count + 1) * 0.2
+                    import math
+                    l_count = r.get("launch_count", 0)
+                    freq_boost = 1.0 + (math.log2(l_count + 1) * 0.2)
+                    
+                    r["final_score"] = base_score * freq_boost
+                all_candidate_pools.extend(refined)
         except Exception:
-            pass # Collection might not exist yet
+            pass
             
         # 2. Search Global Bank
-        global_results = chroma_ai.query_questions(keyword, num_results=k, collection_name=COLLECTION_GLOBAL)
-        for r in global_results:
-            r["source"] = "global_bank"
-        results.extend(global_results)
+        global_res = chroma_ai.query_questions(keyword, num_results=k, collection_name=COLLECTION_GLOBAL)
+        if global_res:
+            global_res = normalize_scores(global_res)
+            for r in global_res:
+                r["source"] = "global_bank"
+                r["final_score"] = r["normalized_score"] # Baseline 1.0 multiplier
+            all_candidate_pools.extend(global_res)
         
-        # Sort by boosted score
-        results = sorted(results, key=lambda x: x.get("similarity_score", 0), reverse=True)
-        return results[:k]
+        # Sort by boosted normalized score
+        results = sorted(all_candidate_pools, key=lambda x: x.get("final_score", 0), reverse=True)
+        
+        # Diversity Filter (Content-based re-check to ensure no duplicates after merge)
+        seen_questions = set()
+        unique_results = []
+        for r in results:
+            q_norm = r["question"].strip().lower()
+            if q_norm not in seen_questions:
+                unique_results.append(r)
+                seen_questions.add(q_norm)
+        
+        return unique_results[:k]
     except Exception as exc:
         logger.error("ChromaDB query error: %s", exc)
+        return []
+
+def retrieve_questions_with_filter(keyword: str, k: int = RETRIEVE_K, workspace_id: str = None, scope: str = "all") -> list:
+    """Enhanced retrieval with metadata filtering for Isolated Workspaces."""
+    if not chroma_ai: return []
+    
+    # Construct Chroma 'where' filter
+    where_filter = {}
+    if scope == "global":
+        where_filter = {"visibility": "global"}
+    elif scope == "private" and workspace_id:
+        where_filter = {"workspace_id": workspace_id}
+    elif scope == "all" and workspace_id:
+        # User's WS + Global
+        where_filter = {"$or": [{"visibility": "global"}, {"workspace_id": workspace_id}]}
+    
+    try:
+        # For simplicity, we search global collection only for now, 
+        # but apply the metadata filter which handles the visibility logic.
+        results = chroma_ai.query_questions(keyword, num_results=k, where_filter=where_filter if where_filter else None)
+        return results
+    except Exception as exc:
+        logger.error(f"Filtered retrieval failed: {exc}")
         return []
 
 def log_grounding_data(keywords: str, retrieved: list):
@@ -222,122 +291,141 @@ def log_grounding_data(keywords: str, retrieved: list):
     else:
         for i, r in enumerate(retrieved):
             print(f"[{i+1}] (Dist: {r.get('similarity_score', 'N/A')}) {r['question']}")
-    print("="*80 + "\n")
+    print("="*80)
 
 def build_prompt(user_input: str, intent_info: dict, retrieved: list, num_q: int, form_type: str = "survey", fine_tune: str = "", language: str = "vi") -> str:
-    """Stage 3: Build the final grounded prompt with Mathematical Diversity Logic (Gấu v2)."""
+    """Stage 3: Build the final grounded prompt with Structured Knowledge Context."""
     
-    # 1. Calculate Exact Question Distribution (Golden Ratio 60-20-20)
-    def get_distribution(n, f_type):
+    # 0. Intent-to-Architecture Sync (Reasoning-Execution Bridge)
+    # Map intent names to internal architecture instruction sets
+    intent_to_arch = {
+        "registration": "registration",
+        "quiz": "assessment",
+        "feedback": "survey",
+        "survey": "survey",
+        "contact": "application"
+    }
+    active_arch = intent_to_arch.get(intent_info.get("intent", "").lower(), form_type)
+    
+    # 1. Calculate Question Distribution
+    def get_distribution(n, f_type, explicit_dist=None):
+        # PRIORITY 1: Explicit user-requested counts
+        if explicit_dist and any(v > 0 for v in explicit_dist.values()):
+            q_quant = explicit_dist.get("quant", 0)
+            q_mixed = explicit_dist.get("mixed", 0)
+            q_qual = explicit_dist.get("qual", 0)
+            
+            # Normalize to match requested n if total does not match perfectly
+            total_req = q_quant + q_mixed + q_qual
+            if total_req > 0 and total_req != n:
+                q_quant = round(q_quant * n / total_req)
+                q_mixed = round(q_mixed * n / total_req)
+                q_qual = max(0, n - q_quant - q_mixed)
+            return q_quant, q_mixed, q_qual
+
+        # PRIORITY 2: Architectural defaults
         if f_type == "survey":
-            # Rule: 60% Quant, 20% Mixed, 20% Qual
             quant = max(1, round(n * 0.6))
             mixed = max(1, round(n * 0.2))
             qual = max(1, n - quant - mixed)
-            # Adjustment to match total N exactly
-            while quant + mixed + qual > n and (quant > 1 or mixed > 1 or qual > 1):
-                if qual > 1: qual -= 1
-                elif mixed > 1: mixed -= 1
-                else: quant -= 1
-            while quant + mixed + qual < n:
-                quant += 1 # Priority: Quantitative first
             return quant, mixed, qual
         elif f_type == "assessment":
-            # Rule: 80% Quant, 20% Qual
             quant = max(1, round(n * 0.8))
-            qual = n - quant
-            return quant, 0, qual
-        elif f_type == "registration":
-            # Rule: 20% Quant, 80% Qual
-            quant = max(1, round(n * 0.2))
-            qual = n - quant
-            return quant, 0, qual
-        elif f_type == "application":
-            # Rule: 40% Quant, 60% Qual
-            quant = max(1, round(n * 0.4))
-            qual = n - quant
-            return quant, 0, qual
-        else:
-            return n, 0, 0
+            return quant, 0, n - quant
+        elif f_type in ("registration", "application"):
+            quant = max(1, round(n * 0.3))
+            return quant, 0, n - quant
+        return n, 0, 0
 
-    x_quant, y_mixed, z_qual = get_distribution(num_q, form_type)
+    x_quant, y_mixed, z_qual = get_distribution(num_q, active_arch, intent_info.get("distribution"))
     
-    # 2. Context Synthesis
-    context = "\n".join(
-        f"  {i+1}. [{r.get('source', 'Library')}] {r['question']}"
-        for i, r in enumerate(retrieved)
-    )
+    # 2. Structured JSON Context Building
+    grounding_context = []
+    for r in retrieved:
+        grounding_context.append({
+            "text": r["question"],
+            "suggested_type": r.get("question_type", "text"),
+            "category": r.get("category", "general"),
+            "source": r.get("source", "Memory Bank"),
+            "fidelity_score": r.get("final_score", 0)
+        })
+    context_json = json.dumps(grounding_context, indent=2)
 
-    # 3. Instruction Mapping (Research-Grade)
+    # 3. Architecture Instructions
+    ui_mapping = {
+        "survey": "stepper_scroll",
+        "assessment": "single_question_step",
+        "registration": "classic_form",
+        "application": "section_based"
+    }
+    target_ui = ui_mapping.get(active_arch, "stepper_scroll")
+
     architecture_instructions = {
-        "survey": f"""Goal: OBJECTIVE MEASUREMENT & ANALYSIS.
-        Question Distribution (Golden Ratio 60-20-20):
-        - {x_quant} Quantitative questions (for statistics): Use type 'likert_scale' or 'single_choice'.
-        - {y_mixed} Mixed questions (multi-dimensional analysis): Use type 'multiple_choice' or 'rating'.
-        - {z_qual} Qualitative questions (deep behavior/emotions): Use type 'text' (paragraph).""",
-        
-        "assessment": f"""Goal: ACADEMIC COMPETENCY ASSESSMENT. 
-        Focus: Validating specific knowledge, critical thinking, and objective learning outcomes.
-        Distribution: {x_quant} standard multiple-choice questions (quant) and {z_qual} detailed open-ended reasoning questions (qual).""",
-        
-        "registration": f"""Goal: MEMBER REGISTRATION & DATA INTAKE.
-        Focus: Collecting structured participant profiles and demographics.
-        Distribution: Focus on {z_qual} essential data fields (Name, Contact, Bio) and {x_quant} eligibility/preference checkboxes.""",
-        
-        "application": f"""Goal: FORMAL APPLICATION EVALUATION.
-        Focus: Screening candidates based on qualifications, experience, and statement of purpose.
-        Distribution: {x_quant} objective criteria checks and {z_qual} subjective motivation/portfolio questions.""",
-
-        "custom": f"""Goal: HIGHLY CUSTOMIZED RESEARCH STRUCTURE.
-        Focus: Directly following the 'Fine-tune Notes' and 'Research Goal' with maximum flexibility.
-        Distribution: Allocate {num_q} items logically across quant, mixed, and qual types based on the user's specific context."""
+        "survey": f"OBJECTIVE MEASUREMENT. UI Mode: {target_ui}. Target: {x_quant} quant, {y_mixed} mixed, {z_qual} qual.",
+        "assessment": f"COMPETENCY TESTING. UI Mode: {target_ui}. Target: {x_quant} MCQ and {z_qual} reasoning items.",
+        "registration": f"DATA INTAKE. UI Mode: {target_ui}. Focus: Profile fields + {x_quant} preference checks.",
+        "application": f"SCREENING. UI Mode: {target_ui}. Structured: {x_quant} criteria check, {z_qual} narrative items."
     }
 
-    prompt = f"""You are SIR-AG v2 "Research Executive", a high-level artificial intelligence specialist in scientific research. 
-Response Language: STRICT SCIENTIFIC ENGLISH.
+    prompt = f"""You are SIR-AG v2.1 "Research Executive" AI.
+Response Language Rules: If language is 'vi', return Vietnamese. Otherwise, return English.
+Current Target Language: {language.upper()}
 
-RESEARCH CONTEXT:
-- Research Goal: "{user_input}"
-- Architecture Type: {form_type.upper()}
-- Fine-tune Notes: "{fine_tune if fine_tune else 'None'}"
-- Field: {intent_info.get('category', 'General')}
+[1] RESEARCH CONTEXT:
+- PRIMARY GOAL: "{user_input}"
+- ARCHITECTURE: {active_arch.upper()}
+- UI BEHAVIOR: {target_ui}
+- TONE: {intent_info.get('tone', 'professional')}
 
-FOUNDATIONAL KNOWLEDGE LIBRARY (Grounding Source):
-{context if context else 'NO RELEVANT LIBRARY DATA FOUND.'}
+[2] STRUCTURED KNOWLEDGE LIBRARY (GROUNDING SOURCE):
+{context_json if grounding_context else 'NO RELEVANT DATA FOUND. GO ZERO-SHOT.'}
 
-ARCHITECTURAL REQUIREMENTS ({form_type.upper()}):
-{architecture_instructions.get(form_type, architecture_instructions["survey"])}
+[3] ARCHITECTURAL REQUIREMENTS:
+{architecture_instructions.get(active_arch, architecture_instructions["survey"])}
 
-MANDATORY RULES:
-1. STRICT GROUNDING: 100% of technical questions MUST be extracted or inferred from the KNOWLEDGE LIBRARY. Do not fabricate facts.
-2. SCIENTIFIC STANDARD: Questions must be concise, unbiased, and use professional {intent_info.get('category', 'general')} terminology.
-3. DIVERSIFICATION: strictly follow the count distribution for (quant, mixed, qual) types.
-4. OPTIONS GENERATION: For all selection-based types (single_choice, multiple_choice, likert), you MUST generate 4-5 realistic, context-aware options. Do not use generic placeholders like "Option A".
-5. EXPECTED INSIGHTS: Create a "metadata.expected_insights" field explaining the scientific value gained from this data.
+[4] MANDATORY EXECUTION RULES:
+1. FIDELITY: 100% Grounded logic.
+2. UI ALIGNMENT: Ensure questions and options match the {target_ui} flow.
+3. OUTPUT QUANTITY: strictly return {num_q} questions.
+4. SCHEMA CONSISTENCY: strictly follow the JSON SCHEMA below.
 
-JSON SCHEMA:
+[5] JSON OUTPUT SCHEMA:
 {{
   "form_id": "{uuid.uuid4().hex[:8]}",
-  "title": "Professional Survey Title",
-  "description": "Brief summary of the research objective",
+  "title": "Scientific Title",
+  "description": "Executive summary",
   "questions": [
     {{
       "id": "q1",
-      "question": "Question content in English",
+      "question": "Question content",
       "type": "single_choice | multiple_choice | likert_scale | rating | text",
       "required": true,
-      "options": ["Realistic Option 1", "Realistic Option 2", "Realistic Option 3", "Realistic Option 4"]
+      "options": ["Option 1", "Option 2", "Option 3", "Option 4"]
     }}
   ],
   "metadata": {{
-    "expected_insights": "Detailed analysis of what this data reveals...",
-    "category": "{intent_info.get('category', 'general')}",
+    "expected_insights": "Detailed analysis",
+    "grounding_fidelity": 0.0 to 1.0,
+    "ui_hint": "{target_ui}",
     "ratio_applied": "{x_quant}-{y_mixed}-{z_qual}"
   }}
 }}"""
     return prompt
 
-def call_gemini(prompt: str) -> dict | None:
+def validate_response(data: Any, requested_n: int) -> bool:
+    """Rigid validation of the AI output structure."""
+    if not isinstance(data, dict): return False
+    if "questions" not in data or not isinstance(data["questions"], list): return False
+    
+    # Check question count (allow small tolerance if semantic grouping happened, but ideally exact)
+    # Actually, let's allow +/- 1 for flexibility, but strictly check field names
+    for q in data["questions"]:
+        if not all(k in q for k in ("question", "type", "id")): return False
+        if q["type"] in ("single_choice", "multiple_choice", "likert_scale") and not q.get("options"):
+            return False
+    return True
+
+def call_gemini(prompt: str, requested_n: int) -> dict | None:
     if not gemini_ready or not gemini_model:
         return None
     try:
@@ -348,6 +436,11 @@ def call_gemini(prompt: str) -> dict | None:
         raw = re.sub(r"\s*```$", "", raw, flags=re.MULTILINE)
         result = json.loads(raw)
         
+        # Validation Layer
+        if not validate_response(result, requested_n):
+            logger.warning("Gemini output failed validation. Activating Fallback.")
+            return None
+            
         # Traffic Capture (Audit Log)
         log_file = LOG_DIR / f"rag_traffic_{datetime.now().strftime('%Y%m%d')}.jsonl"
         with open(log_file, "a", encoding="utf-8") as f:
@@ -365,43 +458,38 @@ def call_gemini(prompt: str) -> dict | None:
 
 
 def build_fallback_form(keyword: str, retrieved: list, num_q: int, language: str) -> dict:
-    """Direct ChromaDB result when Gemini is unavailable."""
+    """Direct ChromaDB result with standardized schema."""
     questions = []
     for i, r in enumerate(retrieved[:num_q]):
         q_type = r.get("question_type", "text")
         entry = {
             "id": f"q{i+1}",
-            "text": r["question"],
+            "question": r["question"],
             "type": q_type,
             "required": True,
-            "source_similarity": r.get("similarity_score", 0),
+            "options": r.get("options", [])
         }
-        if q_type == "rating":
-            entry["options"] = ["1", "2", "3", "4", "5"]
-        elif q_type == "likert_scale":
-            entry["options"] = ["Strongly Disagree", "Disagree", "Neutral", "Agree", "Strongly Agree"]
-        elif q_type in ("single_choice", "multiple_choice"):
-            entry["options"] = ["Option A", "Option B", "Option C", "Option D"]
+        
+        # Heuristic for missing options in fallback
+        if not entry["options"] and q_type in ("single_choice", "multiple_choice", "likert_scale", "rating"):
+            if q_type == "rating":
+                entry["options"] = ["1", "2", "3", "4", "5"]
+            elif q_type == "likert_scale":
+                entry["options"] = ["Strongly Disagree", "Disagree", "Neutral", "Agree", "Strongly Agree"]
+            else:
+                entry["options"] = ["Option A", "Option B", "Option C", "Option D"]
+                
         questions.append(entry)
-
-    category = retrieved[0].get("category", "it") if retrieved else "it"
 
     return {
         "form_id": uuid.uuid4().hex[:8],
-        "title": f"{keyword.title()} Survey",
-        "description": f"Survey about: {keyword}",
-        "keyword": keyword,
-        "category": category,
-        "language": language,
-        "sections": [{"title": "Survey Questions", "questions": questions}],
+        "title": f"{keyword.title()} Research Blueprint",
+        "description": f"Automated grounded projection for: {keyword}",
+        "questions": questions,
         "metadata": {
-            "total_questions": len(questions),
-            "generation_method": "fallback_chromadb_only",
-            "retrieval_model": "paraphrase-multilingual-MiniLM-L12-v2",
-            "generation_model": "none",
-            "retrieved_count": len(retrieved),
-            "generated_at": datetime.now().isoformat(),
-            "note": "Gemini unavailable — returning raw ChromaDB results",
+            "expected_insights": "Direct knowledge highlights from the library (Grounded Fallback).",
+            "grounding_fidelity": retrieved[0].get("similarity_score", 0) if retrieved else 0.0,
+            "generation_method": "fallback_chromadb"
         },
     }
 
@@ -445,29 +533,27 @@ async def health():
 @app.post("/api/generate-form")
 async def generate_form(request: GenerateFormRequest):
     """
-    SIR-AG v2 Stage-based Generation.
-    1. Intent Analysis (Reasoning)
-    2. Multi-tier Retrieval (Memory)
-    3. Intent-Aware Generation (Synthesis)
+    SIR-AG v2.1 Stage-based Generation.
     """
-    prompt_text = request.prompt or request.keyword
+    prompt_text = request.prompt
     if not prompt_text:
-        raise HTTPException(status_code=400, detail="prompt or keyword required")
+        raise HTTPException(status_code=400, detail="prompt required")
 
-    # Step 1: Analyze Intent
+    # Step 1: Analyze Intent (Logic Layer)
     intent_info = analyze_intent(prompt_text)
-    logger.info("SIR-AG v2: Intent=%s, Keywords='%s'", intent_info.get("intent"), intent_info.get("keywords"))
-
-    # Step 2: Retrieve
-    retrieved = retrieve_questions(intent_info.get("keywords", prompt_text), k=RETRIEVE_K)
     
-    # Step 3: Generate
+    # Step 2: Multi-tier Retrieval (Memory Layer)
+    # Query Expansion: Search both raw prompt and AI-optimized keywords
+    search_query = f"{prompt_text} {intent_info.get('keywords', '')}"
+    retrieved = retrieve_questions(search_query, k=RETRIEVE_K)
+    
+    # Step 3: Synthesis (Intelligence Layer)
     form_data = None
     if gemini_ready:
-        final_prompt = build_prompt(prompt_text, intent_info, retrieved, request.num_questions or DEFAULT_NUM_Q)
-        form_data = call_gemini(final_prompt)
+        final_prompt = build_prompt(prompt_text, intent_info, retrieved, request.num_questions or DEFAULT_NUM_Q, language=request.language or "en")
+        form_data = call_gemini(final_prompt, request.num_questions or DEFAULT_NUM_Q)
 
-    # Fallback
+    # Step 4: Fallback (Reliability Layer)
     if not form_data:
         form_data = build_fallback_form(prompt_text, retrieved, request.num_questions or DEFAULT_NUM_Q, request.language or "vi")
 
@@ -492,20 +578,174 @@ class LearnRequest(BaseModel):
     questions: list # List of question text strings
 
 
-@app.post("/api/learn")
-async def learn_from_feedback(request: LearnRequest):
-    """RKD: Ingest human-refined questions into the priority memory."""
+@app.post("/api/memory/wipe")
+async def wipe_all_memory():
+    """RKD: Complete purge of ALL knowledge bases (Genesis Procedure)."""
     if not chroma_ai:
-        return {"success": False, "error": "AI not ready"}
+        return JSONResponse(status_code=503, content={"success": False, "error": "AI Memory not ready"})
     
     try:
-        # We simulate feedback ingestion
-        logger.info("RKD Learning from prompt: %s", request.prompt)
-        # In a real impl, we'd call chroma_ai.add_to_refined(...)
-        return {"success": True, "message": f"Successfully distilled {len(request.questions)} questions into memory."}
+        # Clear Refined
+        s1 = chroma_ai.reset_collection(collection_name=COLLECTION_REFINED)
+        # Clear Global
+        s2 = chroma_ai.reset_collection(collection_name=COLLECTION_GLOBAL)
+        
+        return {
+            "success": s1 and s2, 
+            "message": "Project Genesis: System memory cleared. Ready for rebuilding.",
+            "refined_cleared": s1,
+            "global_cleared": s2
+        }
     except Exception as exc:
-        return {"success": False, "error": str(exc)}
+        return JSONResponse(status_code=500, content={"success": False, "error": str(exc)})
 
+@app.delete("/api/memory")
+async def reset_priority_memory():
+    """RKD: Clear the human-refined priority memory collection."""
+    if not chroma_ai:
+        return JSONResponse(status_code=503, content={"success": False, "error": "AI Memory not ready"})
+    
+    try:
+        success = chroma_ai.reset_collection(collection_name=COLLECTION_REFINED)
+        return {"success": success, "message": "Priority memory cleared successfully. AI will now use baseline knowledge."}
+    except Exception as exc:
+        return JSONResponse(status_code=500, content={"success": False, "error": str(exc)})
+
+class LearnRequest(BaseModel):
+    questions: list # List of question text strings
+    collection_name: Optional[str] = COLLECTION_REFINED
+
+@app.post("/api/learn")
+async def learn_from_feedback(request: LearnRequest):
+    """RKD: Ingest a list of validated questions into the specified collection."""
+    if not chroma_ai:
+        return JSONResponse(status_code=503, content={"success": False, "error": "AI Memory not ready"})
+    
+    try:
+        data_to_upsert = [
+            {
+                "question": q, 
+                "metadata": {
+                    "source": "genesis_bootstrap" if request.collection_name == COLLECTION_GLOBAL else "human_feedback",
+                    "ingested_at": str(datetime.now().isoformat())
+                }
+            } for q in request.questions
+        ]
+        success = chroma_ai.upsert_questions(data_to_upsert, collection_name=request.collection_name)
+        
+        return {
+            "success": success, 
+            "count": len(request.questions), 
+            "collection": request.collection_name,
+            "message": f"Successfully integrated {len(request.questions)} pillars into {request.collection_name}."
+        }
+    except Exception as exc:
+        return JSONResponse(status_code=500, content={"success": False, "error": str(exc)})
+
+# --- PROJECT OMEGA ENDPOINTS ---
+
+class IngestUrlRequest(BaseModel):
+    url: str
+    workspace_id: str
+    promote_to_global: Optional[bool] = False
+
+class IngestTextRequest(BaseModel):
+    title: str
+    text: str
+    workspace_id: str
+    promote_to_global: Optional[bool] = False
+
+validator = ValidationAgent(api_key=GEMINI_API_KEY)
+
+@app.post("/api/ingest/url")
+async def ingest_url(request: IngestUrlRequest):
+    """PROJECT OMEGA: Scrape URL, Validate, and Ingest into ChromaDB."""
+    try:
+        downloaded = trafilatura.fetch_url(request.url)
+        if not downloaded:
+            return JSONResponse(status_code=400, content={"success": False, "error": "Could not reach URL"})
+        
+        content = trafilatura.extract(downloaded)
+        if not content:
+            return JSONResponse(status_code=400, content={"success": False, "error": "No meaningful text found in URL"})
+        
+        # 1. Validate Quality
+        report = validator.validate_content(content, source_info=request.url)
+        if not report.get("is_valid"):
+            return JSONResponse(status_code=422, content={
+                "success": False, 
+                "error": "Quality Gatekeeper rejected this content",
+                "report": report
+            })
+
+        # 2. Convert text to "Questions" (Pillars)
+        # Use Gemini to extract key research pillars from the text
+        extraction_prompt = f"Extract exactly 5-10 research questions or key knowledge pillars from this text. Return only a JSON list of strings.\n\nTEXT:\n{content[:5000]}"
+        raw_pillars = _gemini_call_wrapper(extraction_prompt)
+        pillars = json.loads(raw_pillars)
+
+        # 3. Upsert into Chroma with Metadata
+        data_to_upsert = [
+            {
+                "question": p,
+                "metadata": {
+                    "source_url": request.url,
+                    "workspace_id": request.workspace_id,
+                    "visibility": "global" if (request.promote_to_global and report.get("overall_score", 0) > 85) else "private",
+                    "quality_score": report.get("overall_score", 0),
+                    "ingested_at": str(datetime.now().isoformat())
+                }
+            } for p in pillars
+        ]
+        
+        success = chroma_ai.upsert_questions(data_to_upsert)
+        
+        return {
+            "success": success,
+            "count": len(pillars),
+            "quality_report": report,
+            "visibility": data_to_upsert[0]["metadata"]["visibility"]
+        }
+    except Exception as exc:
+        logger.error(f"URL Ingestion failed: {exc}")
+        return JSONResponse(status_code=500, content={"success": False, "error": str(exc)})
+
+@app.post("/api/ingest/text")
+async def ingest_text(request: IngestTextRequest):
+    """PROJECT OMEGA: Process raw text snippet and integrate into intelligence bank."""
+    try:
+        # 1. Validate Quality
+        report = validator.validate_content(request.text, source_info=f"Manual Input: {request.title}")
+        if not report.get("is_valid"):
+            return JSONResponse(status_code=422, content={"success": False, "error": "Low quality content rejected", "report": report})
+
+        # 2. Extract Pillars
+        extraction_prompt = f"Extract exactly 3-5 research questions/pillars from this text. Return a JSON list of strings.\n\nTEXT:\n{request.text[:5000]}"
+        raw_pillars = _gemini_call_wrapper(extraction_prompt)
+        pillars = json.loads(raw_pillars)
+
+        # 3. Upsert
+        data_to_upsert = [
+            {
+                "question": p,
+                "metadata": {
+                    "source_title": request.title,
+                    "workspace_id": request.workspace_id,
+                    "visibility": "global" if (request.promote_to_global and report.get("overall_score", 0) > 85) else "private",
+                    "quality_score": report.get("overall_score", 0),
+                    "ingested_at": str(datetime.now().isoformat())
+                }
+            } for p in pillars
+        ]
+        success = chroma_ai.upsert_questions(data_to_upsert)
+        
+        return {
+            "success": success,
+            "count": len(pillars),
+            "quality_report": report
+        }
+    except Exception as exc:
+        return JSONResponse(status_code=500, content={"success": False, "error": str(exc)})
 
 @app.get("/api/status")
 async def status():
@@ -636,12 +876,14 @@ async def generate_questions_compat(request: GenerateQuestionsRequest):
     # Apply offset for diversity
     retrieved_slice = retrieved_all[offset:offset + num_q]
 
-    # 2. Reasoning & Synthesis (Gemini)
+    # 3. Reasoning & Synthesis (Gemini)
     form_data = None
     if gemini_ready:
         # Use first keyword or join them for the goal description
         goal_text = ", ".join(keywords)
-        intent_info = {"category": request.category or "general", "language": language}
+        
+        # Step 2.5: Analyze Intent for Compat Endpoint
+        intent_info = analyze_intent(goal_text)
         
         prompt = build_prompt(
             user_input=goal_text,
@@ -652,14 +894,15 @@ async def generate_questions_compat(request: GenerateQuestionsRequest):
             fine_tune=request.fine_tune_note,
             language=language
         )
-        form_data = call_gemini(prompt)
+        form_data = call_gemini(prompt, num_q)
 
-    # 3. Grounded Fallback if Gemini fails
-    questions = []
+    # 4. Standardized Output Normalization
+    final_questions = []
+    
     if form_data and "questions" in form_data:
         raw_questions = form_data.get("questions", [])
         for i, q in enumerate(raw_questions):
-            questions.append({
+            final_questions.append({
                 "id": q.get("id", f"q{i+1}"),
                 "question": q.get("question", ""),
                 "type": q.get("type", "text"),
@@ -671,17 +914,30 @@ async def generate_questions_compat(request: GenerateQuestionsRequest):
         metadata_out = {
             "expected_insights": form_data.get("metadata", {}).get("expected_insights", "N/A"),
             "can_regenerate": len(retrieved_all) > offset + num_q,
-            "fidelity": form_data.get("metadata", {}).get("grounding_fidelity", 1.0)
+            "fidelity": form_data.get("metadata", {}).get("grounding_fidelity", 1.0),
+            "ui_hint": form_data.get("metadata", {}).get("ui_hint", "stepper_scroll")
         }
     else:
         # Grounded Fallback (Knowledge Highlights)
+        fallback_ui = "stepper_scroll"
+        if request.form_type == "assessment": fallback_ui = "single_question_step"
+        elif request.form_type == "registration": fallback_ui = "classic_form"
+        
         for i, r in enumerate(retrieved_slice):
-            questions.append({
+            # Fallback Option Heuristic
+            f_type = r.get("question_type", "text")
+            f_options = r.get("options", [])
+            if not f_options:
+                if f_type == "rating": f_options = ["1", "2", "3", "4", "5"]
+                elif f_type == "likert_scale": f_options = ["Strongly Disagree", "Disagree", "Neutral", "Agree", "Strongly Agree"]
+                elif f_type in ("single_choice", "multiple_choice"): f_options = ["Option A", "Option B", "Option C"]
+
+            final_questions.append({
                 "id": f"q{i+1}",
                 "question": r["question"],
-                "type": r.get("question_type", "text"),
+                "type": f_type,
                 "required": True,
-                "options": r.get("options", []),
+                "options": f_options,
                 "category": r.get("category", request.category),
                 "confidence": r.get("similarity_score", 0),
                 "method": "gau_v2_grounded_fallback"
@@ -689,12 +945,13 @@ async def generate_questions_compat(request: GenerateQuestionsRequest):
         metadata_out = {
             "expected_insights": "Direct knowledge highlights from the library (Grounded Fallback).",
             "can_regenerate": len(retrieved_all) > offset + num_q,
-            "fidelity": retrieved_slice[0].get("similarity_score", 0) if retrieved_slice else 0
+            "fidelity": retrieved_slice[0].get("similarity_score", 0) if retrieved_slice else 0,
+            "ui_hint": fallback_ui
         }
 
     return JSONResponse(content={
         "success": True,
-        "questions": questions,
+        "questions": final_questions,
         "metadata": metadata_out
     })
 

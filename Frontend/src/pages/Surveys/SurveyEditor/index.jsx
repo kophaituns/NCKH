@@ -39,6 +39,7 @@ const SurveyEditor = () => {
     title: '',
     description: '',
     template_id: '',
+    ui_mode: 'stepper_scroll', // Default behavior
     start_date: '',
     end_date: '',
     status: 'draft',
@@ -153,10 +154,11 @@ const SurveyEditor = () => {
               title: aiDraft.title || '',
               description: aiDraft.description || '',
               template_id: aiDraft.template_id || '', // Auto-select the generated blueprint
+              ui_mode: aiDraft.ui_hint || 'stepper_scroll',
               category: aiDraft.category || 'general'
             }));
             
-            showToast('AI Intelligence imported successfully', 'success');
+            showToast('AI Intelligence Blueprint imported', 'success');
             localStorage.removeItem('ai_research_draft'); // Clean up after consumption
             setDirty(true);
             didRestoreRef.current = true;
@@ -263,6 +265,30 @@ const SurveyEditor = () => {
       <div className={styles.sidebar}>
         <div className={styles.sidebarHeader}>
           <h2>{isEditMode ? 'Edit Survey' : 'New Survey'}</h2>
+          
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginBottom: '12px' }}>
+            <span style={{ fontSize: '11px', fontWeight: 'bold', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              Behavioral Mode
+            </span>
+            <div style={{ 
+              display: 'inline-flex', 
+              alignItems: 'center', 
+              gap: '6px', 
+              padding: '6px 12px', 
+              background: '#f1f5f9', 
+              borderRadius: '6px',
+              fontSize: '13px',
+              fontWeight: '600',
+              color: '#334155',
+              border: '1px solid #e2e8f0'
+            }}>
+              {formData.ui_mode === 'stepper_scroll' && '📝 Standard Survey'}
+              {formData.ui_mode === 'single_question_step' && '⚡ Interactive Quiz'}
+              {formData.ui_mode === 'classic_form' && '📋 Registration Form'}
+              {formData.ui_mode === 'section_based' && '📂 Application Portal'}
+            </div>
+          </div>
+
           <button onClick={() => { clearSavedData(); navigate('/surveys'); }} className={styles.backLink}>&larr; Back to List</button>
         </div>
 

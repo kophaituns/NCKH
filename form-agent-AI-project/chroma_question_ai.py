@@ -3,6 +3,7 @@ import chromadb
 from chromadb.utils import embedding_functions
 from pathlib import Path
 import logging
+from datetime import datetime
 
 # Configuration
 CHROMA_PATH = Path("chroma_db")
@@ -57,7 +58,6 @@ class ChromaQuestionAI:
 
         try:
             # Prepare filters if categories are provided
-            where_filter = None
             if categories:
                 if isinstance(categories, list):
                     where_filter = {"category": {"$in": categories}}
@@ -109,7 +109,8 @@ class ChromaQuestionAI:
                     "source_keyword": meta.get("keyword", ""),
                     "question_type": self._detect_form_type(doc),
                     "semantic_type": meta.get("sub_category", "general"),
-                    "similarity_score": round(1 - dist, 4)
+                    "similarity_score": round(1 - dist, 4),
+                    "launch_count": int(meta.get("launch_count", 0))
                 })
 
             # Apply offset and limit AFTER deduplication
@@ -139,8 +140,102 @@ class ChromaQuestionAI:
             return 'open_ended'
         return 'text'
 
+    def reset_collection(self, collection_name=COLLECTION_NAME):
+        """
+        Delete all items in a collection and recreate it.
+        """
+        try:
+            # Delete the collection entirely
+            self.client.delete_collection(name=collection_name)
+            
+            # Recreate it immediately so it's ready for use
+            self.client.create_collection(
+                name=collection_name,
+                embedding_function=self.embedding_fn
+            )
+            
+            # If it was the primary collection, update the local reference
+            if collection_name == COLLECTION_NAME:
+                self.collection = self.client.get_collection(
+                    name=collection_name,
+                    embedding_function=self.embedding_fn
+                )
+                
+            logger.info("Collection %s has been reset (cleared).", collection_name)
+            return True
+        except Exception as e:
+            logger.error("Error resetting collection %s: %s", collection_name, e)
+            # If it didn't exist, that's fine too - just try creating it
+            try:
+                self.client.get_or_create_collection(
+                    name=collection_name,
+                    embedding_function=self.embedding_fn
+                )
+                return True
+            except:
+                return False
+
+    def upsert_questions(self, questions, collection_name=COLLECTION_NAME):
+        """
+        Add or update questions in the specified collection.
+        'questions' should be a list of dicts with:
+        - question: text content
+        - id: optional unique identifier
+        - metadata: dict of additional fields
+        """
+        try:
+            # Get or create collection
+            collection = self.client.get_or_create_collection(
+                name=collection_name,
+                embedding_function=self.embedding_fn
+            )
+            
+            unique_entries = {}
+            import hashlib
+            from datetime import datetime
+
+            for q in questions:
+                q_text = q.get("question") or q.get("text")
+                if not q_text: continue
+                
+                # Deterministic ID based on question hash (8 chars) to group identical questions
+                q_hash = hashlib.md5(q_text.strip().lower().encode()).hexdigest()[:12]
+                q_id = q.get("id") or f"usr_{q_hash}"
+                
+                meta = q.get("metadata", {}).copy() # Use copy to avoid side effects
+                # Ensure core metadata fields exist
+                meta.setdefault("category", "general")
+                meta.setdefault("sub_category", "refined")
+                meta.setdefault("source", "giga_ingest")
+                meta.setdefault("ingested_at", str(datetime.now().isoformat()))
+                
+                # Store in dict to handle intra-batch duplicates
+                # If duplicate exists in batch, the last one wins
+                unique_entries[q_id] = {
+                    "document": q_text,
+                    "metadata": meta
+                }
+            
+            if unique_entries:
+                ids = list(unique_entries.keys())
+                documents = [v["document"] for v in unique_entries.values()]
+                metadatas = [v["metadata"] for v in unique_entries.values()]
+                
+                collection.upsert(
+                    ids=ids,
+                    documents=documents,
+                    metadatas=metadatas
+                )
+                logger.info("Upserted %d unique questions to collection: %s", len(ids), collection_name)
+                return True
+            return False
+        except Exception as e:
+            logger.error("Error upserting to ChromaDB: %s", e)
+            return False
+
 # Test logic
 if __name__ == "__main__":
+    from datetime import datetime # Needed for the new method
     ai = ChromaQuestionAI()
     test_keyword = "AI và Machine Learning"
     print(f"🔍 Testing ChromaDB search for: '{test_keyword}'")

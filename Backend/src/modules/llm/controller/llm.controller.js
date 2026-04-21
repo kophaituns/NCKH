@@ -170,7 +170,8 @@ class LLMController {
         num_questions,  // Alternative field name from Frontend
         category = 'general',
         category_hint,  // Alternative field name from Frontend
-        offset = 0 
+        offset = 0,
+        workspaceId  // NEW: Support for isolated RAG
       } = req.body;
       
       // Use whichever field is provided
@@ -216,7 +217,8 @@ class LLMController {
         count: parseInt(inputCount),
         category: inputCategory,
         userId: userId,
-        offset: parseInt(offset)  // NEW: Support for regenerate
+        offset: parseInt(offset),
+        workspaceId: workspaceId  // Pass to service
       });
 
       // Check for AI server unavailable error

@@ -197,6 +197,13 @@ router.post('/ingest', upload.array('files'), knowledgeController.ingestDocument
  */
 router.get('/knowledge-status', knowledgeController.getStatus);
 
+/**
+ * @route   GET /api/modules/llm/knowledge-sources/:workspaceId
+ * @desc    Get knowledge ingestion sources for a workspace
+ * @access  Private
+ */
+router.get('/knowledge-sources/:workspaceId', llmController.getKnowledgeSources);
+
 // Health check
 router.get('/health', (req, res) => {
     res.json({ 

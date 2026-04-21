@@ -1,5 +1,7 @@
-// src/api/services/llm.service.js - LLM/AI API service
 import http from '../http';
+import axios from 'axios';
+
+const AI_SERVER_URL = 'http://localhost:8000/api';
 
 const LLMService = {
   /**
@@ -256,7 +258,65 @@ const LLMService = {
    * Get knowledge base status
    */
   async getKnowledgeStatus() {
-    const response = await http.get('/llm/knowledge-status');
+    const response = await axios.get(`${AI_SERVER_URL}/health`);
+    return response.data;
+  },
+
+  /**
+   * Send human-refined questions to AI Memory
+   */
+  async learnFromFeedback(questions) {
+    const response = await axios.post(`${AI_SERVER_URL}/learn`, { questions });
+    return response.data;
+  },
+
+  /**
+   * Trigger semantic ingestion
+   */
+  async triggerIngestion() {
+    const response = await axios.post(`${AI_SERVER_URL}/ingest`);
+    return response.data;
+  },
+
+  /**
+   * Reset priority memory (caution!)
+   */
+  async resetMemory() {
+    const response = await axios.delete(`${AI_SERVER_URL}/memory`);
+    return response.data;
+  },
+
+  /**
+   * PROJECT OMEGA: Ingest knowledge from a URL
+   */
+  async ingestUrl(url, workspaceId, promoteToGlobal = false) {
+    const response = await axios.post(`${AI_SERVER_URL}/ingest/url`, {
+      url,
+      workspace_id: workspaceId,
+      promote_to_global: promoteToGlobal
+    });
+    return response.data;
+  },
+
+  /**
+   * PROJECT OMEGA: Ingest knowledge from raw text
+   */
+  async ingestText(title, text, workspaceId, promoteToGlobal = false) {
+    const response = await axios.post(`${AI_SERVER_URL}/ingest/text`, {
+      title,
+      text,
+      workspace_id: workspaceId,
+      promote_to_global: promoteToGlobal
+    });
+    return response.data;
+  },
+
+  /**
+   * Get historical ingestion batches for a workspace
+   */
+  async getKnowledgeSources(workspaceId) {
+    // This calls the Node.js backend to get metadata from DB
+    const response = await http.get(`/llm/knowledge-sources/${workspaceId}`);
     return response.data;
   }
 };

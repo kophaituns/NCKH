@@ -55,6 +55,15 @@
   100% { transform: scale(1); opacity: 0; }
 }
 
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.spinning {
+  animation: spin 1s linear infinite;
+}
+
 /* ===== 3. TAB NAVIGATION ===== */
 .tabs {
   display: flex;
@@ -110,6 +119,82 @@
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(10px); }
   to { opacity: 1; transform: translateY(0); }
+}
+
+/* Inline Editing UI */
+.editTrigger {
+  margin-left: auto;
+  font-size: 10px;
+  font-weight: 700;
+  color: #14B8A6;
+  background: white;
+  padding: 2px 8px;
+  border-radius: 4px;
+  border: 1px solid #99f6e4;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: #14B8A6;
+    color: white;
+  }
+}
+
+.editContainer {
+  margin-top: 8px;
+  width: 100%;
+}
+
+.editArea {
+  width: 100%;
+  min-height: 80px;
+  padding: 12px;
+  border: 2px solid #14B8A6;
+  border-radius: 12px;
+  font-family: inherit;
+  font-size: 14px;
+  color: #1e293b;
+  background: white;
+  resize: vertical;
+  outline: none;
+  box-shadow: 0 4px 12px rgba(20, 184, 166, 0.1);
+}
+
+.editActions {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.saveBtn {
+  background: #14B8A6;
+  color: white;
+  border: none;
+  padding: 6px 14px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover { background: #0d9488; }
+}
+
+.cancelBtn {
+  background: #f1f5f9;
+  color: #64748b;
+  border: none;
+  padding: 6px 14px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover { background: #e2e8f0; color: #0f172a; }
 }
 
 .dashboardGrid {

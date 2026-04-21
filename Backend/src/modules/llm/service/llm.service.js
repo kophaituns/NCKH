@@ -165,7 +165,7 @@ class LLMService {
     console.log('GeneratedQuestion model:', !!GeneratedQuestion);
 
     try {
-      const { topic, count = 5, category = 'general', userId, offset = 0 } = data;
+      const { topic, count = 5, category = 'general', userId, offset = 0, workspaceId } = data;
 
       this.logger.info(`User ${userId || 'unknown'} generating ${count} questions for topic: ${topic} (offset: ${offset})`);
 
@@ -183,7 +183,7 @@ class LLMService {
       const TrainedModelService = require('./trained-model.service');
       const trainedModel = new TrainedModelService(user);
 
-      const result = await trainedModel.generateQuestions(topic, count, category, offset);
+      const result = await trainedModel.generateQuestions(topic, count, category, offset, workspaceId);
 
       // Check for AI server unavailable error - propagate to frontend
       if (result.reason === 'AI_SERVER_UNAVAILABLE') {
@@ -535,6 +535,22 @@ class LLMService {
       category: predictedCategory,
       confidence: maxScore > 0 ? Math.min(0.9, 0.5 + (maxScore * 0.1)) : 0.6
     };
+  }
+
+  /**
+   * Get knowledge sources for a workspace
+   */
+  async getKnowledgeSources(workspaceId) {
+    const { KnowledgeSource } = require('../../../models');
+    try {
+      return await KnowledgeSource.findAll({
+        where: { workspace_id: workspaceId },
+        order: [['created_at', 'DESC']]
+      });
+    } catch (error) {
+      this.logger.error('Error fetching knowledge sources:', error);
+      throw error;
+    }
   }
 
   // ... rest of the methods remain the same
