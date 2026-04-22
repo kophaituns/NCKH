@@ -204,6 +204,32 @@ router.get('/knowledge-status', knowledgeController.getStatus);
  */
 router.get('/knowledge-sources/:workspaceId', llmController.getKnowledgeSources);
 
+/**
+ * @route   POST /api/modules/llm/ingest/url
+ * @desc    Ingest knowledge from URL
+ * @access  Private
+ */
+router.post('/ingest/url', knowledgeController.ingestUrl);
+
+/**
+ * @route   POST /api/modules/llm/ingest/text
+ * @desc    Ingest knowledge from raw text
+ * @access  Private
+ */
+router.post('/ingest/text', knowledgeController.ingestText);
+
+/**
+ * @route   PUT /api/modules/llm/knowledge-sources/:id
+ * @desc    Update a knowledge source (rename)
+ */
+router.put('/knowledge-sources/:id', knowledgeController.updateSource);
+
+/**
+ * @route   DELETE /api/modules/llm/knowledge-sources/:id
+ * @desc    Delete a knowledge source
+ */
+router.delete('/knowledge-sources/:id', knowledgeController.deleteSource);
+
 // Health check
 router.get('/health', (req, res) => {
     res.json({ 

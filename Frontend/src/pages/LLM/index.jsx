@@ -9,11 +9,12 @@ import Loader from '../../components/common/Loader/Loader';
 import { useToast } from '../../contexts/ToastContext';
 import LLMService from '../../api/services/llm.service';
 import TemplateService from '../../api/services/template.service';
+import WorkspaceService from '../../api/services/workspace.service';
 import { QUESTION_TYPE_MAP } from '../../utils/questionTypeMap';
 import { useAuth } from '../../contexts/AuthContext';
 import UpgradeModal from '../../components/UpgradeToCreator/UpgradeModal';
 import UpgradeUpsellModal from '../../components/UI/UpgradeUpsellModal/UpgradeUpsellModal';
-import { LuSparkles, LuBrain, LuFileText, LuCircleCheck, LuDatabase, LuUpload, LuCheck, LuSearch, LuActivity, LuX, LuLayoutGrid, LuList, LuPencil, LuTrash2, LuRotateCcw } from 'react-icons/lu';
+import { LuSparkles, LuBrain, LuFileText, LuCircleCheck, LuDatabase, LuUpload, LuCheck, LuSearch, LuActivity, LuX, LuLayoutGrid, LuList, LuPencil, LuTrash2, LuRotateCcw, LuPlus, LuArrowLeft } from 'react-icons/lu';
 import styles from './LLM.module.scss';
 
 // Import validation utilities
@@ -44,14 +45,20 @@ const LLM = () => {
   const [launching, setLaunching] = useState(false);
 
   // PROJECT OMEGA: Ingestion States
-  const [ingestMode, setIngestMode] = useState('file');
+  const [ingestMode, setIngestMode] = useState('file'); // file, url, text
   const [urlInput, setUrlInput] = useState('');
   const [textInput, setTextInput] = useState('');
   const [titleInput, setTitleInput] = useState('');
   const [promoteToGlobal, setPromoteToGlobal] = useState(false);
+  const [editingSourceId, setEditingSourceId] = useState(null);
+  const [renamingName, setRenamingName] = useState('');
+  const [workspaces, setWorkspaces] = useState([]);
+  const [isNotebookShelf, setIsNotebookShelf] = useState(true);
+  const [newNotebookName, setNewNotebookName] = useState('');
+  const [isCreatingNotebook, setIsCreatingNotebook] = useState(false);
   const [knowledgeHistory, setKnowledgeHistory] = useState([]);
-  const [visibilityScope, setVisibilityScope] = useState('all'); // all | private | global
-  const [selectedWorkspaceId, setSelectedWorkspaceId] = useState('1'); // Default/Mock
+  const [selectedWorkspaceId, setSelectedWorkspaceId] = useState('');
+  const [ingestCategory, setIngestCategory] = useState('general');
 
   // Inline Editing State
   const [editingIdx, setEditingIdx] = useState(null);
@@ -71,22 +78,21 @@ const LLM = () => {
   // Mock "Hot Keywords" expanded to a full research dataset
   const hotKeywordsByCat = useMemo(() => ({
     it: [
-      'Python', 'Data Science', 'Security', 'React', 'FastAPI', 
-      'Cloud Architecture', 'DevOps', 'Machine Learning', 'Database Optimization', 
-      'Cybersecurity', 'Microservices', 'API Design', 'Quantum Computing', 
-      'Edge Computing', 'NLP'
+      'Data Science', 'Cloud Computing', 'Cybersecurity', 'Machine Learning', 'Web Development',
+      'Python', 'FastAPI', 'React', 'Cloud Architecture', 'Microservices', 
+      'DevOps', 'Security', 'Database Optimization', 'API Design', 'NLP'
     ],
     marketing: [
-      'SEO', 'Digital Ads', 'Branding', 'Social Media', 'Leads', 
-      'Content Strategy', 'Customer Journey', 'Conversion Rate', 'Influencer Marketing', 
-      'Market Segmentation', 'Email Automation', 'Public Relations', 'Affiliate Marketing', 
-      'Brand Equity', 'CRM'
+      'Brand Management', 'Digital Marketing', 'Social Media', 'Content Marketing', 
+      'SEO', 'Digital Ads', 'Branding', 'Content Strategy', 'Leads', 
+      'Customer Journey', 'Conversion Rate', 'Influencer Marketing', 'Email Automation', 
+      'Market Segmentation', 'CRM'
     ],
     economics: [
+      'Financial Modeling', 'Investment Planning', 'Market Analysis', 'Portfolio Management',
       'Inflation', 'GDP', 'Markets', 'Banking', 'Trade', 
       'Microeconomics', 'Macroeconomics', 'Econometrics', 'Fiscal Policy', 
-      'Monetary Policy', 'Stock Exchange', 'Interest Rates', 'Economic Growth', 
-      'Global South', 'Risk Analysis'
+      'Monetary Policy', 'Stock Exchange'
     ],
     general: [
       'Research', 'Quality', 'Performance', 'Strategy', 'Ethics', 
@@ -121,21 +127,41 @@ const LLM = () => {
     }
   }, []);
 
-  useEffect(() => {
-    if (activeTab === 'knowledge') {
-      fetchKnowledgeStatus();
-      fetchKnowledgeHistory();
+  const fetchWorkspaces = useCallback(async () => {
+    try {
+      const wsRes = await WorkspaceService.getMyWorkspaces();
+      if (wsRes.ok) {
+        setWorkspaces(wsRes.items);
+        // If no workspace is selected yet, pick the first one
+        if (!selectedWorkspaceId && wsRes.items.length > 0) {
+          setSelectedWorkspaceId(String(wsRes.items[0].id));
+        }
+      }
+    } catch (err) {
+      console.error('Failed to load workspaces:', err);
     }
-  }, [activeTab, fetchKnowledgeStatus]);
+  }, [selectedWorkspaceId]);
 
-  const fetchKnowledgeHistory = async () => {
+  useEffect(() => {
+    fetchWorkspaces();
+  }, [fetchWorkspaces]);
+
+  const fetchKnowledgeHistory = useCallback(async () => {
+    if (!selectedWorkspaceId) return;
     try {
       const res = await LLMService.getKnowledgeSources(selectedWorkspaceId);
       if (res.success) setKnowledgeHistory(res.data);
     } catch (err) {
       console.warn('History fetch failed:', err);
     }
-  };
+  }, [selectedWorkspaceId]);
+
+  useEffect(() => {
+    if (selectedWorkspaceId) {
+      fetchKnowledgeStatus();
+      fetchKnowledgeHistory();
+    }
+  }, [selectedWorkspaceId, activeTab, fetchKnowledgeStatus, fetchKnowledgeHistory]);
 
   const { user } = useAuth();
   const [showUpsellModal, setShowUpsellModal] = useState(false);
@@ -182,20 +208,26 @@ const LLM = () => {
     try {
       setLoading(true);
       setSelectedIndices(new Set());
-
       // Bundle hierarchical data for the unified pipeline
+      const finalKeywords = selectedKeywords.length > 0 ? selectedKeywords : (formData.keyword ? [formData.keyword] : []);
+      
       const payload = {
-        keyword: selectedKeywords.join(', ') || formData.keyword,
-        keywords: selectedKeywords.length > 0 ? selectedKeywords : (formData.keyword ? [formData.keyword] : []),
+        keyword: finalKeywords.join(', ') || customNote || 'General Research',
+        keywords: finalKeywords.length > 0 ? finalKeywords : (customNote ? [customNote] : []),
         category: formData.category,
         form_type: formType,
         num_questions: parseInt(formData.questionCount) || 5,
         fine_tune_note: customNote,
+        workspaceId: activeTab === 'knowledge' ? selectedWorkspaceId : null,
+        visibility_scope: activeTab === 'knowledge' ? 'private' : 'all',
         language: 'en' // Strictly English for NCKH
       };
 
-      if (payload.keywords.length === 0) {
-        showToast('Please select at least one keyword pillar.', 'warning');
+      // Validation: In global mode, keywords are mandatory. In notebook mode, either keywords OR a prompt note is needed.
+      const hasContent = payload.keywords.length > 0 || (activeTab === 'knowledge' && customNote);
+      
+      if (!hasContent) {
+        showToast(activeTab === 'knowledge' ? 'Please provide a research prompt or select keywords.' : 'Please select at least one keyword pillar.', 'warning');
         setLoading(false);
         return;
       }
@@ -214,9 +246,13 @@ const LLM = () => {
 
       setGeneratedQuestions(questions);
       setMetadata(meta);
+      
       // Automatically select all questions by default for faster launch
-      setSelectedIndices(new Set(questions.keys()));
-      showToast(`Intelligence extracted: ${questions.length} scientific pillars found.`, 'success');
+      const allIndices = new Set();
+      questions.forEach((_, i) => allIndices.add(i));
+      setSelectedIndices(allIndices);
+      
+      showToast(`Extraction complete: ${questions.length} research pillars identified.`, 'success');
     } catch (error) {
       console.error('>>> [GAU PIPELINE] Fatal Chain Error:', error);
       showToast('AI Pipeline Interruption. Check server logs.', 'error');
@@ -316,9 +352,10 @@ const LLM = () => {
     if (!files || files.length === 0) return;
     try {
       setIsIngesting(true);
-      const res = await LLMService.triggerIngestion();
+      const res = await LLMService.ingestDocuments(files, ingestCategory);
       if (res.success) {
-        showToast('Research asset synchronized with AI Library', 'success');
+        showToast(`Research assets synchronized [${ingestCategory.toUpperCase()}]`, 'success');
+        fetchKnowledgeHistory();
       }
     } catch (error) {
       console.error('Ingest error:', error);
@@ -332,9 +369,9 @@ const LLM = () => {
     if (!urlInput) return;
     try {
       setIsIngesting(true);
-      const res = await LLMService.ingestUrl(urlInput, selectedWorkspaceId, promoteToGlobal);
+      const res = await LLMService.ingestUrl(urlInput, selectedWorkspaceId, promoteToGlobal, ingestCategory);
       if (res.success) {
-        showToast(`URL Ingested! Quality Score: ${res.quality_report.overall_score}%`, 'success');
+        showToast(`URL Ingested [${ingestCategory.toUpperCase()}]! Quality: ${res.quality_report?.overall_score || 100}%`, 'success');
         setUrlInput('');
         fetchKnowledgeHistory();
       }
@@ -349,9 +386,9 @@ const LLM = () => {
     if (!textInput || !titleInput) return;
     try {
       setIsIngesting(true);
-      const res = await LLMService.ingestText(titleInput, textInput, selectedWorkspaceId, promoteToGlobal);
+      const res = await LLMService.ingestText(titleInput, textInput, selectedWorkspaceId, promoteToGlobal, ingestCategory);
       if (res.success) {
-        showToast(`Text Pillar Added! Status: ${res.quality_report.category}`, 'success');
+        showToast(`Text Pillar Added [${ingestCategory.toUpperCase()}]!`, 'success');
         setTextInput('');
         setTitleInput('');
         fetchKnowledgeHistory();
@@ -360,6 +397,64 @@ const LLM = () => {
       showToast(err.response?.data?.error || 'Text Ingestion failed', 'error');
     } finally {
       setIsIngesting(false);
+    }
+  };
+
+  const handleDeleteSource = async (id) => {
+    if (!window.confirm('Are you sure you want to delete this source? This will remove associated vectors.')) return;
+    try {
+      const res = await LLMService.deleteKnowledgeSource(id);
+      if (res.success) {
+        showToast('Source deleted successfully', 'success');
+        fetchKnowledgeHistory();
+      }
+    } catch (err) {
+      showToast('Failed to delete source', 'error');
+    }
+  };
+
+  const handleRenameSource = async (id) => {
+    if (!renamingName.trim()) return;
+    try {
+      const res = await LLMService.updateKnowledgeSource(id, { name: renamingName });
+      if (res.success) {
+        showToast('Source renamed', 'success');
+        setEditingSourceId(null);
+        fetchKnowledgeHistory();
+      }
+    } catch (err) {
+      showToast('Rename failed', 'error');
+    }
+  };
+
+  const handleCreateNotebook = async () => {
+    if (!newNotebookName.trim()) return;
+    try {
+      setIsCreatingNotebook(true);
+      const res = await WorkspaceService.createWorkspace({ name: newNotebookName });
+      if (res.ok) {
+        showToast('New notebook created!', 'success');
+        setNewNotebookName('');
+        fetchWorkspaces();
+      }
+    } catch (err) {
+      showToast('Failed to create notebook', 'error');
+    } finally {
+      setIsCreatingNotebook(false);
+    }
+  };
+
+  const handleDeleteNotebook = async (id, e) => {
+    e.stopPropagation();
+    if (!window.confirm('Delete this entire notebook? This cannot be undone.')) return;
+    try {
+      const res = await WorkspaceService.deleteWorkspace(id);
+      if (res.ok) {
+        showToast('Notebook deleted', 'success');
+        fetchWorkspaces();
+      }
+    } catch (err) {
+      showToast('Failed to delete notebook', 'error');
     }
   };
 
@@ -424,7 +519,6 @@ const LLM = () => {
       return next;
     });
   };
-
   const handleSelectAll = () => {
     const allIndices = new Set(generatedQuestions.map((_, i) => i));
     setSelectedIndices(allIndices);
@@ -436,92 +530,99 @@ const LLM = () => {
 
   const renderWizardSidebar = () => (
     <div className={styles.wizardContainer}>
-      <div className={`${styles.stepItem} ${activeStep === 1 ? styles.active : styles.completed}`}>
-        <div className={styles.stepLabel}><LuActivity size={14} /> Step 1: Knowledge Domain</div>
-        <Select
-          value={formData.category}
-          onChange={(value) => {
-            handleInputChange('category', value);
-            setActiveStep(2);
-          }}
-        >
-          <option value="it">Information Technology</option>
-          <option value="economics">Economics & Finance</option>
-          <option value="marketing">Marketing & Sales</option>
-          <option value="general">General Research</option>
-        </Select>
-      </div>
-
-      <div className={`${styles.stepItem} ${activeStep === 2 ? styles.active : (selectedKeywords.length > 0 ? styles.completed : '')}`}>
-        <div className={styles.stepLabel}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center' }}>
-            <span><LuCircleCheck size={14} /> Step 2: Keyword Library</span>
-            <button className={styles.browseLink} onClick={() => setShowLibraryModal(true)}>
-              <LuDatabase size={12} /> Browse Full Library
-            </button>
-          </div>
+      {/* Step 1: Domain (Global Only) */}
+      {activeTab !== 'knowledge' && (
+        <div className={`${styles.stepItem} ${activeStep === 1 ? styles.active : styles.completed}`}>
+          <div className={styles.stepLabel}><LuActivity size={14} /> Step 1: Knowledge Domain</div>
+          <Select
+            value={formData.category}
+            onChange={(value) => {
+              handleInputChange('category', value);
+              setActiveStep(2);
+            }}
+          >
+            <option value="it">Information Technology</option>
+            <option value="economics">Economics & Finance</option>
+            <option value="marketing">Marketing & Sales</option>
+            <option value="general">General Research</option>
+          </Select>
         </div>
-        
-        {/* Selected Tray */}
-        <div className={styles.selectedTray}>
-          <div className={styles.trayHeader}>
-            <span className={styles.slotText}>Selected Pillars ({selectedKeywords.length}/3)</span>
+      )}
+
+      {/* Step 2: Keyword Library (Global Only) */}
+      {activeTab !== 'knowledge' && (
+        <div className={`${styles.stepItem} ${activeStep === 2 ? styles.active : (selectedKeywords.length > 0 ? styles.completed : '')}`}>
+          <div className={styles.stepLabel}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center' }}>
+              <span><LuCircleCheck size={14} /> Step 2: Keyword Library</span>
+              <button className={styles.browseLink} onClick={() => setShowLibraryModal(true)}>
+                <LuDatabase size={12} /> Browse Full Library
+              </button>
+            </div>
           </div>
-          <div className={styles.trayContent}>
-            {selectedKeywords.length === 0 ? (
-              <div className={styles.emptyTray}>No keywords selected yet.</div>
+          
+          {/* Selected Tray */}
+          <div className={styles.selectedTray}>
+            <div className={styles.trayHeader}>
+              <span className={styles.slotText}>Selected Pillars ({selectedKeywords.length}/3)</span>
+            </div>
+            <div className={styles.trayContent}>
+              {selectedKeywords.length === 0 ? (
+                <div className={styles.emptyTray}>No keywords selected yet.</div>
+              ) : (
+                selectedKeywords.map(kw => (
+                  <span key={kw} className={`${styles.keywordPill} ${styles.selected}`} onClick={() => handleToggleKeyword(kw)}>
+                    {kw} <LuX size={12} className={styles.removeIcon} />
+                  </span>
+                ))
+              )}
+            </div>
+          </div>
+
+          {/* Search Filter */}
+          <div className={styles.searchContainer}>
+            <LuSearch className={styles.searchIcon} size={16} />
+            <input
+              placeholder="Search or add custom keyword..."
+              value={keywordSearch}
+              onChange={(e) => setKeywordSearch(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && keywordSearch.trim()) {
+                  handleToggleKeyword(keywordSearch.trim());
+                  setKeywordSearch('');
+                }
+              }}
+            />
+          </div>
+          
+          {/* Scrollable Library Pool */}
+          <div className={styles.libraryPool}>
+            {currentHotKeywords
+              .filter(kw => !selectedKeywords.includes(kw))
+              .filter(kw => kw.toLowerCase().includes(keywordSearch.toLowerCase()))
+              .length === 0 ? (
+                <div className={styles.emptyPool}>No keywords found in library.</div>
             ) : (
-              selectedKeywords.map(kw => (
-                <span key={kw} className={`${styles.keywordPill} ${styles.selected}`} onClick={() => handleToggleKeyword(kw)}>
-                  {kw} <LuX size={12} className={styles.removeIcon} />
-                </span>
-              ))
+              currentHotKeywords
+                .filter(kw => !selectedKeywords.includes(kw))
+                .filter(kw => kw.toLowerCase().includes(keywordSearch.toLowerCase()))
+                .map(kw => (
+                  <span 
+                    key={kw} 
+                    className={styles.poolTag}
+                    onClick={() => handleToggleKeyword(kw)}
+                  >
+                    + {kw}
+                  </span>
+                ))
             )}
           </div>
         </div>
+      )}
 
-        {/* Search Filter */}
-        <div className={styles.searchContainer}>
-          <LuSearch className={styles.searchIcon} size={16} />
-          <input
-            placeholder="Search or add custom keyword..."
-            value={keywordSearch}
-            onChange={(e) => setKeywordSearch(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' && keywordSearch.trim()) {
-                handleToggleKeyword(keywordSearch.trim());
-                setKeywordSearch('');
-              }
-            }}
-          />
-        </div>
-        
-        {/* Scrollable Library Pool */}
-        <div className={styles.libraryPool}>
-          {currentHotKeywords
-            .filter(kw => !selectedKeywords.includes(kw))
-            .filter(kw => kw.toLowerCase().includes(keywordSearch.toLowerCase()))
-            .length === 0 ? (
-              <div className={styles.emptyPool}>No keywords found in library.</div>
-          ) : (
-            currentHotKeywords
-              .filter(kw => !selectedKeywords.includes(kw))
-              .filter(kw => kw.toLowerCase().includes(keywordSearch.toLowerCase()))
-              .map(kw => (
-                <span 
-                  key={kw} 
-                  className={styles.poolTag}
-                  onClick={() => handleToggleKeyword(kw)}
-                >
-                  + {kw}
-                </span>
-              ))
-          )}
-        </div>
-      </div>
-
+      {/* Step 3: Form Architecture (Always Visible) */}
       <div className={`${styles.stepItem} ${activeStep === 3 ? styles.active : styles.completed}`}>
-        <div className={styles.stepLabel}><LuLayoutGrid size={14} /> Step 3: Form Architecture</div>
+        <div className={styles.stepLabel}><LuLayoutGrid size={14} /> {activeTab === 'knowledge' ? 'Step 1: Research Type' : 'Step 3: Form Architecture'}</div>
         <Select value={formType} onChange={(val) => { setFormType(val); setActiveStep(4); }}>
           <option value="survey">Research Survey</option>
           <option value="assessment">Academic Assessment</option>
@@ -531,18 +632,35 @@ const LLM = () => {
         </Select>
       </div>
 
-      <div className={`${styles.stepItem} ${activeStep === 4 ? styles.active : ''}`}>
-        <div className={styles.stepLabel}><LuActivity size={14} /> Step 5: Privacy Context</div>
+      {/* Step 4: Pillar Depth (Always Visible) */}
+      <div className={`${styles.stepItem} ${activeStep === 4 ? styles.active : (formData.questionCount ? styles.completed : '')}`}>
+        <div className={styles.stepLabel}><LuList size={14} /> {activeTab === 'knowledge' ? 'Step 2: Pillar Depth' : 'Step 4: Extraction Volume'}</div>
         <Select
-          value={visibilityScope}
-          onChange={(value) => setVisibilityScope(value)}
+          value={formData.questionCount}
+          onChange={(value) => {
+            handleInputChange('questionCount', value);
+            setActiveStep(5);
+          }}
         >
-          <option value="all">Hybrid (Shared + My Private)</option>
-          <option value="private">Strict (My Private Only)</option>
-          <option value="global">Baseline (1.5M Shared Bank Only)</option>
+          <option value="3">3 Pillars (Fast Scan)</option>
+          <option value="5">5 Pillars (Standard)</option>
+          <option value="10">10 Pillars (Deep Extract)</option>
+          <option value="15">15 Pillars (Comprehensive)</option>
+          <option value="20">20 Pillars (Giga-Research)</option>
         </Select>
+        <p className={styles.contextHint}>Define target depth for AI synthesis.</p>
+      </div>
+
+      {/* Step 5: Notebook Integrity (Always Visible) */}
+      <div className={`${styles.stepItem} ${activeStep === 5 ? styles.active : ''}`}>
+        <div className={styles.stepLabel}><LuSparkles size={14} /> {activeTab === 'knowledge' ? 'Step 3: Notebook Integrity' : 'Step 5: Master Alignment'}</div>
+        <div className={styles.autoStatus}>
+          <LuCheck size={12} /> {activeTab === 'knowledge' ? 'Strict Private Grounding' : 'ChromaDB Global Bank Active'}
+        </div>
         <p className={styles.contextHint}>
-          {visibilityScope === 'private' ? 'AI will only use your uploaded assets.' : 'AI combines global and local intelligence.'}
+          {activeTab === 'knowledge' 
+            ? 'AI is strictly isolated to your notebook memory. No external leakage.'
+            : 'AI is grounded in the full 275k+ record library.'}
         </p>
       </div>
     </div>
@@ -557,7 +675,10 @@ const LLM = () => {
           
           <Button
             onClick={handleExecuteIntelligence}
-            disabled={loading || (selectedKeywords.length === 0 && !formData.keyword)}
+            disabled={loading || 
+              (activeTab !== 'knowledge' && selectedKeywords.length === 0) || 
+              (activeTab === 'knowledge' && selectedKeywords.length === 0 && !customNote.trim())
+            }
             className={styles.generateBtn}
             style={{ marginTop: '24px' }}
           >
@@ -570,7 +691,7 @@ const LLM = () => {
       <main className={styles.mainPanel}>
         <div className={styles.fineTuneCard}>
           <div className={styles.stepLabel}>
-            <LuPencil size={14} /> STEP 5: RESEARCH FINE-TUNING (OPTIONAL)
+            <LuPencil size={14} /> RESEARCH FINE-TUNING & PROMPT ALIGNMENT (OPTIONAL)
           </div>
           <div className={styles.fineTuneContainer}>
             <textarea
@@ -639,8 +760,8 @@ const LLM = () => {
                   className={`${styles.questionItem} ${selectedIndices.has(index) ? styles.selected : ''}`}
                   onClick={() => toggleQuestionSelection(index)}
                 >
-                  <div className={styles.questionNumber}>
-                    {selectedIndices.has(index) ? <LuCheck size={20} /> : index + 1}
+                  <div className={styles.selectionCheckbox}>
+                    {selectedIndices.has(index) && <LuCheck size={14} />}
                   </div>
                   <div className={styles.questionContent}>
                     <div className={styles.questionType}>
@@ -682,6 +803,12 @@ const LLM = () => {
                       <span className={`${styles.metaBadge} ${styles.category}`}>
                         {q.category || formData.category}
                       </span>
+                      {q.grounded !== undefined && (
+                        <span className={`${styles.metaBadge} ${q.grounded ? styles.groundedBadge : styles.aiBadge}`}>
+                          {q.grounded ? <LuFileText size={10} /> : <LuSparkles size={10} />}
+                          {q.grounded ? 'Dữ liệu gốc' : 'AI Bổ sung'}
+                        </span>
+                      )}
                       {q.confidence && (
                         <span className={`${styles.metaBadge} ${styles.confidence}`}>
                           {Math.round(q.confidence * 100)}% Fidelity
@@ -689,8 +816,8 @@ const LLM = () => {
                       )}
                     </div>
                   </div>
-                  <div className={styles.selectionIndicator}>
-                    <LuCheck size={18} />
+                  <div className={styles.itemIndex}>
+                    #{index + 1}
                   </div>
                 </div>
               ))
@@ -744,7 +871,7 @@ const LLM = () => {
           className={`${styles.tab} ${activeTab === 'knowledge' ? styles.active : ''}`}
           onClick={() => setActiveTab('knowledge')}
         >
-          <LuDatabase size={18} /> Knowledge Library
+          <LuBrain size={18} /> Notebook & Knowledge
         </button>
         <button
           className={`${styles.tab} ${activeTab === 'monitoring' ? styles.active : ''}`}
@@ -757,135 +884,171 @@ const LLM = () => {
       <div className={styles.tabWrapper}>
         {activeTab === 'generate' && renderContentWorkspace()}
         {activeTab === 'knowledge' && (
-          <div className={styles.tabContent}>
-            <div className={styles.knowledgeHeader}>
-              <LuBrain size={48} color="#14B8A6" />
-              <h2>Knowledge Synchronization</h2>
-              <p>
-                Your library currently hosts <strong>{knowledgeStatus?.chromadb_vectors?.toLocaleString() || 0}</strong> intelligence units across <strong>{knowledgeStatus?.storage?.total_files || 0}</strong> research documents.
-              </p>
-              
-              <div className={styles.syncActions}>
-                <input 
-                  type="file" 
-                  multiple 
-                  onChange={(e) => handleIngest(Array.from(e.target.files))} 
-                  id="file-sync" 
-                  className={styles.hiddenInput}
-                  hidden
-                />
-                <Button onClick={() => document.getElementById('file-sync').click()} loading={isIngesting}>
-                  <LuUpload /> {isIngesting ? 'Syncing...' : 'Sync New Research Assets'}
-                </Button>
-                
-                <div style={{ width: '1px', height: '24px', background: '#e2e8f0' }} />
-                
-                <Button 
-                  variant="outline" 
-                  onClick={handleResetMemory}
-                  style={{ color: '#ef4444', borderColor: '#fecaca', background: '#fef2f2' }}
-                >
-                  <LuTrash2 /> Reset Priority Memory
-                </Button>
-              </div>
-            </div>
-
-            {/* PROJECT OMEGA: Unified Ingest Wizard */}
-            <div className={styles.omegaWizard}>
-              <div className={styles.wizardHead}>
-                <div className={styles.wizardTabs}>
-                  <button className={ingestMode === 'file' ? styles.active : ''} onClick={() => setIngestMode('file')}>Upload Assets</button>
-                  <button className={ingestMode === 'url' ? styles.active : ''} onClick={() => setIngestMode('url')}>Link Analytics</button>
-                  <button className={ingestMode === 'text' ? styles.active : ''} onClick={() => setIngestMode('text')}>Deep Entry</button>
+          <div className={styles.notebookTabWrapper}>
+            {isNotebookShelf ? (
+              <div className={styles.notebookShelf}>
+                <div className={styles.shelfHeader}>
+                  <div className={styles.shelfTitle}>
+                    <h2>Your Notebooks</h2>
+                    <p>Manage your research projects and private knowledge bases.</p>
+                  </div>
+                  <div className={styles.shelfActions}>
+                    <div className={styles.createGroup}>
+                      <input 
+                        placeholder="Notebook Name..." 
+                        value={newNotebookName} 
+                        onChange={e => setNewNotebookName(e.target.value)}
+                        onKeyDown={e => e.key === 'Enter' && handleCreateNotebook()}
+                      />
+                      <Button onClick={handleCreateNotebook} loading={isCreatingNotebook}>
+                        <LuPlus /> New Notebook
+                      </Button>
+                    </div>
+                  </div>
                 </div>
-                <div className={styles.globalToggle}>
-                  <LuSparkles size={14} /> 
-                  <span>Promote to Global (requires Score &gt; 85%)</span>
-                  <input type="checkbox" checked={promoteToGlobal} onChange={e => setPromoteToGlobal(e.target.checked)} />
+
+                <div className={styles.shelfGrid}>
+                  {workspaces.map(ws => (
+                    <div 
+                      key={ws.id} 
+                      className={`${styles.notebookCard} ${selectedWorkspaceId === String(ws.id) ? styles.selected : ''}`}
+                      onClick={() => {
+                        setSelectedWorkspaceId(String(ws.id));
+                        setIsNotebookShelf(false);
+                      }}
+                    >
+                      <div className={styles.cardIcon}><LuBrain size={32} /></div>
+                      <div className={styles.cardContent}>
+                        <h3>{ws.name}</h3>
+                        <p>{ws.description || 'Private research notebook'}</p>
+                        <div className={styles.cardMeta}>
+                           <span>Created: {new Date(ws.created_at).toLocaleDateString()}</span>
+                        </div>
+                      </div>
+                      <div className={styles.cardActions}>
+                        <button onClick={(e) => handleDeleteNotebook(ws.id, e)}><LuTrash2 size={16} /></button>
+                      </div>
+                    </div>
+                  ))}
+                  
+                  {workspaces.length === 0 && (
+                    <div className={styles.emptyShelf}>
+                       <LuDatabase size={48} />
+                       <p>No notebooks found. Create your first research project to get started.</p>
+                    </div>
+                  )}
                 </div>
               </div>
+            ) : (
+              <div className={styles.notebookLayout}>
+                {/* LEFT SIDEBAR: Source Management (NotebookLM Style) */}
+                <aside className={styles.notebookSidebar}>
+                  <div className={styles.sidebarHeader}>
+                    <button className={styles.backBtn} onClick={() => setIsNotebookShelf(true)}>
+                      <LuArrowLeft size={16} />
+                    </button>
+                    <h3>Source Guide</h3>
+                  </div>
+                  
+                  <div className={styles.activeNotebookInfo}>
+                     <div className={styles.nbLabel}>Current Notebook</div>
+                     <div className={styles.nbName}>{workspaces.find(w => String(w.id) === selectedWorkspaceId)?.name || 'Notebook'}</div>
+                  </div>
 
-              <div className={styles.wizardPane}>
-                {ingestMode === 'file' && (
-                  <div className={styles.fileDrop}>
-                    <LuUpload size={32} />
-                    <p>Drop research PDF or CSV here to synchronize</p>
-                    <Button onClick={() => document.getElementById('file-sync').click()} loading={isIngesting}>
-                      {isIngesting ? 'Analyzing...' : 'Browse Local Files'}
-                    </Button>
+                  <div className={styles.sourceStats}>
+                    <div className={styles.statLine}>
+                      <LuFileText size={14} /> 
+                      <span>{knowledgeHistory.length} Documents</span>
+                    </div>
+                    <div className={styles.statLine}>
+                      <LuCircleCheck size={14} /> 
+                      <span>{knowledgeHistory.reduce((sum, item) => sum + (item.vector_count || 0), 0).toLocaleString()} Vectors</span>
+                    </div>
                   </div>
-                )}
-                {ingestMode === 'url' && (
-                  <div className={styles.urlInputGroup}>
-                    <input 
-                      placeholder="https://research-article.com/ai-trends" 
-                      value={urlInput}
-                      onChange={e => setUrlInput(e.target.value)}
-                    />
-                    <Button onClick={handleIngestUrl} loading={isIngesting}>Scan & Extract Intelligence</Button>
-                  </div>
-                )}
-                {ingestMode === 'text' && (
-                  <div className={styles.textEntry}>
-                    <input 
-                      placeholder="Research Asset Title" 
-                      value={titleInput}
-                      onChange={e => setTitleInput(e.target.value)}
-                    />
-                    <textarea 
-                      placeholder="Paste your findings, manuscript snippets, or raw data pillars here..."
-                      value={textInput}
-                      onChange={e => setTextInput(e.target.value)}
-                    />
-                    <Button onClick={handleIngestText} loading={isIngesting}>Ingest Pillars</Button>
-                  </div>
-                )}
-              </div>
-            </div>
 
-            {/* Knowledge History Table */}
-            <div className={styles.historySection}>
-               <h3><LuActivity size={18} /> Ingestion History & Quality Audit</h3>
-               <table className={styles.historyTable}>
-                 <thead>
-                   <tr>
-                     <th>SOURCE</th>
-                     <th>TYPE</th>
-                     <th>PILLARS</th>
-                     <th>QUALITY</th>
-                     <th>STATUS</th>
-                     <th>ACTIONS</th>
-                   </tr>
-                 </thead>
-                 <tbody>
-                   {knowledgeHistory.length === 0 ? (
-                     <tr><td colSpan="6" style={{ textAlign: 'center', padding: '40px' }}>No private assets ingested yet.</td></tr>
-                   ) : (
-                    knowledgeHistory.map(item => (
-                      <tr key={item.id}>
-                        <td>{item.name}</td>
-                        <td className={styles.typeBadge}>{item.source_type}</td>
-                        <td>{item.vector_count}</td>
-                        <td>
-                          <div className={styles.scoreBar}>
-                            <div className={styles.scoreFill} style={{ width: `${item.quality_score}%`, background: item.quality_score > 80 ? '#14B8A6' : '#F59E0B' }} />
-                            <span>{Math.round(item.quality_score)}%</span>
+                  <div className={styles.ingestSection}>
+                    <div className={styles.ingestTabs}>
+                      <button className={ingestMode === 'file' ? styles.active : ''} onClick={() => setIngestMode('file')}>Upload</button>
+                      <button className={ingestMode === 'url' ? styles.active : ''} onClick={() => setIngestMode('url')}>Link</button>
+                      <button className={ingestMode === 'text' ? styles.active : ''} onClick={() => setIngestMode('text')}>Text</button>
+                    </div>
+                    
+                    <div className={styles.ingestBody}>
+                      {ingestMode === 'file' && (
+                        <div className={styles.miniDropzone} onClick={() => document.getElementById('file-sync').click()}>
+                          <LuUpload size={20} />
+                          <span>Click to upload PDF/CSV</span>
+                          <input type="file" multiple id="file-sync" hidden onChange={(e) => handleIngest(Array.from(e.target.files))} />
+                        </div>
+                      )}
+                      {ingestMode === 'url' && (
+                        <div className={styles.miniInputGroup}>
+                          <input placeholder="Enter URL..." value={urlInput} onChange={e => setUrlInput(e.target.value)} />
+                          <button onClick={handleIngestUrl} disabled={isIngesting}>{isIngesting ? '...' : <LuCheck />}</button>
+                        </div>
+                      )}
+                      {ingestMode === 'text' && (
+                        <div className={styles.miniInputGroup}>
+                          <input placeholder="Title..." value={titleInput} onChange={e => setTitleInput(e.target.value)} />
+                          <textarea placeholder="Paste content..." value={textInput} onChange={e => setTextInput(e.target.value)} />
+                          <Button size="small" onClick={handleIngestText} loading={isIngesting}>Add Pillar</Button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className={styles.historyList}>
+                    <div className={styles.listHeader}>Ingested Sources</div>
+                    {knowledgeHistory.length === 0 ? (
+                      <div className={styles.emptyList}>No sources added yet.</div>
+                    ) : (
+                      knowledgeHistory.map(item => (
+                        <div key={item.id} className={styles.sourceItem}>
+                          <div className={styles.sourceIcon}><LuFileText size={14} /></div>
+                          <div className={styles.sourceInfo}>
+                            {editingSourceId === item.id ? (
+                              <div className={styles.inlineEdit}>
+                                <input 
+                                  autoFocus
+                                  value={renamingName} 
+                                  onChange={e => setRenamingName(e.target.value)}
+                                  onBlur={() => handleRenameSource(item.id)}
+                                  onKeyDown={e => e.key === 'Enter' && handleRenameSource(item.id)}
+                                />
+                              </div>
+                            ) : (
+                              <div className={styles.sourceName} onDoubleClick={() => { setEditingSourceId(item.id); setRenamingName(item.name); }}>
+                                {item.name}
+                              </div>
+                            )}
+                            <div className={styles.sourceMeta}>{Math.round(item.quality_score)}% Quality • {item.vector_count} Pillars</div>
                           </div>
-                        </td>
-                        <td>
-                          <span className={`${styles.statusLabel} ${item.visibility === 'global' ? styles.global : styles.private}`}>
-                            {item.visibility.toUpperCase()}
-                          </span>
-                        </td>
-                        <td>
-                          <button className={styles.rowBtn}><LuX /></button>
-                        </td>
-                      </tr>
-                    ))
-                   )}
-                 </tbody>
-               </table>
-            </div>
+                          <div className={styles.sourceActions}>
+                            <button onClick={() => { setEditingSourceId(item.id); setRenamingName(item.name); }} title="Rename"><LuPencil size={12} /></button>
+                            <button onClick={() => handleDeleteSource(item.id)} title="Delete"><LuTrash2 size={12} /></button>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </aside>
+
+                {/* MAIN AREA: Private Intelligence Hub */}
+                <main className={styles.notebookMain}>
+                  <div className={styles.notebookHeader}>
+                    <div className={styles.badge}>
+                      <LuSparkles size={12} /> Grounded in Private Knowledge
+                    </div>
+                    <h2>Intelligence Studio</h2>
+                    <p>Generate research questions using only the sources in your notebook.</p>
+                  </div>
+
+                  <div className={styles.notebookContent}>
+                    {renderContentWorkspace()}
+                  </div>
+                </main>
+              </div>
+            )}
           </div>
         )}
         {activeTab === 'monitoring' && (

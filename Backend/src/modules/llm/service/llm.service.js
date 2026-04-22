@@ -165,7 +165,7 @@ class LLMService {
     console.log('GeneratedQuestion model:', !!GeneratedQuestion);
 
     try {
-      const { topic, count = 5, category = 'general', userId, offset = 0, workspaceId } = data;
+      const { topic, count = 5, category = 'general', userId, offset = 0, workspaceId, form_type, fine_tune_note } = data;
 
       this.logger.info(`User ${userId || 'unknown'} generating ${count} questions for topic: ${topic} (offset: ${offset})`);
 
@@ -183,7 +183,15 @@ class LLMService {
       const TrainedModelService = require('./trained-model.service');
       const trainedModel = new TrainedModelService(user);
 
-      const result = await trainedModel.generateQuestions(topic, count, category, offset, workspaceId);
+      const result = await trainedModel.generateQuestions({
+        keyword: topic,
+        num_questions: count,
+        category: category,
+        offset: offset,
+        workspaceId: workspaceId,
+        form_type: form_type || 'survey',
+        fine_tune_note: fine_tune_note
+      });
 
       // Check for AI server unavailable error - propagate to frontend
       if (result.reason === 'AI_SERVER_UNAVAILABLE') {
@@ -326,9 +334,10 @@ class LLMService {
   /**
    * Trigger document ingestion in the AI Server
    */
-  async triggerIngestion() {
+  async triggerIngestion(category = null) {
     try {
-      const response = await this.callTrainedModel('/api/ingest', 'POST');
+      const url = category ? `/api/ingest?category=${category}` : '/api/ingest';
+      const response = await this.callTrainedModel(url, 'POST');
       return response.data;
     } catch (error) {
       this.logger.error('Trigger ingestion failed:', error.message);
@@ -346,6 +355,110 @@ class LLMService {
     } catch (error) {
       this.logger.error('Failed to get AI status:', error.message);
       return { status: 'offline', error: error.message };
+    }
+  }
+
+  /**
+   * PROJECT OMEGA: Ingest knowledge from a URL
+   */
+  async ingestUrl(data) {
+    const models = require('../../../models');
+    const { KnowledgeSource, Workspace } = models;
+    
+    try {
+      // Robust Workspace Validation
+      let finalWorkspaceId = data.workspaceId;
+      const workspaceExists = await Workspace.findByPk(finalWorkspaceId);
+      
+      if (!workspaceExists) {
+        const firstWorkspace = await Workspace.findOne();
+        if (firstWorkspace) {
+          finalWorkspaceId = firstWorkspace.id;
+          this.logger.warn(`Workspace ${data.workspaceId} not found. Falling back to Workspace ${finalWorkspaceId}`);
+        } else {
+          return { success: false, error: 'No valid workspaces found in the system. Please create a workspace first.' };
+        }
+      }
+
+      const response = await this.callTrainedModel('/api/ingest/url', 'POST', {
+        url: data.url,
+        workspace_id: String(finalWorkspaceId),
+        category: data.category,
+        promote_to_global: data.promoteToGlobal
+      });
+
+      if (response.data && response.data.success) {
+        // Save to DB for history tracking
+        await KnowledgeSource.create({
+          workspace_id: finalWorkspaceId,
+          source_type: 'URL',
+          name: data.url.split('/').pop()?.split('#')[0] || data.url,
+          source_path: data.url,
+          vector_count: response.data.count,
+          quality_score: response.data.quality_report?.overall_score || 0,
+          category: data.category || 'general',
+          visibility: response.data.visibility || 'private',
+          status: 'completed'
+        });
+      }
+
+      return response.data;
+    } catch (error) {
+      const errorMsg = error.parent?.sqlMessage || error.message;
+      this.logger.error(`URL ingestion failed: ${errorMsg}`);
+      throw new Error(errorMsg);
+    }
+  }
+
+  /**
+   * PROJECT OMEGA: Ingest knowledge from raw text
+   */
+  async ingestText(data) {
+    const models = require('../../../models');
+    const { KnowledgeSource, Workspace } = models;
+
+    try {
+      // Robust Workspace Validation
+      let finalWorkspaceId = data.workspaceId;
+      const workspaceExists = await Workspace.findByPk(finalWorkspaceId);
+      
+      if (!workspaceExists) {
+        const firstWorkspace = await Workspace.findOne();
+        if (firstWorkspace) {
+          finalWorkspaceId = firstWorkspace.id;
+        } else {
+          return { success: false, error: 'No valid workspaces found in system.' };
+        }
+      }
+
+      const response = await this.callTrainedModel('/api/ingest/text', 'POST', {
+        title: data.title,
+        text: data.text,
+        workspace_id: String(finalWorkspaceId),
+        category: data.category,
+        promote_to_global: data.promoteToGlobal
+      });
+
+      if (response.data && response.data.success) {
+        // Save to DB for history tracking
+        await KnowledgeSource.create({
+          workspace_id: finalWorkspaceId,
+          source_type: 'TEXT',
+          name: data.title,
+          source_path: 'Manual Entry',
+          vector_count: response.data.count,
+          quality_score: response.data.quality_report?.overall_score || 0,
+          category: data.category || 'general',
+          visibility: response.data.visibility || 'private',
+          status: 'completed'
+        });
+      }
+
+      return response.data;
+    } catch (error) {
+      const errorMsg = error.parent?.sqlMessage || error.message;
+      this.logger.error(`Text ingestion failed: ${errorMsg}`);
+      throw new Error(errorMsg);
     }
   }
 

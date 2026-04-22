@@ -128,8 +128,8 @@ def validate_data_quality(file_path: Path, sample_text: str) -> bool:
         print(f"[ERROR] Guardrail bypass error: {e}")
         return True
 
-def ingest_data(sample_limit=None):
-    print(f"[START] SIR-AG v2: Starting Multi-Format Ingestion...")
+def ingest_data(sample_limit=None, category=None):
+    print(f"[START] SIR-AG v2: Starting Multi-Format Ingestion (Category: {category or 'auto'})...")
     collection = get_ingestor()
     checkpoint = load_checkpoint()
     
@@ -176,12 +176,22 @@ def ingest_data(sample_limit=None):
                     processed_files.append(file_path.name)
                     continue
                 
+                # Determine category from filename
+                lower_name = file_path.name.lower()
+                assigned_cat = "general"
+                if "it" in lower_name: assigned_cat = "it"
+                elif "marketing" in lower_name: assigned_cat = "marketing"
+                elif "economics" in lower_name: assigned_cat = "economics"
+                
                 documents = df['question'].astype(str).tolist()
                 for _, row in df.iterrows():
                     metadatas.append({
                         "source": file_path.name,
                         "keyword": str(row.get('keyword', 'unknown')),
-                        "type": "question"
+                        "category": str(row.get('category', assigned_cat)),
+                        "type": "question",
+                        "visibility": "global",
+                        "workspace_id": "system"
                     })
             else:
                 # Binary files (PDF, Word, Excel)
@@ -199,7 +209,11 @@ def ingest_data(sample_limit=None):
                     
                 chunks = parser.chunk_text(full_text)
                 documents = chunks
-                metadatas = [{"source": file_path.name, "type": "document_chunk"} for _ in chunks]
+                metadatas = [{
+                    "source": file_path.name, 
+                    "type": "document_chunk",
+                    "category": category or "general"
+                } for _ in chunks]
 
             # --- UPSERT STAGE ---
             for i in range(0, len(documents), BATCH_SIZE):

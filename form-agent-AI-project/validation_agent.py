@@ -9,7 +9,7 @@ from google.genai import types as genai_types
 logger = logging.getLogger(__name__)
 
 class ValidationAgent:
-    def __init__(self, api_key: str, model_id: str = "gemini-2.0-flash-exp"):
+    def __init__(self, api_key: str, model_id: str = "gemini-flash-latest"):
         self.client = genai.Client(api_key=api_key)
         self.model_id = model_id
 

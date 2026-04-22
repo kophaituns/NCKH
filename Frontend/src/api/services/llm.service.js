@@ -82,8 +82,12 @@ const LLMService = {
       const response = await http.post('/llm/generate-questions', {
         keyword: data.keyword || (data.keywords ? data.keywords.join(', ') : data.topic),
         num_questions: data.num_questions || data.count || 5,
+        count: data.num_questions || data.count || 5,
+        category: data.category_hint || data.category || null,
         category_hint: data.category_hint || data.category || null,
-        offset: data.offset || 0
+        offset: data.offset || 0,
+        form_type: data.form_type || 'survey',
+        fine_tune_note: data.fine_tune_note || null
       }, {
         timeout: 60000 // 60 seconds for AI processing
       });
@@ -234,8 +238,9 @@ const LLMService = {
    * Ingest documents into the Knowledge Base (U-Ingestor)
    * @param {FileList|File[]} files - Files to upload
    */
-  async ingestDocuments(files) {
+  async ingestDocuments(files, category = 'general') {
     const formData = new FormData();
+    formData.append('category', category);
     if (Array.isArray(files)) {
       files.forEach(file => formData.append('files', file));
     } else {
@@ -273,8 +278,8 @@ const LLMService = {
   /**
    * Trigger semantic ingestion
    */
-  async triggerIngestion() {
-    const response = await axios.post(`${AI_SERVER_URL}/ingest`);
+  async triggerIngestion(category = 'general') {
+    const response = await http.post('/llm/ingest', { category });
     return response.data;
   },
 
@@ -289,11 +294,12 @@ const LLMService = {
   /**
    * PROJECT OMEGA: Ingest knowledge from a URL
    */
-  async ingestUrl(url, workspaceId, promoteToGlobal = false) {
-    const response = await axios.post(`${AI_SERVER_URL}/ingest/url`, {
+  async ingestUrl(url, workspaceId, promoteToGlobal = false, category = 'general') {
+    const response = await http.post('/llm/ingest/url', {
       url,
-      workspace_id: workspaceId,
-      promote_to_global: promoteToGlobal
+      workspaceId,
+      category,
+      promoteToGlobal
     });
     return response.data;
   },
@@ -301,12 +307,13 @@ const LLMService = {
   /**
    * PROJECT OMEGA: Ingest knowledge from raw text
    */
-  async ingestText(title, text, workspaceId, promoteToGlobal = false) {
-    const response = await axios.post(`${AI_SERVER_URL}/ingest/text`, {
+  async ingestText(title, text, workspaceId, promoteToGlobal = false, category = 'general') {
+    const response = await http.post('/llm/ingest/text', {
       title,
       text,
-      workspace_id: workspaceId,
-      promote_to_global: promoteToGlobal
+      workspaceId,
+      category,
+      promoteToGlobal
     });
     return response.data;
   },
@@ -315,8 +322,23 @@ const LLMService = {
    * Get historical ingestion batches for a workspace
    */
   async getKnowledgeSources(workspaceId) {
-    // This calls the Node.js backend to get metadata from DB
     const response = await http.get(`/llm/knowledge-sources/${workspaceId}`);
+    return response.data;
+  },
+
+  /**
+   * Rename a knowledge source
+   */
+  async updateKnowledgeSource(id, data) {
+    const response = await http.put(`/llm/knowledge-sources/${id}`, data);
+    return response.data;
+  },
+
+  /**
+   * Delete a knowledge source
+   */
+  async deleteKnowledgeSource(id) {
+    const response = await http.delete(`/llm/knowledge-sources/${id}`);
     return response.data;
   }
 };

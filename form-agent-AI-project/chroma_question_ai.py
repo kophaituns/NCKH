@@ -36,7 +36,7 @@ class ChromaQuestionAI:
             logger.error("ChromaDB collection not found %s: %s", COLLECTION_NAME, e)
             self.collection = None
 
-    def query_questions(self, keyword, num_results=5, offset=0, categories=None, collection_name=COLLECTION_NAME):
+    def query_questions(self, keyword, num_results=5, offset=0, categories=None, where_filter=None, collection_name=COLLECTION_NAME):
         """
         Search for questions semantically similar to the keyword.
         """
@@ -57,12 +57,20 @@ class ChromaQuestionAI:
             return []
 
         try:
-            # Prepare filters if categories are provided
+            # Prepare filters if categories are provided (Merge with where_filter if exists)
+            effective_filter = where_filter
             if categories:
+                cat_filter = {}
                 if isinstance(categories, list):
-                    where_filter = {"category": {"$in": categories}}
+                    cat_filter = {"category": {"$in": categories}}
                 else:
-                    where_filter = {"category": categories}
+                    cat_filter = {"category": categories}
+                
+                if effective_filter:
+                    # Combine existing filter with category filter using $and
+                    effective_filter = {"$and": [effective_filter, cat_filter]}
+                else:
+                    effective_filter = cat_filter
 
             # Query Chroma with oversampling to allow for deduplication
             # Oversample to ensure we find enough unique results
@@ -72,7 +80,7 @@ class ChromaQuestionAI:
             results = collection.query(
                 query_texts=[keyword],
                 n_results=query_limit,
-                where=where_filter,
+                where=effective_filter,
                 include=["documents", "metadatas", "distances"]
             )
 

@@ -166,12 +166,14 @@ class LLMController {
       const { 
         topic, 
         keyword,  // Alternative field name from Frontend
-        count = 5, 
+        count, 
         num_questions,  // Alternative field name from Frontend
-        category = 'general',
+        category,
         category_hint,  // Alternative field name from Frontend
         offset = 0,
-        workspaceId  // NEW: Support for isolated RAG
+        workspaceId,
+        form_type,
+        fine_tune_note
       } = req.body;
       
       // Use whichever field is provided
@@ -218,7 +220,9 @@ class LLMController {
         category: inputCategory,
         userId: userId,
         offset: parseInt(offset),
-        workspaceId: workspaceId  // Pass to service
+        workspaceId: workspaceId,
+        form_type: form_type || 'survey',
+        fine_tune_note: fine_tune_note
       });
 
       // Check for AI server unavailable error
@@ -1015,6 +1019,23 @@ class LLMController {
       });
     }
   }
+
+  async getKnowledgeSources(req, res) {
+    try {
+      const { workspaceId } = req.params;
+      const sources = await llmService.getKnowledgeSources(workspaceId);
+      res.status(200).json({
+        success: true,
+        data: sources
+      });
+    } catch (error) {
+      logger.error('Get knowledge sources error:', error);
+      res.status(500).json({
+        success: false,
+        message: error.message || 'Error fetching knowledge sources'
+      });
+    }
+  }
 }
 
 // Create instance
@@ -1047,5 +1068,6 @@ module.exports = {
   // Circuit Breaker & Safety
   getCircuitBreakerStatus: llmController.getCircuitBreakerStatus.bind(llmController),
   generateQuestionsProtected: llmController.generateQuestionsProtected.bind(llmController),
-  validateInput: llmController.validateInput.bind(llmController)
+  validateInput: llmController.validateInput.bind(llmController),
+  getKnowledgeSources: llmController.getKnowledgeSources.bind(llmController)
 };
