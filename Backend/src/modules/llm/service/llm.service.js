@@ -165,7 +165,7 @@ class LLMService {
     console.log('GeneratedQuestion model:', !!GeneratedQuestion);
 
     try {
-      const { topic, count = 5, category = 'general', userId, offset = 0, workspaceId, form_type, fine_tune_note } = data;
+      const { topic, count = 5, category = 'general', userId, offset = 0, workspaceId, visibility_scope, form_type, fine_tune_note } = data;
 
       this.logger.info(`User ${userId || 'unknown'} generating ${count} questions for topic: ${topic} (offset: ${offset})`);
 
@@ -189,6 +189,7 @@ class LLMService {
         category: category,
         offset: offset,
         workspaceId: workspaceId,
+        visibility_scope: visibility_scope || (workspaceId ? 'private' : 'all'),
         form_type: form_type || 'survey',
         fine_tune_note: fine_tune_note
       });
@@ -346,6 +347,51 @@ class LLMService {
   }
 
   /**
+   * PROJECT OMEGA: Ingest knowledge from multiple files and track history
+   */
+  async ingestDocuments(data) {
+    const models = require('../../../models');
+    const { KnowledgeSource, Workspace } = models;
+    const { files, workspaceId, category } = data;
+
+    try {
+      // 1. Trigger AI Server Ingestion
+      const aiResponse = await this.triggerIngestion(category);
+
+      // 2. Persistent History Layer
+      if (aiResponse && aiResponse.success) {
+        // Validate workspace
+        let finalWorkspaceId = workspaceId;
+        const workspaceExists = await Workspace.findByPk(finalWorkspaceId);
+        if (!workspaceExists) {
+          const firstWorkspace = await Workspace.findOne();
+          finalWorkspaceId = firstWorkspace?.id || null;
+        }
+
+        // Save each file record to MySQL
+        for (const file of files) {
+          await KnowledgeSource.create({
+            workspace_id: finalWorkspaceId,
+            source_type: 'FILE',
+            name: file.originalname,
+            source_path: file.path,
+            vector_count: 0, // Will be updated by periodic status sync if needed
+            quality_score: 100,
+            category: category || 'general',
+            visibility: 'private',
+            status: 'completed'
+          });
+        }
+      }
+
+      return aiResponse;
+    } catch (error) {
+      this.logger.error('Document ingestion service failed:', error.message);
+      throw error;
+    }
+  }
+
+  /**
    * Get AI Server Status
    */
   async getAIStatus() {
@@ -406,6 +452,58 @@ class LLMService {
     } catch (error) {
       const errorMsg = error.parent?.sqlMessage || error.message;
       this.logger.error(`URL ingestion failed: ${errorMsg}`);
+      throw new Error(errorMsg);
+    }
+  }
+
+  /**
+   * PROJECT OMEGA: Ingest knowledge from a YouTube video
+   */
+  async ingestYoutube(data) {
+    const models = require('../../../models');
+    const { KnowledgeSource, Workspace } = models;
+    
+    try {
+      // Robust Workspace Validation
+      let finalWorkspaceId = data.workspaceId;
+      const workspaceExists = await Workspace.findByPk(finalWorkspaceId);
+      
+      if (!workspaceExists) {
+        const firstWorkspace = await Workspace.findOne();
+        if (firstWorkspace) {
+          finalWorkspaceId = firstWorkspace.id;
+          this.logger.warn(`Workspace ${data.workspaceId} not found. Falling back to Workspace ${finalWorkspaceId}`);
+        } else {
+          return { success: false, error: 'No valid workspaces found in the system. Please create a workspace first.' };
+        }
+      }
+
+      const response = await this.callTrainedModel('/api/ingest/youtube', 'POST', {
+        url: data.url,
+        workspace_id: String(finalWorkspaceId),
+        category: data.category,
+        promote_to_global: data.promoteToGlobal
+      });
+
+      if (response.data && response.data.success) {
+        // Save to DB for history tracking
+        await KnowledgeSource.create({
+          workspace_id: finalWorkspaceId,
+          source_type: 'YouTube',
+          name: response.data.source || data.url,
+          source_path: data.url,
+          vector_count: response.data.count,
+          quality_score: response.data.quality_report?.overall_score || 0,
+          category: data.category || 'general',
+          visibility: response.data.visibility || 'private',
+          status: 'completed'
+        });
+      }
+
+      return response.data;
+    } catch (error) {
+      const errorMsg = error.parent?.sqlMessage || error.message;
+      this.logger.error(`YouTube ingestion failed: ${errorMsg}`);
       throw new Error(errorMsg);
     }
   }

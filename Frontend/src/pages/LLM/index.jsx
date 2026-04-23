@@ -14,7 +14,7 @@ import { QUESTION_TYPE_MAP } from '../../utils/questionTypeMap';
 import { useAuth } from '../../contexts/AuthContext';
 import UpgradeModal from '../../components/UpgradeToCreator/UpgradeModal';
 import UpgradeUpsellModal from '../../components/UI/UpgradeUpsellModal/UpgradeUpsellModal';
-import { LuSparkles, LuBrain, LuFileText, LuCircleCheck, LuDatabase, LuUpload, LuCheck, LuSearch, LuActivity, LuX, LuLayoutGrid, LuList, LuPencil, LuTrash2, LuRotateCcw, LuPlus, LuArrowLeft } from 'react-icons/lu';
+import { LuSparkles, LuBrain, LuFileText, LuCircleCheck, LuDatabase, LuUpload, LuCheck, LuSearch, LuActivity, LuX, LuLayoutGrid, LuList, LuPencil, LuTrash2, LuRotateCcw, LuPlus, LuArrowLeft, LuLoaderCircle, LuYoutube } from 'react-icons/lu';
 import styles from './LLM.module.scss';
 
 // Import validation utilities
@@ -45,8 +45,9 @@ const LLM = () => {
   const [launching, setLaunching] = useState(false);
 
   // PROJECT OMEGA: Ingestion States
-  const [ingestMode, setIngestMode] = useState('file'); // file, url, text
+  const [ingestMode, setIngestMode] = useState('file'); // file, url, text, youtube
   const [urlInput, setUrlInput] = useState('');
+  const [youtubeInput, setYoutubeInput] = useState('');
   const [textInput, setTextInput] = useState('');
   const [titleInput, setTitleInput] = useState('');
   const [promoteToGlobal, setPromoteToGlobal] = useState(false);
@@ -218,8 +219,8 @@ const LLM = () => {
         form_type: formType,
         num_questions: parseInt(formData.questionCount) || 5,
         fine_tune_note: customNote,
-        workspaceId: activeTab === 'knowledge' ? selectedWorkspaceId : null,
-        visibility_scope: activeTab === 'knowledge' ? 'private' : 'all',
+        workspaceId: selectedWorkspaceId || null,
+        visibility_scope: selectedWorkspaceId ? 'private' : 'all',
         language: 'en' // Strictly English for NCKH
       };
 
@@ -352,7 +353,7 @@ const LLM = () => {
     if (!files || files.length === 0) return;
     try {
       setIsIngesting(true);
-      const res = await LLMService.ingestDocuments(files, ingestCategory);
+      const res = await LLMService.ingestDocuments(files, selectedWorkspaceId, ingestCategory);
       if (res.success) {
         showToast(`Research assets synchronized [${ingestCategory.toUpperCase()}]`, 'success');
         fetchKnowledgeHistory();
@@ -395,6 +396,23 @@ const LLM = () => {
       }
     } catch (err) {
       showToast(err.response?.data?.error || 'Text Ingestion failed', 'error');
+    } finally {
+      setIsIngesting(false);
+    }
+  };
+
+  const handleIngestYoutube = async () => {
+    if (!youtubeInput) return;
+    try {
+      setIsIngesting(true);
+      const res = await LLMService.ingestYoutube(youtubeInput, selectedWorkspaceId, promoteToGlobal, ingestCategory);
+      if (res.success) {
+        showToast(`Video Content Ingested [${ingestCategory.toUpperCase()}]! Quality: ${res.quality_report?.overall_score || 100}%`, 'success');
+        setYoutubeInput('');
+        fetchKnowledgeHistory();
+      }
+    } catch (err) {
+      showToast(err.response?.data?.error || 'YouTube Ingestion failed', 'error');
     } finally {
       setIsIngesting(false);
     }
@@ -465,8 +483,8 @@ const LLM = () => {
 
     try {
       setLoading(true);
-      const response = await axios.delete('http://localhost:5000/api/memory');
-      if (response.data.success) {
+      const response = await LLMService.resetMemory();
+      if (response.success) {
         showToast('AI Priority Memory cleared successfully', 'success');
         setGeneratedQuestions([]);
       } else {
@@ -966,35 +984,109 @@ const LLM = () => {
                     </div>
                   </div>
 
-                  <div className={styles.ingestSection}>
-                    <div className={styles.ingestTabs}>
-                      <button className={ingestMode === 'file' ? styles.active : ''} onClick={() => setIngestMode('file')}>Upload</button>
-                      <button className={ingestMode === 'url' ? styles.active : ''} onClick={() => setIngestMode('url')}>Link</button>
-                      <button className={ingestMode === 'text' ? styles.active : ''} onClick={() => setIngestMode('text')}>Text</button>
+                    <div className={styles.ingestSection}>
+                      <div className={styles.ingestTabs}>
+                        <button className={ingestMode === 'file' ? styles.active : ''} onClick={() => setIngestMode('file')}>Upload</button>
+                        <button className={ingestMode === 'url' ? styles.active : ''} onClick={() => setIngestMode('url')}>Link</button>
+                        <button className={ingestMode === 'youtube' ? styles.active : ''} onClick={() => setIngestMode('youtube')}>YouTube</button>
+                        <button className={ingestMode === 'text' ? styles.active : ''} onClick={() => setIngestMode('text')}>Text</button>
+                      </div>
+                      
+                      <div className={styles.ingestBody}>
+                        {isIngesting ? (
+                          <div className={styles.ingestLoadingOverlay}>
+                            <LuLoaderCircle className={styles.spinner} size={24} />
+                            <span>Synchronizing Knowledge...</span>
+                            <p>AI is vectorizing your document for retrieval</p>
+                          </div>
+                        ) : (
+                          <>
+                            {ingestMode === 'file' && (
+                              <div className={styles.miniDropzone} onClick={() => document.getElementById('file-sync').click()}>
+                                <LuUpload size={20} />
+                                <span>Click to upload PDF/CSV</span>
+                                <input type="file" multiple id="file-sync" hidden onChange={(e) => handleIngest(Array.from(e.target.files))} />
+                              </div>
+                            )}
+                            {ingestMode === 'url' && (
+                              <div className={styles.miniInputGroup}>
+                                <input 
+                                  placeholder="Enter URL..." 
+                                  value={urlInput} 
+                                  onChange={e => setUrlInput(e.target.value)}
+                                  disabled={isIngesting}
+                                />
+                                <Button size="small" onClick={handleIngestUrl} loading={isIngesting} disabled={!urlInput}>
+                                  Sync
+                                </Button>
+                              </div>
+                            )}
+                            {ingestMode === 'youtube' && (
+                              <div className={styles.miniInputGroup}>
+                                <div className={styles.inputWrapper}>
+                                  <LuYoutube size={16} className={styles.youtubeIcon} />
+                                  <input 
+                                    placeholder="Paste YouTube Link..." 
+                                    value={youtubeInput} 
+                                    onChange={e => setYoutubeInput(e.target.value)}
+                                    disabled={isIngesting}
+                                  />
+                                </div>
+                                <Button size="small" onClick={handleIngestYoutube} loading={isIngesting} disabled={!youtubeInput}>
+                                  Sync
+                                </Button>
+                              </div>
+                            )}
+                          {ingestMode === 'text' && (
+                            <div className={styles.miniInputGroup}>
+                              <input 
+                                placeholder="Title..." 
+                                value={titleInput} 
+                                onChange={e => setTitleInput(e.target.value)}
+                                disabled={isIngesting}
+                              />
+                              <textarea 
+                                placeholder="Paste content..." 
+                                value={textInput} 
+                                onChange={e => setTextInput(e.target.value)}
+                                disabled={isIngesting}
+                              />
+                              <Button size="small" onClick={handleIngestText} loading={isIngesting} disabled={!textInput || !titleInput}>
+                                Add Pillar
+                              </Button>
+                            </div>
+                          )}
+                        </>
+                      )}
                     </div>
-                    
-                    <div className={styles.ingestBody}>
-                      {ingestMode === 'file' && (
-                        <div className={styles.miniDropzone} onClick={() => document.getElementById('file-sync').click()}>
-                          <LuUpload size={20} />
-                          <span>Click to upload PDF/CSV</span>
-                          <input type="file" multiple id="file-sync" hidden onChange={(e) => handleIngest(Array.from(e.target.files))} />
+
+                    {!isIngesting && (
+                      <div className={styles.ingestOptions}>
+                        <div className={styles.optionRow}>
+                          <label>Category</label>
+                          <select 
+                            className={styles.ingestSelect}
+                            value={ingestCategory}
+                            onChange={(e) => setIngestCategory(e.target.value)}
+                          >
+                            <option value="general">General Research</option>
+                            <option value="it">Information Technology</option>
+                            <option value="economics">Economics & Finance</option>
+                            <option value="marketing">Marketing & Sales</option>
+                          </select>
                         </div>
-                      )}
-                      {ingestMode === 'url' && (
-                        <div className={styles.miniInputGroup}>
-                          <input placeholder="Enter URL..." value={urlInput} onChange={e => setUrlInput(e.target.value)} />
-                          <button onClick={handleIngestUrl} disabled={isIngesting}>{isIngesting ? '...' : <LuCheck />}</button>
+                        <div className={styles.optionRow}>
+                          <label className={styles.ingestCheckbox}>
+                            <input 
+                              type="checkbox" 
+                              checked={promoteToGlobal}
+                              onChange={(e) => setPromoteToGlobal(e.target.checked)}
+                            />
+                            <span>Promote to Global Knowledge</span>
+                          </label>
                         </div>
-                      )}
-                      {ingestMode === 'text' && (
-                        <div className={styles.miniInputGroup}>
-                          <input placeholder="Title..." value={titleInput} onChange={e => setTitleInput(e.target.value)} />
-                          <textarea placeholder="Paste content..." value={textInput} onChange={e => setTextInput(e.target.value)} />
-                          <Button size="small" onClick={handleIngestText} loading={isIngesting}>Add Pillar</Button>
-                        </div>
-                      )}
-                    </div>
+                      </div>
+                    )}
                   </div>
 
                   <div className={styles.historyList}>
@@ -1076,6 +1168,22 @@ const LLM = () => {
                 <p className={styles.note}>
                   Knowledge synchronization is {knowledgeStatus?.storage?.sync_percent || 0}% optimized.
                 </p>
+              </div>
+            </Card>
+
+            <Card>
+              <h3 className={styles.cardHeader}><LuTrash2 size={18} /> Memory Management</h3>
+              <div className={styles.memoryCard}>
+                <p className={styles.note} style={{ marginTop: 0, marginBottom: '16px' }}>
+                  Clear the AI's priority cache to force re-learning from baseline research.
+                </p>
+                <button 
+                  className={styles.resetButton} 
+                  onClick={handleResetMemory}
+                  disabled={loading}
+                >
+                  <LuTrash2 size={16} /> Reset AI Priority Memory
+                </button>
               </div>
             </Card>
           </div>

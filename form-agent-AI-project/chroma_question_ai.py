@@ -5,9 +5,19 @@ from pathlib import Path
 import logging
 from datetime import datetime
 
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
+
 # Configuration
 CHROMA_PATH = Path("chroma_db")
 COLLECTION_NAME = "question_bank"
+
+# Chroma Server Config
+CHROMA_MODE = os.getenv("CHROMA_MODE", "local")
+CHROMA_SERVER_HOST = os.getenv("CHROMA_SERVER_HOST", "localhost")
+CHROMA_SERVER_PORT = int(os.getenv("CHROMA_SERVER_PORT", "8003"))
 
 # Setup logging
 logger = logging.getLogger(__name__)
@@ -18,7 +28,12 @@ class ChromaQuestionAI:
         self.persistence_path.mkdir(exist_ok=True)
         
         # Initialize Client
-        self.client = chromadb.PersistentClient(path=str(self.persistence_path))
+        if CHROMA_MODE == "server":
+            logger.info("Connecting to ChromaDB Server at %s:%d", CHROMA_SERVER_HOST, CHROMA_SERVER_PORT)
+            self.client = chromadb.HttpClient(host=CHROMA_SERVER_HOST, port=CHROMA_SERVER_PORT)
+        else:
+            logger.info("Initializing Local ChromaDB at %s", self.persistence_path)
+            self.client = chromadb.PersistentClient(path=str(self.persistence_path))
         
         # Setup Embedding Function (must match ingestor)
         self.embedding_fn = embedding_functions.SentenceTransformerEmbeddingFunction(
@@ -190,13 +205,29 @@ class ChromaQuestionAI:
         - question: text content
         - id: optional unique identifier
         - metadata: dict of additional fields
+        
+        NOTE: Embeddings are pre-computed separately and passed directly
+        to collection.upsert() to avoid native crashes caused by the 
+        embedding function callback during the SQLite write phase.
         """
+        import sys
         try:
-            # Get or create collection
+            logger.info("[UPSERT] Step A: Getting collection '%s'...", collection_name)
+            sys.stdout.flush()
+            
+            # Get or create collection WITHOUT embedding function.
+            # ChromaDB v1.5.8 Rust backend on Windows crashes with access violation
+            # when an embedding_function is attached AND pre-computed embeddings
+            # are also passed to upsert(). The Rust FFI layer attempts to invoke
+            # the Python callback during the write phase, causing a segfault.
+            # ALSO: Adding hnsw:batch_size metadata is a known fix for Windows crashes.
             collection = self.client.get_or_create_collection(
                 name=collection_name,
-                embedding_function=self.embedding_fn
+                metadata={"hnsw:batch_size": 10000} # Known fix for Windows access violation
             )
+            
+            logger.info("[UPSERT] Step B: Preparing data...")
+            sys.stdout.flush()
             
             unique_entries = {}
             import hashlib
@@ -217,11 +248,21 @@ class ChromaQuestionAI:
                 meta.setdefault("source", "giga_ingest")
                 meta.setdefault("ingested_at", str(datetime.now().isoformat()))
                 
+                # Sanitize metadata: ChromaDB only accepts str, int, float, bool
+                sanitized_meta = {}
+                for k, v in meta.items():
+                    if v is None:
+                        sanitized_meta[k] = ""
+                    elif isinstance(v, (str, int, float, bool)):
+                        sanitized_meta[k] = v
+                    else:
+                        sanitized_meta[k] = str(v)
+                
                 # Store in dict to handle intra-batch duplicates
                 # If duplicate exists in batch, the last one wins
                 unique_entries[q_id] = {
                     "document": q_text,
-                    "metadata": meta
+                    "metadata": sanitized_meta
                 }
             
             if unique_entries:
@@ -229,16 +270,61 @@ class ChromaQuestionAI:
                 documents = [v["document"] for v in unique_entries.values()]
                 metadatas = [v["metadata"] for v in unique_entries.values()]
                 
+                logger.info("[UPSERT] Step C: Pre-computing embeddings for %d documents...", len(documents))
+                sys.stdout.flush()
+                
+                # Pre-compute embeddings SEPARATELY using our embedding function
+                raw_embeddings = self.embedding_fn(documents)
+                
+                # CRITICAL: Convert to plain Python list[list[float]] for safe Rust FFI interop.
+                # SentenceTransformer returns numpy arrays; the Rust backend on Windows 
+                # frequently crashes (access violation) when receiving non-native memory layouts.
+                embeddings = [
+                    [float(x) for x in emb] if hasattr(emb, "__iter__") and not isinstance(emb, list) else emb
+                    for emb in raw_embeddings
+                ]
+                
+                logger.info("[UPSERT] Step D: Embeddings done. Writing to DB...")
+                sys.stdout.flush()
+                
+                # Use upsert with pre-computed embeddings on an ef-less collection.
+                # NOTE: Must be called from MAIN thread (async def endpoint).
+                # ChromaDB v1.5.8 Rust backend crashes from worker threads.
                 collection.upsert(
                     ids=ids,
                     documents=documents,
-                    metadatas=metadatas
+                    metadatas=metadatas,
+                    embeddings=embeddings
                 )
-                logger.info("Upserted %d unique questions to collection: %s", len(ids), collection_name)
+                
+                logger.info("[UPSERT] Step E: SQLite write complete! Upserted %d questions to '%s'", len(ids), collection_name)
+                sys.stdout.flush()
                 return True
             return False
-        except Exception as e:
+        except BaseException as e:
             logger.error("Error upserting to ChromaDB: %s", e)
+            import traceback
+            logger.error(traceback.format_exc())
+            sys.stdout.flush()
+            # Re-raise SystemExit/KeyboardInterrupt, swallow others
+            if isinstance(e, (SystemExit, KeyboardInterrupt)):
+                raise
+            return False
+
+    def delete_by_metadata(self, filter_dict, collection_name=COLLECTION_NAME):
+        """
+        Delete items from collection matching metadata filter.
+        """
+        try:
+            collection = self.client.get_collection(
+                name=collection_name,
+                embedding_function=self.embedding_fn
+            )
+            collection.delete(where=filter_dict)
+            logger.info("Deleted items matching %s from %s", filter_dict, collection_name)
+            return True
+        except Exception as e:
+            logger.error("Error deleting from ChromaDB: %s", e)
             return False
 
 # Test logic

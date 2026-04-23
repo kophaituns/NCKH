@@ -11,6 +11,7 @@ form-agent-AI-project/chroma_db/
 form-agent-AI-project/models/
 form-agent-AI-project/__pycache__/
 form-agent-AI-project/.venv/
+form-agent-AI-project/user_data
 form-agent-AI-project/form_agent_export_*.json
 
 # Global junk
@@ -28,4 +29,5 @@ Thumbs.db
 .idea/
 .ipynb_checkpoints/
 .env
+.pdf
 **/.env

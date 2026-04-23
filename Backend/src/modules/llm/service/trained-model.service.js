@@ -3,7 +3,7 @@ const logger = require('../../../utils/logger');
 
 class TrainedModelService {
     constructor(user = null) {
-        this.baseUrl = process.env.TRAINED_MODEL_API_URL || 'http://localhost:9000';
+        this.baseUrl = process.env.TRAINED_MODEL_API_URL || 'http://localhost:8000';
         this.timeout = 120000; // Increased to 120s for deep RAG retrieval
         this.user = user; // Store user for permission checks
     }

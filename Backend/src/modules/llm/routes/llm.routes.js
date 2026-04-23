@@ -212,6 +212,13 @@ router.get('/knowledge-sources/:workspaceId', llmController.getKnowledgeSources)
 router.post('/ingest/url', knowledgeController.ingestUrl);
 
 /**
+ * @route   POST /api/modules/llm/ingest/youtube
+ * @desc    Ingest knowledge from YouTube
+ * @access  Private
+ */
+router.post('/ingest/youtube', knowledgeController.ingestYoutube);
+
+/**
  * @route   POST /api/modules/llm/ingest/text
  * @desc    Ingest knowledge from raw text
  * @access  Private

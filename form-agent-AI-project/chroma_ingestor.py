@@ -14,7 +14,7 @@ from google import genai
 from google.genai import types as genai_types
 
 # Multi-format parsers
-import pypdf
+import fitz  # PyMuPDF
 import docx
 import openpyxl
 
@@ -28,8 +28,9 @@ CHROMA_PATH = Path("chroma_db")
 COLLECTION_NAME = "question_bank"
 CHECKPOINT_FILE = Path("logs/ingestion_checkpoint.json")
 BATCH_SIZE = 100
-CHUNK_SIZE = 800  # Characters for non-CSV documents
-CHUNK_OVERLAP = 100
+CHUNK_SIZE = 1200  # Increased from 800 to reduce total vectors
+CHUNK_OVERLAP = 150
+FAST_INGEST = True # Skip Gemini validation for speed
 
 # Ensure directories exist
 os.makedirs("logs", exist_ok=True)
@@ -38,7 +39,16 @@ CHROMA_PATH.mkdir(exist_ok=True)
 
 def get_ingestor():
     # Initialize ChromaDB
-    client = chromadb.PersistentClient(path=str(CHROMA_PATH))
+    mode = os.getenv("CHROMA_MODE", "local")
+    host = os.getenv("CHROMA_SERVER_HOST", "localhost")
+    port = int(os.getenv("CHROMA_SERVER_PORT", "8003"))
+    
+    if mode == "server":
+        print(f"[INFO] Connecting to ChromaDB Server at {host}:{port}")
+        client = chromadb.HttpClient(host=host, port=port)
+    else:
+        print(f"[INFO] Initializing Local ChromaDB at {CHROMA_PATH}")
+        client = chromadb.PersistentClient(path=str(CHROMA_PATH))
     
     # Use a multilingual embedding model
     # Note: This will download the model on first run (~500MB)
@@ -71,13 +81,19 @@ def save_checkpoint(processed_files, total_ingested):
 class UnifiedParser:
     """U-Ingestor: Support for PDF, Word, Excel, and Text."""
     @staticmethod
-    def parse_pdf(path: Path) -> str:
-        text = ""
-        with open(path, "rb") as f:
-            reader = pypdf.PdfReader(f)
-            for page in reader.pages:
-                text += page.extract_text() + "\n"
-        return text
+    def parse_pdf(path: Path) -> list:
+        """Returns list of (text, page_num) tuples."""
+        pages_content = []
+        try:
+            doc = fitz.open(path)
+            for i, page in enumerate(doc):
+                text = page.get_text().strip()
+                if text:
+                    pages_content.append((text, i + 1))
+            doc.close()
+        except Exception as e:
+            print(f"Error parsing PDF with PyMuPDF: {e}")
+        return pages_content
 
     @staticmethod
     def parse_docx(path: Path) -> str:
@@ -87,17 +103,22 @@ class UnifiedParser:
     @staticmethod
     def parse_excel(path: Path) -> str:
         df = pd.read_excel(path)
-        # Convert entire spreadsheet to a text representation
         return df.to_string()
 
     @staticmethod
-    def chunk_text(text: str) -> list:
-        """Recursive chunking to keep context together."""
+    def chunk_text(text: str, page_num=None) -> list:
+        """Recursive chunking to keep context together. Returns list of dicts with text and metadata."""
         text = re.sub(r'\s+', ' ', text).strip()
         chunks = []
         for i in range(0, len(text), CHUNK_SIZE - CHUNK_OVERLAP):
-            chunks.append(text[i:i + CHUNK_SIZE])
-        return [c for c in chunks if len(c) > 100]
+            chunk_content = text[i:i + CHUNK_SIZE]
+            if len(chunk_content) > 100:
+                chunks.append({
+                    "text": chunk_content,
+                    "page": page_num,
+                    "chunk_index": len(chunks)
+                })
+        return chunks
 
 def validate_data_quality(file_path: Path, sample_text: str) -> bool:
     """Vệ Sĩ AI: Check if content is safe and relevant."""
@@ -195,25 +216,46 @@ def ingest_data(sample_limit=None, category=None):
                     })
             else:
                 # Binary files (PDF, Word, Excel)
-                full_text = ""
-                if ext == ".pdf": full_text = parser.parse_pdf(file_path)
-                elif ext in [".docx", ".doc"]: full_text = parser.parse_docx(file_path)
-                elif ext in [".xlsx", ".xls"]: full_text = parser.parse_excel(file_path)
-                
-                if not full_text.strip(): continue
-                
-                # Guardrail check
-                if not validate_data_quality(file_path, full_text[:3000]):
-                    processed_files.append(file_path.name)
-                    continue
+                if ext == ".pdf":
+                    pages_data = parser.parse_pdf(file_path)
+                    for text, page_num in pages_data:
+                        chunks = parser.chunk_text(text, page_num=page_num)
+                        for c in chunks:
+                            documents.append(c["text"])
+                            metadatas.append({
+                                "source": file_path.name,
+                                "source_title": file_path.name,
+                                "source_type": "file",
+                                "file_type": "pdf",
+                                "page": str(c["page"]),
+                                "chunk_index": c["chunk_index"],
+                                "category": category or "general",
+                                "visibility": "private"
+                            })
+                else:
+                    full_text = ""
+                    if ext in [".docx", ".doc"]: full_text = parser.parse_docx(file_path)
+                    elif ext in [".xlsx", ".xls"]: full_text = parser.parse_excel(file_path)
                     
-                chunks = parser.chunk_text(full_text)
-                documents = chunks
-                metadatas = [{
-                    "source": file_path.name, 
-                    "type": "document_chunk",
-                    "category": category or "general"
-                } for _ in chunks]
+                    if not full_text.strip(): continue
+                    
+                    # Guardrail check
+                    if not FAST_INGEST and not validate_data_quality(file_path, full_text[:3000]):
+                        processed_files.append(file_path.name)
+                        continue
+                        
+                    chunks = parser.chunk_text(full_text)
+                    for c in chunks:
+                        documents.append(c["text"])
+                        metadatas.append({
+                            "source": file_path.name,
+                            "source_title": file_path.name,
+                            "source_type": "file",
+                            "file_type": ext[1:],
+                            "chunk_index": c["chunk_index"],
+                            "category": category or "general",
+                            "visibility": "private"
+                        })
 
             # --- UPSERT STAGE ---
             for i in range(0, len(documents), BATCH_SIZE):

@@ -87,7 +87,9 @@ const LLMService = {
         category_hint: data.category_hint || data.category || null,
         offset: data.offset || 0,
         form_type: data.form_type || 'survey',
-        fine_tune_note: data.fine_tune_note || null
+        fine_tune_note: data.fine_tune_note || null,
+        workspaceId: data.workspaceId || null,
+        visibility_scope: data.visibility_scope || (data.workspaceId ? 'private' : 'all')
       }, {
         timeout: 60000 // 60 seconds for AI processing
       });
@@ -238,9 +240,10 @@ const LLMService = {
    * Ingest documents into the Knowledge Base (U-Ingestor)
    * @param {FileList|File[]} files - Files to upload
    */
-  async ingestDocuments(files, category = 'general') {
+  async ingestDocuments(files, workspaceId, category = 'general') {
     const formData = new FormData();
     formData.append('category', category);
+    formData.append('workspaceId', workspaceId);
     if (Array.isArray(files)) {
       files.forEach(file => formData.append('files', file));
     } else {

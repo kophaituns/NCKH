@@ -17,6 +17,8 @@ Run:
 
 import os
 import sys
+import faulthandler
+faulthandler.enable()  # Catch native crashes (segfault) and print traceback
 import json
 import logging
 import re
@@ -25,9 +27,7 @@ import trafilatura
 from datetime import datetime
 from pathlib import Path
 from typing import Optional, List, Dict, Any
-from validation_agent import ValidationAgent
-from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
-from chroma_ingestor import ingest_data
+# Deferred imports below for stability
 
 # Windows DLL fix for torch / sentence-transformers
 if os.name == 'nt':
@@ -41,14 +41,23 @@ if os.name == 'nt':
             except Exception:
                 pass
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 from dotenv import load_dotenv
+# Deferred genai imports below
+import uvicorn
+
+# PROJECT OMEGA: Defer complex imports until AFTER environment is stabilized
+from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
+from validation_agent import ValidationAgent
+from chroma_ingestor import ingest_data
+from youtube_transcript_api import YouTubeTranscriptApi
+
+# Google GenAI imports (deferred)
 from google import genai
 from google.genai import types as genai_types
-import uvicorn
 
 load_dotenv()
 
@@ -101,12 +110,18 @@ else:
 chroma_ai = None
 
 try:
+    logger.info("Initializing ChromaDB connection...")
     from chroma_question_ai import ChromaQuestionAI
     chroma_ai = ChromaQuestionAI(persistence_path=CHROMA_PATH)
-    count = chroma_ai.collection.count() if chroma_ai.collection else 0
-    logger.info("ChromaDB ready: %d vectors", count)
+    
+    if chroma_ai.collection:
+        logger.info("ChromaDB collection linked.")
+    else:
+        logger.warning("ChromaDB collection is None!")
 except Exception as exc:
     logger.error("ChromaDB init failed: %s", exc)
+    import traceback
+    logger.error(traceback.format_exc())
 
 # ---------------------------------------------------------------------------
 # FASTAPI
@@ -124,6 +139,20 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+# ---------------------------------------------------------------------------
+# GLOBAL EXCEPTION HANDLER (Safety net to prevent process crash)
+# ---------------------------------------------------------------------------
+@app.exception_handler(Exception)
+async def global_exception_handler(request, exc):
+    import traceback
+    logger.error(f"UNHANDLED EXCEPTION on {request.url.path}: {exc}")
+    logger.error(traceback.format_exc())
+    return JSONResponse(
+        status_code=500,
+        content={"success": False, "error": f"Internal server error: {str(exc)}"}
+    )
 
 
 class GenerateFormRequest(BaseModel):
@@ -665,13 +694,12 @@ async def generate_form(request: GenerateFormRequest):
 
 
 @app.post("/api/ingest")
-async def trigger_ingestion(category: Optional[str] = None):
-    """Trigger the U-Ingestor to sync files from user_data."""
+async def trigger_ingestion(background_tasks: BackgroundTasks, category: Optional[str] = None):
+    """Trigger the U-Ingestor to sync files from user_data in background."""
     try:
-        # Run ingestion in the background or synchronously if it's small
-        # For now, we run it sync for simplicity but could use BackgroundTasks
-        ingest_data(sample_limit=None, category=category)  # Full ingest
-        return {"success": True, "message": "Ingestion complete."}
+        # Run ingestion in the background to avoid blocking the API
+        background_tasks.add_task(ingest_data, None, category)
+        return {"success": True, "message": "Ingestion started in background. Systems are synchronizing..."}
     except Exception as exc:
         logger.error("Ingestion failed: %s", exc)
         return JSONResponse(status_code=500, content={"success": False, "error": str(exc)})
@@ -746,9 +774,40 @@ async def learn_from_feedback(request: LearnRequest):
     except Exception as exc:
         return JSONResponse(status_code=500, content={"success": False, "error": str(exc)})
 
+class DeleteSourceRequest(BaseModel):
+    source_title: Optional[str] = None
+    workspace_id: Optional[str] = None
+
+@app.post("/api/delete-source")
+async def delete_source(request: DeleteSourceRequest):
+    """RKD: Delete all vectors matching the source title or workspace."""
+    if not chroma_ai:
+        return JSONResponse(status_code=503, content={"success": False, "error": "AI Memory not ready"})
+    
+    try:
+        filter_dict = {}
+        if request.source_title:
+            filter_dict["source_title"] = request.source_title
+        if request.workspace_id:
+            filter_dict["workspace_id"] = request.workspace_id
+            
+        if not filter_dict:
+            return JSONResponse(status_code=400, content={"success": False, "error": "Missing filter criteria"})
+            
+        success = chroma_ai.delete_by_metadata(filter_dict)
+        return {"success": success, "message": f"Source vectors matching {filter_dict} removed successfully."}
+    except Exception as exc:
+        return JSONResponse(status_code=500, content={"success": False, "error": str(exc)})
+
 # --- PROJECT OMEGA ENDPOINTS ---
 
 class IngestUrlRequest(BaseModel):
+    url: str
+    workspace_id: str
+    category: Optional[str] = "general"
+    promote_to_global: Optional[bool] = False
+
+class IngestYoutubeRequest(BaseModel):
     url: str
     workspace_id: str
     category: Optional[str] = "general"
@@ -761,48 +820,185 @@ class IngestTextRequest(BaseModel):
     category: Optional[str] = "general"
     promote_to_global: Optional[bool] = False
 
+class YouTubeExtractor:
+    """Helper to extract transcripts with priority logic: vi manual > vi auto > en manual > en auto."""
+    @staticmethod
+    def extract_video_id(url: str) -> Optional[str]:
+        patterns = [
+            r'(?:v=|\/)([0-9A-Za-z_-]{11}).*',
+            r'youtu\.be\/([0-9A-Za-z_-]{11})',
+            r'embed\/([0-9A-Za-z_-]{11})'
+        ]
+        for pattern in patterns:
+            match = re.search(pattern, url)
+            if match:
+                return match.group(1)
+        return None
+
+    @staticmethod
+    def get_transcript(video_id: str) -> str:
+        try:
+            transcript_list = YouTubeTranscriptApi.list_transcripts(video_id)
+            
+            # 1. Priority: Vietnamese (Manual -> Auto)
+            try:
+                return " ".join([t['text'] for t in transcript_list.find_transcript(['vi']).fetch()])
+            except:
+                pass
+                
+            # 2. Fallback: English (Manual -> Auto)
+            try:
+                return " ".join([t['text'] for t in transcript_list.find_transcript(['en']).fetch()])
+            except:
+                pass
+                
+            # 3. Last Resort: Just get the first available
+            return " ".join([t['text'] for t in transcript_list.find_transcript(transcript_list._manually_created_transcripts.keys() or transcript_list._generated_transcripts.keys()).fetch()])
+            
+        except Exception as e:
+            logger.error(f"YouTube Transcript Fetch Failed: {e}")
+            return ""
+
 validator = ValidationAgent(api_key=GEMINI_API_KEY)
+
+@app.post("/api/ingest/youtube")
+async def ingest_youtube(request: IngestYoutubeRequest):
+    """PROJECT OMEGA: Extract YouTube Transcript, Validate, and Ingest."""
+    video_id = YouTubeExtractor.extract_video_id(request.url)
+    if not video_id:
+        return JSONResponse(status_code=400, content={"success": False, "error": "Invalid YouTube URL format."})
+
+    content = YouTubeExtractor.get_transcript(video_id)
+    if not content or len(content.strip()) < 200:
+        return JSONResponse(status_code=400, content={
+            "success": False, 
+            "error": "Could not retrieve a meaningful transcript. The video might not have captions enabled."
+        })
+
+    try:
+        # 1. Validate Quality
+        report = validator.validate_content(content, source_info=f"YouTube: {request.url}")
+        if not report.get("is_valid"):
+            return JSONResponse(status_code=422, content={
+                "success": False, 
+                "error": "AI Guardrail: Video content rejected due to low research quality.",
+                "report": report
+            })
+
+        # 2. Convert to Pillars
+        extraction_prompt = f"Extract exactly 5-10 research questions or key knowledge pillars from this video transcript. Return only a JSON list of strings.\n\nTRANSCRIPT:\n{content[:8000]}"
+        raw_pillars = _gemini_call_wrapper(extraction_prompt)
+        
+        if not raw_pillars:
+            return JSONResponse(status_code=500, content={"success": False, "error": "AI pillar extraction returned no data."})
+        
+        try:
+            pillars = json.loads(raw_pillars)
+        except (json.JSONDecodeError, TypeError) as json_err:
+            logger.error(f"Failed to parse Gemini pillar response: {json_err}")
+            return JSONResponse(status_code=500, content={"success": False, "error": "AI returned malformed data. Please try again."})
+        
+        if not isinstance(pillars, list) or len(pillars) == 0:
+            return JSONResponse(status_code=500, content={"success": False, "error": "AI did not return valid research pillars."})
+
+        # 3. Upsert to Chroma
+        data_to_upsert = [
+            {
+                "question": p,
+                "metadata": {
+                    "source_url": request.url,
+                    "source_type": "youtube",
+                    "workspace_id": request.workspace_id,
+                    "category": request.category,
+                    "visibility": "global" if (request.promote_to_global and report.get("overall_score", 0) > 85) else "private",
+                    "quality_score": report.get("overall_score", 0),
+                    "ingested_at": str(datetime.now().isoformat())
+                }
+            } for p in pillars if isinstance(p, str) and p.strip()
+        ]
+        
+        if not data_to_upsert:
+            return JSONResponse(status_code=500, content={"success": False, "error": "No valid pillars extracted."})
+        
+        success = chroma_ai.upsert_questions(data_to_upsert)
+        return {
+            "success": success,
+            "count": len(data_to_upsert),
+            "source": f"YouTube:{video_id}",
+            "quality_report": report
+        }
+    except Exception as exc:
+        logger.error(f"YouTube Ingestion Failed: {exc}")
+        import traceback
+        logger.error(traceback.format_exc())
+        return JSONResponse(status_code=500, content={"success": False, "error": str(exc)})
 
 @app.post("/api/ingest/url")
 async def ingest_url(request: IngestUrlRequest):
-    """PROJECT OMEGA: Scrape URL, Validate, and Ingest into ChromaDB."""
+    """PROJECT OMEGA: Scrape URL, Validate, and Ingest into ChromaDB.
+    NOTE: Must be async def so it runs on the MAIN event loop thread.
+    ChromaDB v1.5.8 Rust backend crashes with access violation when
+    called from worker threads (FastAPI thread pool).
+    """
+    import sys
     try:
+        logger.info(f"[INGEST-URL] Step 0: Received request for {request.url}")
+        sys.stdout.flush()
+        
         # PROJECT OMEGA: Mimic a real browser to bypass 403 Forbidden blocks
-        import requests
+        import requests as req_lib
         headers = {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
             'Accept-Language': 'en-US,en;q=0.9,vi;q=0.8',
         }
         
+        downloaded = None
         try:
-            resp = requests.get(request.url, headers=headers, timeout=15)
+            resp = req_lib.get(request.url, headers=headers, timeout=15)
             resp.raise_for_status()
             downloaded = resp.text
+            logger.info(f"[INGEST-URL] Step 1: Fetched URL ({len(downloaded)} chars)")
         except Exception as e:
             logger.warning(f"Requests fetch failed: {e}. Falling back to trafilatura default fetch.")
-            downloaded = trafilatura.fetch_url(request.url)
+            try:
+                downloaded = trafilatura.fetch_url(request.url)
+            except Exception as tf_err:
+                logger.error(f"Trafilatura fetch also failed: {tf_err}")
+        sys.stdout.flush()
 
         if not downloaded:
             return JSONResponse(status_code=400, content={"success": False, "error": "Could not reach URL. Please check the link or site availability."})
         
         # Try advanced extraction first
-        content = trafilatura.extract(downloaded, include_comments=False, include_tables=True, no_fallback=False)
+        content = None
+        try:
+            content = trafilatura.extract(downloaded, include_comments=False, include_tables=True, no_fallback=False)
+        except Exception as ext_err:
+            logger.warning(f"Trafilatura advanced extraction error: {ext_err}")
         
         # Fallback to simple extraction if trafilatura fails to find "meaningful" content
         if not content or len(content.strip()) < 200:
             logger.info(f"Advanced extraction failed for {request.url}, trying fallback mode...")
-            content = trafilatura.extract(downloaded, include_comments=False, include_tables=True, no_fallback=True)
+            try:
+                content = trafilatura.extract(downloaded, include_comments=False, include_tables=True, no_fallback=True)
+            except Exception as ext_err2:
+                logger.warning(f"Trafilatura fallback extraction error: {ext_err2}")
             
         if not content:
-            # Last resort: very basic cleaning if everything else fails
             return JSONResponse(status_code=400, content={
                 "success": False, 
                 "error": "The website's content is protected or requires JavaScript. Please try copy-pasting the text into the 'Deep Entry' tab instead."
             })
         
+        logger.info(f"[INGEST-URL] Step 2: Extracted content ({len(content)} chars)")
+        sys.stdout.flush()
+        
         # 1. Validate Quality
         report = validator.validate_content(content, source_info=request.url)
+        logger.info(f"[INGEST-URL] Step 3: Validation done. Valid={report.get('is_valid')}, Score={report.get('overall_score')}")
+        sys.stdout.flush()
+        
         if not report.get("is_valid"):
             return JSONResponse(status_code=422, content={
                 "success": False, 
@@ -811,10 +1007,36 @@ async def ingest_url(request: IngestUrlRequest):
             })
 
         # 2. Convert text to "Questions" (Pillars)
-        # Use Gemini to extract key research pillars from the text
         extraction_prompt = f"Extract exactly 5-10 research questions or key knowledge pillars from this text. Return only a JSON list of strings.\n\nTEXT:\n{content[:5000]}"
         raw_pillars = _gemini_call_wrapper(extraction_prompt)
-        pillars = json.loads(raw_pillars)
+        logger.info(f"[INGEST-URL] Step 4: Gemini pillar extraction done. Got response: {bool(raw_pillars)}")
+        sys.stdout.flush()
+        
+        if not raw_pillars:
+            logger.error("Gemini returned empty response for pillar extraction.")
+            return JSONResponse(status_code=500, content={
+                "success": False, 
+                "error": "AI pillar extraction returned no data. Please try again."
+            })
+        
+        try:
+            pillars = json.loads(raw_pillars)
+        except (json.JSONDecodeError, TypeError) as json_err:
+            logger.error(f"Failed to parse Gemini pillar response: {json_err}. Raw: {raw_pillars[:200]}")
+            return JSONResponse(status_code=500, content={
+                "success": False,
+                "error": "AI returned malformed data. Please try again."
+            })
+        
+        if not isinstance(pillars, list) or len(pillars) == 0:
+            logger.error(f"Gemini returned invalid pillars format: {type(pillars)}")
+            return JSONResponse(status_code=500, content={
+                "success": False,
+                "error": "AI did not return valid research pillars. Please try again."
+            })
+
+        logger.info(f"[INGEST-URL] Step 5: Parsed {len(pillars)} pillars. Starting ChromaDB upsert...")
+        sys.stdout.flush()
 
         # 3. Upsert into Chroma with Metadata
         data_to_upsert = [
@@ -828,19 +1050,33 @@ async def ingest_url(request: IngestUrlRequest):
                     "quality_score": report.get("overall_score", 0),
                     "ingested_at": str(datetime.now().isoformat())
                 }
-            } for p in pillars
+            } for p in pillars if isinstance(p, str) and p.strip()
         ]
+        
+        if not data_to_upsert:
+            return JSONResponse(status_code=500, content={"success": False, "error": "No valid pillars extracted from content."})
         
         success = chroma_ai.upsert_questions(data_to_upsert)
         
-        return {
+        logger.info(f"[INGEST-URL] Step 6: ChromaDB upsert done. Success={success}")
+        sys.stdout.flush()
+        
+        result = {
             "success": success,
-            "count": len(pillars),
+            "count": len(data_to_upsert),
             "quality_report": report,
             "visibility": data_to_upsert[0]["metadata"]["visibility"]
         }
+        
+        logger.info(f"[INGEST-URL] Step 7: Returning response.")
+        sys.stdout.flush()
+        
+        return result
     except Exception as exc:
         logger.error(f"URL Ingestion failed: {exc}")
+        import traceback
+        logger.error(traceback.format_exc())
+        sys.stdout.flush()
         return JSONResponse(status_code=500, content={"success": False, "error": str(exc)})
 
 @app.post("/api/ingest/text")
@@ -855,7 +1091,18 @@ async def ingest_text(request: IngestTextRequest):
         # 2. Extract Pillars
         extraction_prompt = f"Extract exactly 3-5 research questions/pillars from this text. Return a JSON list of strings.\n\nTEXT:\n{request.text[:5000]}"
         raw_pillars = _gemini_call_wrapper(extraction_prompt)
-        pillars = json.loads(raw_pillars)
+        
+        if not raw_pillars:
+            return JSONResponse(status_code=500, content={"success": False, "error": "AI pillar extraction returned no data."})
+        
+        try:
+            pillars = json.loads(raw_pillars)
+        except (json.JSONDecodeError, TypeError) as json_err:
+            logger.error(f"Failed to parse Gemini pillar response: {json_err}")
+            return JSONResponse(status_code=500, content={"success": False, "error": "AI returned malformed data. Please try again."})
+        
+        if not isinstance(pillars, list) or len(pillars) == 0:
+            return JSONResponse(status_code=500, content={"success": False, "error": "AI did not return valid research pillars."})
 
         # 3. Upsert
         data_to_upsert = [
@@ -869,16 +1116,23 @@ async def ingest_text(request: IngestTextRequest):
                     "quality_score": report.get("overall_score", 0),
                     "ingested_at": str(datetime.now().isoformat())
                 }
-            } for p in pillars
+            } for p in pillars if isinstance(p, str) and p.strip()
         ]
+        
+        if not data_to_upsert:
+            return JSONResponse(status_code=500, content={"success": False, "error": "No valid pillars extracted."})
+        
         success = chroma_ai.upsert_questions(data_to_upsert)
         
         return {
             "success": success,
-            "count": len(pillars),
+            "count": len(data_to_upsert),
             "quality_report": report
         }
     except Exception as exc:
+        logger.error(f"Text Ingestion failed: {exc}")
+        import traceback
+        logger.error(traceback.format_exc())
         return JSONResponse(status_code=500, content={"success": False, "error": str(exc)})
 
 @app.get("/api/status")
@@ -1191,4 +1445,14 @@ async def health_check():
 # ENTRYPOINT
 # ---------------------------------------------------------------------------
 if __name__ == "__main__":
-    uvicorn.run("rag_server:app", host="0.0.0.0", port=8000, reload=True, log_level="info")
+    print(">>> SERVER BOOTSTRAP STARTING...")
+    # Pass `app` object directly instead of string "rag_server:app"
+    # to avoid double-importing the module (which causes duplicate
+    # ChromaDB/Gemini init and potential SQLite lock conflicts on Windows).
+    uvicorn.run(
+        app, 
+        host="0.0.0.0", 
+        port=8000, 
+        reload=False,
+        log_level="info"
+    )

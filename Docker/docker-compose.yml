@@ -35,6 +35,20 @@ services:
     networks:
       - llm-survey-network
 
+  chromadb:
+    image: chromadb/chroma:latest
+    container_name: chroma-db
+    restart: always
+    environment:
+      - IS_PERSISTENT=TRUE
+      - PERSIST_DIRECTORY=/data
+    ports:
+      - "8003:8000"
+    volumes:
+      - ../form-agent-AI-project/chroma_db:/data
+    networks:
+      - llm-survey-network
+
 volumes:
   mysql-data:
 

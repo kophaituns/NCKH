@@ -170,10 +170,11 @@ class LLMController {
         num_questions,  // Alternative field name from Frontend
         category,
         category_hint,  // Alternative field name from Frontend
-        offset = 0,
         workspaceId,
+        visibility_scope,
         form_type,
-        fine_tune_note
+        fine_tune_note,
+        offset // NEW: Added offset
       } = req.body;
       
       // Use whichever field is provided
@@ -208,8 +209,9 @@ class LLMController {
       // STEP 2: Sanitize input before processing
       // ================================================================
       const sanitizedTopic = sanitizeInput(inputTopic);
+      const finalOffset = offset || 0; // NEW: Ensure offset has a value
 
-      logger.info(`Generating questions | User: ${userId} | Topic: "${sanitizedTopic}" | Count: ${inputCount} | Offset: ${offset}`);
+      logger.info(`Generating questions | User: ${userId} | Topic: "${sanitizedTopic}" | Count: ${inputCount} | Offset: ${finalOffset}`);
 
       // ================================================================
       // STEP 3: Generate questions with cleaned input
@@ -219,8 +221,9 @@ class LLMController {
         count: parseInt(inputCount),
         category: inputCategory,
         userId: userId,
-        offset: parseInt(offset),
+        offset: parseInt(finalOffset),
         workspaceId: workspaceId,
+        visibility_scope: visibility_scope,
         form_type: form_type || 'survey',
         fine_tune_note: fine_tune_note
       });
@@ -888,7 +891,7 @@ class LLMController {
     const aiCircuitBreaker = circuitBreakers.aiService;
 
     try {
-      const { topic, keyword, count = 5, category = 'general' } = req.body;
+      const { topic, keyword, count = 5, category = 'general', workspaceId, visibility_scope, fine_tune_note, form_type } = req.body;
       const questionTopic = topic || keyword;
       const userId = user?.id;
 
@@ -948,7 +951,11 @@ class LLMController {
           topic: sanitizedTopic,
           count: parseInt(count),
           category,
-          userId
+          userId,
+          workspaceId,
+          visibility_scope,
+          fine_tune_note,
+          form_type: form_type || 'survey'
         });
       }, { requestId: `gen_${userId}_${Date.now()}` });
 
