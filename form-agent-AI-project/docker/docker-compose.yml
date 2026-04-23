@@ -1,0 +1,27 @@
+version: '3.8'
+
+services:
+  chromadb:
+    image: chromadb/chroma:0.4.24
+    ports:
+      - "8000:8000"
+    volumes:
+      - ../chroma-data:/chroma/chroma
+    restart: unless-stopped
+
+  api_service:
+    build: 
+      context: ..
+      dockerfile: docker/Dockerfile
+    ports:
+      - "8003:8003"
+    environment:
+      - CHROMA_HOST=chromadb
+      - CHROMA_PORT=8000
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+    volumes:
+      - ..:/app
+      - ../model_cache:/app/model_cache
+    depends_on:
+      - chromadb
+    restart: unless-stopped
