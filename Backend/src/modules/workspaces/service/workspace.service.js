@@ -1317,6 +1317,16 @@ class WorkspaceService {
     // Delete workspace (this will cascade to related records)
     await workspace.destroy();
 
+    // PROJECT OMEGA: Sync with AI Server to drop Chroma collection
+    try {
+      const LLMServiceClass = require('../../llm/service/llm.service');
+      const llmService = new LLMServiceClass();
+      await llmService.deleteWorkspaceData(workspaceId);
+      logger.info(`Sync: AI Workspace data dropped for ${workspaceId}`);
+    } catch (syncError) {
+      logger.error(`Sync: Failed to drop AI data for ${workspaceId}: ${syncError.message}`);
+    }
+
     return true;
   }
 

@@ -1,33 +1,37 @@
-# Root Level Folder Ignores (To keep AI commit clean)
-Frontend/
-Backend/
-docs/
-logs/
+# [GAU] Root .gitignore for Monorepo
+# Chặn các file môi trường và bí mật
+.env
+**/.env
+**/.env.*
+!**/.env.example
 
-# AI Project Specific Ignores
-form-agent-AI-project/datasets/
-form-agent-AI-project/question_datasets/
-form-agent-AI-project/chroma_db/
-form-agent-AI-project/models/
-form-agent-AI-project/__pycache__/
-form-agent-AI-project/.venv/
-form-agent-AI-project/user_data
-form-agent-AI-project/form_agent_export_*.json
-
-# Global junk
-**/__pycache__/
-**/.venv/
+# Chặn thư viện và môi trường ảo
 **/node_modules/
+**/.venv/
+**/__pycache__/
+
+# Chặn dữ liệu AI và Database (Dữ liệu cá nhân/nặng)
+**/chroma_db/
+**/chroma-data/
+**/user_data/
+**/datasets/
+**/question_datasets/
+**/*.sqlite
+**/*.db
 **/*.pkl
 **/*.joblib
-**/*.db
-**/*.log
-**/*.tmp
-.DS_Store
-Thumbs.db
+
+# Chặn rác của hệ điều hành và IDE
 .vscode/
 .idea/
-.ipynb_checkpoints/
-.env
-.pdf
-**/.env
+.DS_Store
+Thumbs.db
+**/*.tmp
+**/*.log
+
+# Chặn các file export/backup
+**/form_agent_export_*.json
+scratch_*.py
+prompt_recover.py
+docs/
+logs/

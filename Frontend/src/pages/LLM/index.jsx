@@ -1,7 +1,6 @@
 // src/pages/LLM/index.jsx
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
 import Card from '../../components/UI/Card';
 import Button from '../../components/UI/Button';
 import Select from '../../components/UI/Select';
@@ -76,30 +75,25 @@ const LLM = () => {
 
   const [showLibraryModal, setShowLibraryModal] = useState(false);
 
-  // Mock "Hot Keywords" expanded to a full research dataset
+  // Mock "Hot Keywords" synchronized with actual 11k dataset topics
   const hotKeywordsByCat = useMemo(() => ({
     it: [
-      'Data Science', 'Cloud Computing', 'Cybersecurity', 'Machine Learning', 'Web Development',
-      'Python', 'FastAPI', 'React', 'Cloud Architecture', 'Microservices', 
-      'DevOps', 'Security', 'Database Optimization', 'API Design', 'NLP'
+      'Cloud Computing', 'Cybersecurity', 'Machine Learning', 'Data Science', 'Web Development',
+      'Technology Trends', 'System Architecture', 'Automation', 'Digital Transformation', 'Software Engineering'
     ],
     marketing: [
       'Brand Management', 'Digital Marketing', 'Social Media', 'Content Marketing', 
-      'SEO', 'Digital Ads', 'Branding', 'Content Strategy', 'Leads', 
-      'Customer Journey', 'Conversion Rate', 'Influencer Marketing', 'Email Automation', 
-      'Market Segmentation', 'CRM'
+      'Customer Journey', 'SEO', 'Market Segmentation', 'Influencer Marketing', 
+      'Conversion Rate', 'Marketing Analytics'
     ],
     economics: [
       'Financial Modeling', 'Investment Planning', 'Market Analysis', 'Portfolio Management',
-      'Inflation', 'GDP', 'Markets', 'Banking', 'Trade', 
-      'Microeconomics', 'Macroeconomics', 'Econometrics', 'Fiscal Policy', 
-      'Monetary Policy', 'Stock Exchange'
+      'Risk Assessment', 'Fiscal Policy', 'Monetary Policy', 'Stock Exchange',
+      'Banking & Finance', 'Economic Trends'
     ],
     general: [
-      'Research', 'Quality', 'Performance', 'Strategy', 'Ethics', 
-      'Decision Making', 'Sustainability', 'Innovation', 'Critical Thinking', 
-      'Methodology', 'Analytical Skills', 'Collaborative Research', 'Peer Review', 
-      'Survey Design', 'Case Studies'
+      'Research Strategy', 'Business Operations', 'Innovation', 'Project Management', 
+      'Strategic Planning', 'Decision Making', 'Sustainability', 'Quality Assurance'
     ]
   }), []);
 
@@ -225,10 +219,10 @@ const LLM = () => {
       };
 
       // Validation: In global mode, keywords are mandatory. In notebook mode, either keywords OR a prompt note is needed.
-      const hasContent = payload.keywords.length > 0 || (activeTab === 'knowledge' && customNote);
+      const hasContent = payload.keywords.length > 0 || customNote.trim();
       
       if (!hasContent) {
-        showToast(activeTab === 'knowledge' ? 'Please provide a research prompt or select keywords.' : 'Please select at least one keyword pillar.', 'warning');
+        showToast('Please provide a research prompt or select keyword pillars to ground the AI.', 'warning');
         setLoading(false);
         return;
       }
@@ -548,28 +542,25 @@ const LLM = () => {
 
   const renderWizardSidebar = () => (
     <div className={styles.wizardContainer}>
-      {/* Step 1: Domain (Global Only) */}
-      {activeTab !== 'knowledge' && (
-        <div className={`${styles.stepItem} ${activeStep === 1 ? styles.active : styles.completed}`}>
-          <div className={styles.stepLabel}><LuActivity size={14} /> Step 1: Knowledge Domain</div>
-          <Select
-            value={formData.category}
-            onChange={(value) => {
-              handleInputChange('category', value);
-              setActiveStep(2);
-            }}
-          >
-            <option value="it">Information Technology</option>
-            <option value="economics">Economics & Finance</option>
-            <option value="marketing">Marketing & Sales</option>
-            <option value="general">General Research</option>
-          </Select>
-        </div>
-      )}
+      {/* Step 1: Domain */}
+      <div className={`${styles.stepItem} ${activeStep === 1 ? styles.active : styles.completed}`}>
+        <div className={styles.stepLabel}><LuActivity size={14} /> Step 1: Knowledge Domain</div>
+        <Select
+          value={formData.category}
+          onChange={(value) => {
+            handleInputChange('category', value);
+            setActiveStep(2);
+          }}
+        >
+          <option value="it">Information Technology</option>
+          <option value="economics">Economics & Finance</option>
+          <option value="marketing">Marketing & Sales</option>
+          <option value="general">General Research</option>
+        </Select>
+      </div>
 
-      {/* Step 2: Keyword Library (Global Only) */}
-      {activeTab !== 'knowledge' && (
-        <div className={`${styles.stepItem} ${activeStep === 2 ? styles.active : (selectedKeywords.length > 0 ? styles.completed : '')}`}>
+      {/* Step 2: Keyword Library */}
+      <div className={`${styles.stepItem} ${activeStep === 2 ? styles.active : (selectedKeywords.length > 0 ? styles.completed : '')}`}>
           <div className={styles.stepLabel}>
             <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center' }}>
               <span><LuCircleCheck size={14} /> Step 2: Keyword Library</span>
@@ -636,7 +627,6 @@ const LLM = () => {
             )}
           </div>
         </div>
-      )}
 
       {/* Step 3: Form Architecture (Always Visible) */}
       <div className={`${styles.stepItem} ${activeStep === 3 ? styles.active : styles.completed}`}>
@@ -1113,7 +1103,7 @@ const LLM = () => {
                                 {item.name}
                               </div>
                             )}
-                            <div className={styles.sourceMeta}>{Math.round(item.quality_score)}% Quality • {item.vector_count} Pillars</div>
+                            <div className={styles.sourceMeta}>{Math.round(item.quality_score || 0)}% Quality • {item.vector_count || 0} Pillars</div>
                           </div>
                           <div className={styles.sourceActions}>
                             <button onClick={() => { setEditingSourceId(item.id); setRenamingName(item.name); }} title="Rename"><LuPencil size={12} /></button>
@@ -1136,7 +1126,76 @@ const LLM = () => {
                   </div>
 
                   <div className={styles.notebookContent}>
-                    {renderContentWorkspace()}
+                    <div className={styles.layoutWizard}>
+                      <main className={styles.mainPanel} style={{ width: '100%', maxWidth: '100%' }}>
+                        <div className={styles.fineTuneCard}>
+                          <div className={styles.stepLabel}>
+                            <LuPencil size={14} /> RESEARCH FINE-TUNING & PROMPT ALIGNMENT
+                          </div>
+                          <div className={styles.fineTuneContainer}>
+                            <textarea
+                              placeholder="Provide extra instructions, tone requirements, or specific entities to extract... (e.g., 'Make it challenging for senior levels')"
+                              value={customNote}
+                              onChange={(e) => setCustomNote(e.target.value)}
+                            />
+                          </div>
+                        </div>
+
+                        <div className={styles.resultsCard}>
+                          {/* Re-use results header and body logic but avoid full renderContentWorkspace nesting */}
+                          <div className={styles.resultsHeader}>
+                             <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                               <h3 style={{ margin: 0 }}><LuActivity size={20} color="#14B8A6" /> Results Feed</h3>
+                               {generatedQuestions.length > 0 && (
+                                 <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                                   <span className={styles.archBadge}>
+                                     <LuLayoutGrid size={12} /> {formType.toUpperCase()} MODE
+                                   </span>
+                                 </div>
+                               )}
+                             </div>
+                             
+                             <div className={styles.headerActions}>
+                               <Button 
+                                 onClick={handleExecuteIntelligence} 
+                                 loading={loading}
+                                 disabled={loading || (selectedKeywords.length === 0 && !customNote.trim())}
+                               >
+                                 <LuSparkles /> {loading ? 'Processing...' : 'Execute Intel'}
+                               </Button>
+                             </div>
+                          </div>
+
+                          <div className={styles.resultsBody}>
+                             {/* Minimal results rendering here for notebook view */}
+                             {loading ? (
+                               <div className={styles.loadingContainer}>
+                                 <Loader />
+                                 <h4>Synthesizing Notebook Knowledge...</h4>
+                               </div>
+                             ) : generatedQuestions.length > 0 ? (
+                               generatedQuestions.map((q, index) => (
+                                 <div key={index} className={styles.questionItem}>
+                                    <div className={styles.questionContent}>
+                                      <p className={styles.questionText}>{q.question}</p>
+                                      <div style={{ display: 'flex', gap: '8px' }}>
+                                        <span className={`${styles.metaBadge} ${styles.groundedBadge}`}>
+                                          <LuFileText size={10} /> Grounded
+                                        </span>
+                                      </div>
+                                    </div>
+                                 </div>
+                               ))
+                             ) : (
+                               <div className={styles.emptyResults}>
+                                 <h4>Ready to Analyze Notebook</h4>
+                                 <p>Your sources are loaded. Provide a prompt or select keywords to extract pillars.</p>
+                               </div>
+                             )}
+                          </div>
+                        </div>
+                      </main>
+                    </div>
                   </div>
                 </main>
               </div>

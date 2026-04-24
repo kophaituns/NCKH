@@ -7,7 +7,7 @@ class Config:
     # ChromaDB
     CHROMA_HOST = os.getenv("CHROMA_HOST", "localhost")
     CHROMA_PORT = int(os.getenv("CHROMA_PORT", "8000"))
-    COLLECTION_GLOBAL = os.getenv("COLLECTION_GLOBAL", "question_bank")
+    COLLECTION_GLOBAL = os.getenv("COLLECTION_GLOBAL", "global_knowledge")
     COLLECTION_REFINED = os.getenv("COLLECTION_REFINED", "human_refined")
     
     # Gemini

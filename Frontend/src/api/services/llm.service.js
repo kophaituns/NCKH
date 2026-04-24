@@ -1,7 +1,7 @@
 import http from '../http';
 import axios from 'axios';
 
-const AI_SERVER_URL = 'http://localhost:8000/api';
+const AI_SERVER_URL = 'http://localhost:8003/api';
 
 const LLMService = {
   /**
@@ -314,6 +314,19 @@ const LLMService = {
     const response = await http.post('/llm/ingest/text', {
       title,
       text,
+      workspaceId,
+      category,
+      promoteToGlobal
+    });
+    return response.data;
+  },
+
+  /**
+   * PROJECT OMEGA: Ingest knowledge from a YouTube video
+   */
+  async ingestYoutube(url, workspaceId, promoteToGlobal = false, category = 'general') {
+    const response = await http.post('/llm/ingest/youtube', {
+      url,
       workspaceId,
       category,
       promoteToGlobal

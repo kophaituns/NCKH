@@ -243,6 +243,23 @@ class TrainedModelService {
             return ['it', 'marketing', 'economics', 'general'];
         }
     }
+
+    /**
+     * Completely wipe workspace data from AI Server (ChromaDB)
+     * @param {string} workspaceId 
+     */
+    async deleteWorkspace(workspaceId) {
+        try {
+            logger.info(`>>> [GAU SERVICE] Wiping AI Memory for Workspace: ${workspaceId}`);
+            const response = await axios.delete(`${this.baseUrl}/api/notebooks/${workspaceId}`, {
+                timeout: 30000
+            });
+            return response.data;
+        } catch (error) {
+            logger.warn(`AI Memory wipe failed for workspace ${workspaceId}: ${error.message}`);
+            return { success: false, error: error.message };
+        }
+    }
 }
 
 module.exports = TrainedModelService;

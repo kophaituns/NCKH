@@ -392,6 +392,21 @@ class LLMService {
   }
 
   /**
+   * Wipe workspace intelligence data
+   */
+  async deleteWorkspaceData(workspaceId) {
+    try {
+      const TrainedModelService = require('./trained-model.service');
+      const trainedModel = new TrainedModelService();
+      return await trainedModel.deleteWorkspace(workspaceId);
+    } catch (error) {
+      this.logger.error(`Failed to wipe AI data for workspace ${workspaceId}: ${error.message}`);
+      // Return success false but don't crash
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
    * Get AI Server Status
    */
   async getAIStatus() {

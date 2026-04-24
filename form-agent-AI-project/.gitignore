@@ -8,6 +8,7 @@ datasets/
 question_datasets/
 chroma_db/
 models/
+chroma-data/
 *.pkl
 *.joblib
 *.db
