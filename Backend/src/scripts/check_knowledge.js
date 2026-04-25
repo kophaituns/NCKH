@@ -4,7 +4,7 @@ const { KnowledgeSource } = require('../models');
 
 async function checkKnowledge() {
     try {
-        const workspaceId = '18';
+        const workspaceId = process.env.DEBUG_WORKSPACE_ID || '18';
         console.log(`\n🔍 QUERYING MYSQL FOR WORKSPACE: ${workspaceId}`);
         
         const sources = await KnowledgeSource.findAll({
@@ -26,7 +26,7 @@ async function checkKnowledge() {
             console.log(`Status: ${s.status}`);
             console.log(`Vector Count: ${s.vector_count}`);
             console.log(`Created At: ${s.created_at}`);
-            console.log("-" * 40);
+            console.log("-".repeat(40));
         });
 
         process.exit(0);

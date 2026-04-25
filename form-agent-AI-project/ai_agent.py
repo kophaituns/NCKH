@@ -119,33 +119,30 @@ Return STRICT JSON:
         
         is_private = workspace_id is not None
         
-        # Layer 1: Grounding Instructions
-        # [GAU UPDATE] Pre-loaded Global Summary for top-down context
-        global_summary = ""
-        if workspace_id:
-            from chroma_client import chroma_wrapper
-            global_summary = chroma_wrapper.get_workspace_summary(workspace_id)
-
-        if workspace_id and is_private:
-            logger.info(f"[AI_AGENT] Mode: PRIVATE_NOTEBOOK_GROUNDING (Workspace: {workspace_id})")
-            summary_clause = f"\nGLOBAL KNOWLEDGE MAP of this Notebook:\n{global_summary}\n" if global_summary else ""
-            grounding_clause = f"""[STRICT NOTEBOOK GROUNDING]{summary_clause}
-- The context below is from the user's PERSONAL WORKSPACE ({workspace_id}).
-- Known documents in this workspace: {context_hint if context_hint else "Unknown"}
-- You MUST prioritize this data. Try to extract specific terminology and facts."""
-        else:
-            logger.info("[AI_AGENT] Mode: GLOBAL_HYBRID_GROUNDING")
-            grounding_clause = """[GLOBAL HYBRID GROUNDING]
-- You are using the global question bank. 
-- Blend the provided context with your internal expert knowledge to create a professional form."""
-
-        # Layer 2: Form Architecture Instructions
+        # Layer 2: Form Architecture Instructions (STRICT ROLE PLAYING)
         form_type = intent_info.get('intent', 'survey')
         arch_rules = {
-            "survey": "Focus on research metrics, Likert scales (Strongly Disagree to Strongly Agree), and demographic insights.",
-            "assessment": "Focus on academic evaluation. Create questions with clear right/wrong concepts or scoring potential. Use 'quiz' type.",
-            "registration": "Focus on data collection (Name, Contact, Preferences, Professional Background).",
-            "application": "Focus on qualifying criteria, long-form motivation, and experience verification.",
+            "survey": """[ROLE: RESEARCH SCIENTIST]
+- Focus: Measuring opinions, behaviors, and satisfaction.
+- Style: Use Likert scales (1-5), rating scales, and open-ended feedback.
+- Goal: Generate insights about the target audience's perception of the topic.""",
+            
+            "assessment": """[ROLE: ACADEMIC EXAMINER / NOTEBOOK_LM STYLE]
+- Focus: Knowledge retention, definitions, and technical accuracy.
+- Style: Multiple choice with 1 correct answer, True/False, and 'Explain the concept' questions.
+- Goal: Test if the user has read and understood the specific facts, dates, and names in the document. 
+- NOTE: Be pedantic and thorough about the details.""",
+            
+            "registration": """[ROLE: DATA ADMINISTRATOR]
+- Focus: Onboarding and identification.
+- Style: Short text, email validation, phone numbers, and preference checkboxes.
+- Goal: Capture structured user data for a system or event.""",
+            
+            "application": """[ROLE: HR/ADMISSIONS EXPERT]
+- Focus: Qualification and screening.
+- Style: Long-form motivation questions, experience verification, and 'Yes/No' eligibility criteria.
+- Goal: Filter candidates based on their suitability for a specific role/program.""",
+            
             "custom": "Follow the user's instructions and tone strictly above all else."
         }
         arch_clause = arch_rules.get(form_type, arch_rules["survey"])
@@ -154,12 +151,38 @@ Return STRICT JSON:
         if fine_tune_note:
             ft_lower = fine_tune_note.lower()
             if "multiple choice" in ft_lower or "single choice" in ft_lower or "trắc nghiệm" in ft_lower:
-                arch_clause = "STRICT REQUIREMENT: Use ONLY 'multiple_choice' or 'single_choice' types. Each question MUST have exactly 4 distinct options."
+                arch_clause += "\n[STRICT OVERRIDE]: Use ONLY 'multiple_choice' or 'single_choice' types. Each question MUST have exactly 4 distinct options."
             elif "likert" in ft_lower:
-                arch_clause = "STRICT REQUIREMENT: Use ONLY 'likert_scale' type for all items."
+                arch_clause += "\n[STRICT OVERRIDE]: Use ONLY 'likert_scale' type for all items."
+
+        # Layer 1: Grounding Instructions (CONTEXT DIFFERENTIATION)
+        global_summary = ""
+        if workspace_id:
+            from chroma_client import chroma_wrapper
+            global_summary = chroma_wrapper.get_workspace_summary(workspace_id)
+
+        if workspace_id and is_private:
+            logger.info(f"[AI_AGENT] Mode: PRIVATE_NOTEBOOK_GROUNDING (Workspace: {workspace_id})")
+            summary_clause = f"\nWORKSPACE KNOWLEDGE MAP (Deep Summary):\n{global_summary}\n" if global_summary else ""
+            grounding_clause = f"""[STRICT NOTEBOOK GROUNDING - DEEP DIVE MODE]
+{summary_clause}
+- SOURCE: User's Private Notebook ({workspace_id}).
+- RULE: You are a specialist in THIS SPECIFIC document. 
+- MANDATE: Use specific names, dates, and unique terms found in the provided context. 
+- IGNORE global generic knowledge if it conflicts with or dilutes the specific details of this document."""
+        else:
+            logger.info("[AI_AGENT] Mode: GLOBAL_HYBRID_GROUNDING")
+            grounding_clause = """[GLOBAL HYBRID GROUNDING - TEMPLATE MODE]
+- SOURCE: Global Question Bank & General Knowledge.
+- RULE: You are a Professional Consultant.
+- MANDATE: Create a high-fidelity, industry-standard form. 
+- BLEND the provided context chunks with global best practices to ensure the form is comprehensive and professional."""
 
         # Layer 3: Fine-Tuning Instructions
-        fine_tune_clause = f"\n[OVERRIDING USER CONSTRAINT]: {fine_tune_note}\n- This instruction MANDATORY and OVERRIDES any other conflicting rules or architecture defaults." if fine_tune_note else ""
+        fine_tune_clause = f"\n[USER OVERRIDING CONSTRAINT]: {fine_tune_note}\n- This is a MANDATORY constraint from the user. It overrides any default behavior." if fine_tune_note else ""
+
+        # Calculate average fidelity for metadata
+        avg_fidelity = sum([r.get("similarity_score", 0) for r in context_results]) / len(context_results) if context_results else 0.5
 
         # Final Assembly
         prompt = f"""You are an Expert AI Form Architect.
@@ -177,6 +200,8 @@ Target Language: {language.upper()}
 [3] EXECUTION RULES:
 - Generate exactly {num_q} items.
 - PRIMARY INSTRUCTION: {arch_clause}
+- CRITICAL: The 'question' field must contain the full question text. Do NOT split the question into words in the 'options' field.
+- CRITICAL: The 'options' field must contain actual choices (e.g., Strongly Agree, Agree) or be an empty array [] for text questions.
 {fine_tune_clause}
 - RETURN STRICT JSON ONLY.
 
@@ -207,13 +232,16 @@ Target Language: {language.upper()}
 
         try:
             raw = self.call_gemini(prompt)
+            logger.info(f"--- [AI_AGENT] Raw Gemini Response (First 200 chars): {raw[:200]}... ---")
             raw = re.sub(r"^```(?:json)?\s*", "", raw, flags=re.MULTILINE)
             raw = re.sub(r"\s*```$", "", raw, flags=re.MULTILINE)
             result = json.loads(raw)
             logger.info(f"--- [AI_AGENT] Form Successfully Synthesized: {result.get('title', 'Untitled')} ---")
             return result
         except Exception as e:
-            logger.warn(f"!!! [AI_AGENT] Gemini Synthesis Failed: {str(e)} - Falling back to local RAG data !!!")
+            logger.error(f"!!! [AI_AGENT] Gemini Synthesis Failed: {str(e)} !!!")
+            if 'raw' in locals():
+                logger.error(f"!!! [AI_AGENT] Failed Raw Content: {raw[:500]} !!!")
             return self._build_fallback(user_prompt, context_results, num_q)
 
     def _build_fallback(self, prompt: str, results: List[Dict], num_q: int) -> Dict[str, Any]:

@@ -68,6 +68,10 @@ async def root():
         "chroma_connected": chroma_wrapper.client is not None
     }
 
+@app.get("/api/health")
+async def health_check():
+    return {"status": "online", "timestamp": time.time()}
+
 @app.post("/api/generate-questions")
 async def generate_questions(request: GenerateQuestionsRequest):
     try:
@@ -98,6 +102,7 @@ async def generate_questions(request: GenerateQuestionsRequest):
         logger.info(f"Context Retrieval: Found {len(context_results)} chunks")
         
         # 3. Generate Form with Gemini
+        logger.info(f"--- [GENERATE_QUESTIONS] Calling AI Agent... ---")
         form_data = ai_agent.generate_form(
             user_prompt=request.keyword,
             context_results=context_results,
@@ -108,6 +113,9 @@ async def generate_questions(request: GenerateQuestionsRequest):
             language=request.language,
             context_hint=context_hint
         )
+        
+        if not form_data or not form_data.get('questions'):
+            logger.warning(f"--- [GENERATE_QUESTIONS] Warning: No questions generated! ---")
         
         logger.info(f"--- [GENERATE_QUESTIONS] Success - Questions generated: {len(form_data.get('questions', []))} ---")
         return JSONResponse(content=form_data)
@@ -234,7 +242,7 @@ async def ingest_youtube(request: IngestYoutubeRequest, background_tasks: Backgr
         if success and request.workspace_id:
             background_tasks.add_task(background_summarize, request.workspace_id)
             
-        return {"success": success, "quality_report": audit, "chunks": len(chunks)}
+        return {"success": success, "quality_report": audit, "chunks": len(chunks), "source": title}
     except Exception as e:
         logger.error(f"YouTube ingest error: {e}")
         return JSONResponse(status_code=500, content={"success": False, "error": str(e)})
@@ -309,6 +317,20 @@ async def update_workspace_source(request: UpdateSourceRequest):
         return {"success": success}
     except Exception as e:
         logger.error(f"Source update error: {e}")
+        return JSONResponse(status_code=500, content={"success": False, "error": str(e)})
+
+class DeleteSourceRequest(BaseModel):
+    source_title: str
+    workspace_id: str
+
+@app.post("/api/delete-source")
+async def delete_source(request: DeleteSourceRequest):
+    """Removes all chunks associated with a specific source."""
+    try:
+        success = chroma_wrapper.delete_source(request.workspace_id, request.source_title)
+        return {"success": success}
+    except Exception as e:
+        logger.error(f"Delete source error: {e}")
         return JSONResponse(status_code=500, content={"success": False, "error": str(e)})
 
 class SummarizeRequest(BaseModel):

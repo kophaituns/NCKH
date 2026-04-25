@@ -162,6 +162,29 @@
   animation: spin 1s linear infinite;
 }
 
+.refreshBtn {
+  background: none;
+  border: none;
+  color: #64748b;
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+  
+  &:hover {
+    background: #f1f5f9;
+    color: #14B8A6;
+  }
+  
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
 /* ===== 3. TAB NAVIGATION ===== */
 .tabs {
   display: flex;
@@ -637,7 +660,6 @@
 
 .questionItem {
   display: grid;
-  grid-template-columns: 42px 1fr 32px;
   align-items: center;
   gap: 16px;
   padding: 20px;
@@ -2373,4 +2395,4 @@
   &:hover {
     color: #0f172a !important;
   }
-}
+}.optionsPreview { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; } .optItem { display: flex; align-items: center; gap: 8px; background: #f1f5f9; padding: 6px 12px; border-radius: 8px; font-size: 13px; font-weight: 600; color: #475569; border: 1px solid #e2e8f0; } .optDot { width: 8px; height: 8px; background: #14B8A6; border-radius: 50%; }

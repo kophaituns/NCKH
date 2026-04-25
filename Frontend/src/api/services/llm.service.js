@@ -91,7 +91,7 @@ const LLMService = {
         workspaceId: data.workspaceId || null,
         visibility_scope: data.visibility_scope || (data.workspaceId ? 'private' : 'all')
       }, {
-        timeout: 60000 // 60 seconds for AI processing
+        timeout: 180000 // 180 seconds for AI processing
       });
       return response.data;
     } catch (error) {

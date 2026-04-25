@@ -9,7 +9,7 @@ console.log('[HTTP] Initialized with Base URL:', API_BASE_URL);
 // Create axios instance
 const http = axios.create({
   baseURL: API_BASE_URL,
-  timeout: 30000,
+  timeout: 180000,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -91,6 +91,7 @@ http.interceptors.response.use(
         }
 
         // Try to refresh token
+        this.timeout = 180000; // Increased to 180s for deep RAG retrieval
         const response = await axios.post(`${API_BASE_URL}/auth/refresh`, {
           refreshToken,
         });

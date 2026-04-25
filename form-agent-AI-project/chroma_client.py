@@ -169,6 +169,19 @@ class ChromaClientWrapper:
             logger.error(f"Error updating source name: {e}")
             return False
 
+    def delete_source(self, workspace_id: str, source_name: str) -> bool:
+        """Deletes all chunks belonging to a specific source in a workspace."""
+        collection_name = f"workspace_{workspace_id}"
+        collection = self.get_collection(collection_name)
+        if not collection: return False
+        try:
+            collection.delete(where={"source": source_name})
+            logger.info(f"Deleted source '{source_name}' from {collection_name}")
+            return True
+        except Exception as e:
+            logger.error(f"Error deleting source {source_name}: {e}")
+            return False
+
     def upsert_workspace_summary(self, workspace_id: str, summary: str) -> bool:
         """Stores a high-level summary of the entire workspace for global context."""
         collection = self.get_collection("workspace_summaries")

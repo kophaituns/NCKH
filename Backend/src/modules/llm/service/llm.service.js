@@ -9,7 +9,7 @@ class LLMService {
     // Cấu hình cho trained model API
     this.trainedModelConfig = {
       baseURL: process.env.TRAINED_MODEL_API_URL || 'http://localhost:9000',
-      timeout: 60000, // Tăng lên 60 giây để phù hợp với thời gian generate thực tế
+      timeout: 180000, // Tăng lên 180 giây để phù hợp với thời gian generate thực tế
       headers: {
         'Content-Type': 'application/json'
       }
@@ -455,7 +455,7 @@ class LLMService {
           source_type: 'URL',
           name: data.url.split('/').pop()?.split('#')[0] || data.url,
           source_path: data.url,
-          vector_count: response.data.count,
+          vector_count: response.data.chunks || response.data.count || 0,
           quality_score: response.data.quality_report?.overall_score || 0,
           category: data.category || 'general',
           visibility: response.data.visibility || 'private',
@@ -504,10 +504,10 @@ class LLMService {
         // Save to DB for history tracking
         await KnowledgeSource.create({
           workspace_id: finalWorkspaceId,
-          source_type: 'YouTube',
+          source_type: 'YOUTUBE',
           name: response.data.source || data.url,
           source_path: data.url,
-          vector_count: response.data.count,
+          vector_count: response.data.chunks || response.data.count || 0,
           quality_score: response.data.quality_report?.overall_score || 0,
           category: data.category || 'general',
           visibility: response.data.visibility || 'private',
@@ -559,7 +559,7 @@ class LLMService {
           source_type: 'TEXT',
           name: data.title,
           source_path: 'Manual Entry',
-          vector_count: response.data.count,
+          vector_count: response.data.chunks || response.data.count || 0,
           quality_score: response.data.quality_report?.overall_score || 0,
           category: data.category || 'general',
           visibility: response.data.visibility || 'private',

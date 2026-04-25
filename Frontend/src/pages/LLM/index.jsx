@@ -13,7 +13,7 @@ import { QUESTION_TYPE_MAP } from '../../utils/questionTypeMap';
 import { useAuth } from '../../contexts/AuthContext';
 import UpgradeModal from '../../components/UpgradeToCreator/UpgradeModal';
 import UpgradeUpsellModal from '../../components/UI/UpgradeUpsellModal/UpgradeUpsellModal';
-import { LuSparkles, LuBrain, LuFileText, LuCircleCheck, LuDatabase, LuUpload, LuCheck, LuSearch, LuActivity, LuX, LuLayoutGrid, LuList, LuPencil, LuTrash2, LuRotateCcw, LuPlus, LuArrowLeft, LuLoaderCircle, LuYoutube } from 'react-icons/lu';
+import { LuSparkles, LuBrain, LuFileText, LuCircleCheck, LuDatabase, LuUpload, LuCheck, LuSearch, LuActivity, LuX, LuLayoutGrid, LuList, LuPencil, LuTrash2, LuRotateCcw, LuRefreshCcw, LuPlus, LuArrowLeft, LuLoaderCircle, LuYoutube } from 'react-icons/lu';
 import styles from './LLM.module.scss';
 
 // Import validation utilities
@@ -57,6 +57,7 @@ const LLM = () => {
   const [newNotebookName, setNewNotebookName] = useState('');
   const [isCreatingNotebook, setIsCreatingNotebook] = useState(false);
   const [knowledgeHistory, setKnowledgeHistory] = useState([]);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [selectedWorkspaceId, setSelectedWorkspaceId] = useState('');
   const [ingestCategory, setIngestCategory] = useState('general');
 
@@ -143,11 +144,16 @@ const LLM = () => {
 
   const fetchKnowledgeHistory = useCallback(async () => {
     if (!selectedWorkspaceId) return;
+    setIsRefreshing(true);
     try {
       const res = await LLMService.getKnowledgeSources(selectedWorkspaceId);
-      if (res.success) setKnowledgeHistory(res.data);
+      if (res.success) {
+        setKnowledgeHistory(res.data);
+      }
     } catch (err) {
       console.warn('History fetch failed:', err);
+    } finally {
+      setIsRefreshing(false);
     }
   }, [selectedWorkspaceId]);
 
@@ -952,8 +958,8 @@ const LLM = () => {
                 {/* LEFT SIDEBAR: Source Management (NotebookLM Style) */}
                 <aside className={styles.notebookSidebar}>
                   <div className={styles.sidebarHeader}>
-                    <button className={styles.backBtn} onClick={() => setIsNotebookShelf(true)}>
-                      <LuArrowLeft size={16} />
+                    <button className={styles.backBtn}  onClick={() => setIsNotebookShelf(true)}>
+                      <LuArrowLeft size={16} style={{color:'black'}} />
                     </button>
                     <h3>Source Guide</h3>
                   </div>
@@ -972,6 +978,14 @@ const LLM = () => {
                       <LuCircleCheck size={14} /> 
                       <span>{knowledgeHistory.reduce((sum, item) => sum + (item.vector_count || 0), 0).toLocaleString()} Vectors</span>
                     </div>
+                    <button 
+                      className={styles.refreshBtn} 
+                      onClick={fetchKnowledgeHistory}
+                      disabled={isRefreshing}
+                      title="Refresh sources"
+                    >
+                      <LuRefreshCcw className={isRefreshing ? styles.spinning : ''} size={14} />
+                    </button>
                   </div>
 
                     <div className={styles.ingestSection}>
@@ -1072,7 +1086,7 @@ const LLM = () => {
                               checked={promoteToGlobal}
                               onChange={(e) => setPromoteToGlobal(e.target.checked)}
                             />
-                            <span>Promote to Global Knowledge</span>
+                            <span style={{color:'black'}}>Promote to Global Knowledge</span>
                           </label>
                         </div>
                       </div>
@@ -1178,7 +1192,7 @@ const LLM = () => {
                                  <div key={index} className={styles.questionItem}>
                                     <div className={styles.questionContent}>
                                       <p className={styles.questionText}>{q.question}</p>
-                                      <div style={{ display: 'flex', gap: '8px' }}>
+                                      <div >
                                         <span className={`${styles.metaBadge} ${styles.groundedBadge}`}>
                                           <LuFileText size={10} /> Grounded
                                         </span>

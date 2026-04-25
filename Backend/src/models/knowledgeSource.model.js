@@ -22,7 +22,7 @@ module.exports = (sequelize, DataTypes) => {
         comment: 'Display name of the ingestion batch'
       },
       source_type: {
-        type: DataTypes.ENUM('FILE', 'URL', 'TEXT'),
+        type: DataTypes.ENUM('FILE', 'URL', 'TEXT', 'YOUTUBE'),
         defaultValue: 'FILE',
       },
       source_path: {
