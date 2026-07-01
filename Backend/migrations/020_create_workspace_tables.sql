@@ -73,12 +73,12 @@ CREATE TABLE IF NOT EXISTS `workspace_activities` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Add workspace_id to surveys table if not exists
-ALTER TABLE `surveys` ADD COLUMN IF NOT EXISTS `workspace_id` INT DEFAULT NULL;
-ALTER TABLE `surveys` ADD KEY IF NOT EXISTS `idx_workspace_id` (`workspace_id`);
-ALTER TABLE `surveys` ADD CONSTRAINT IF NOT EXISTS `fk_surveys_workspace` FOREIGN KEY (`workspace_id`) REFERENCES `workspaces` (`id`) ON DELETE SET NULL;
+ALTER TABLE `surveys` ADD COLUMN `workspace_id` INT DEFAULT NULL;
+ALTER TABLE `surveys` ADD KEY `idx_workspace_id` (`workspace_id`);
+ALTER TABLE `surveys` ADD CONSTRAINT `fk_surveys_workspace` FOREIGN KEY (`workspace_id`) REFERENCES `workspaces` (`id`) ON DELETE SET NULL;
 
 -- Create index for faster lookups
-CREATE INDEX IF NOT EXISTS `idx_workspaces_created_at` ON `workspaces`(`created_at`);
-CREATE INDEX IF NOT EXISTS `idx_workspace_members_workspace_id` ON `workspace_members`(`workspace_id`);
-CREATE INDEX IF NOT EXISTS `idx_workspace_invitations_workspace_id` ON `workspace_invitations`(`workspace_id`);
-CREATE INDEX IF NOT EXISTS `idx_workspace_activities_workspace_id` ON `workspace_activities`(`workspace_id`);
+CREATE INDEX `idx_workspaces_created_at` ON `workspaces`(`created_at`);
+CREATE INDEX `idx_workspace_members_workspace_id` ON `workspace_members`(`workspace_id`);
+CREATE INDEX `idx_workspace_invitations_workspace_id` ON `workspace_invitations`(`workspace_id`);
+CREATE INDEX `idx_workspace_activities_workspace_id` ON `workspace_activities`(`workspace_id`);

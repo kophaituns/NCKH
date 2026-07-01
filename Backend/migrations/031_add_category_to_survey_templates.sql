@@ -4,9 +4,9 @@
 
 -- Add category column if it doesn't exist
 ALTER TABLE survey_templates 
-ADD COLUMN IF NOT EXISTS category VARCHAR(100) DEFAULT NULL 
+ADD COLUMN category VARCHAR(100) DEFAULT NULL 
 COMMENT 'Category for template organization (education, business, health, etc.)';
 
 -- Add index for faster category filtering
-CREATE INDEX IF NOT EXISTS idx_survey_templates_category 
+CREATE INDEX idx_survey_templates_category 
 ON survey_templates (category);

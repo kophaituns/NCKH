@@ -164,7 +164,7 @@ const LLM = () => {
     }
   }, [selectedWorkspaceId, activeTab, fetchKnowledgeStatus, fetchKnowledgeHistory]);
 
-  const { user } = useAuth();
+  const { state: { user } } = useAuth();
   const [showUpsellModal, setShowUpsellModal] = useState(false);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   
@@ -446,6 +446,10 @@ const LLM = () => {
   };
 
   const handleCreateNotebook = async () => {
+    if (isLockedForRoleMismatch()) {
+      setShowUpsellModal(true);
+      return;
+    }
     if (!newNotebookName.trim()) return;
     try {
       setIsCreatingNotebook(true);
@@ -454,6 +458,8 @@ const LLM = () => {
         showToast('New notebook created!', 'success');
         setNewNotebookName('');
         fetchWorkspaces();
+      } else {
+        showToast(res.error || 'Failed to create notebook', 'error');
       }
     } catch (err) {
       showToast('Failed to create notebook', 'error');
@@ -464,12 +470,18 @@ const LLM = () => {
 
   const handleDeleteNotebook = async (id, e) => {
     e.stopPropagation();
+    if (isLockedForRoleMismatch()) {
+      setShowUpsellModal(true);
+      return;
+    }
     if (!window.confirm('Delete this entire notebook? This cannot be undone.')) return;
     try {
       const res = await WorkspaceService.deleteWorkspace(id);
       if (res.ok) {
         showToast('Notebook deleted', 'success');
         fetchWorkspaces();
+      } else {
+        showToast(res.error || 'Failed to delete notebook', 'error');
       }
     } catch (err) {
       showToast('Failed to delete notebook', 'error');

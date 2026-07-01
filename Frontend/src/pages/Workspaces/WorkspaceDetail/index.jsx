@@ -42,7 +42,7 @@ const WorkspaceDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { showToast } = useToast();
-  const { user } = useAuth(); // Get current user
+  const { state: { user } } = useAuth(); // Get current user
   const notificationTriggers = useNotificationTriggers();
 
   const [loading, setLoading] = useState(true);

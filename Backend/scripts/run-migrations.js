@@ -76,6 +76,7 @@ async function runMigrations() {
             // Skip if table/column already exists (common case)
             if (error.message.includes('already exists') || 
                 error.message.includes('Duplicate column') ||
+                error.message.includes('Duplicate key') ||
                 error.message.includes('already have a primary key')) {
               console.log(`   ⚠️  Already exists (skipping)`);
               skipCount++;

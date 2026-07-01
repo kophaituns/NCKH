@@ -123,6 +123,53 @@ async def generate_questions(request: GenerateQuestionsRequest):
         logger.error(f"--- [GENERATE_QUESTIONS] Fatal Error: {str(e)} ---")
         return JSONResponse(status_code=500, content={"success": False, "error": str(e)})
 
+@app.post("/api/ingest")
+async def ingest_local_files(category: Optional[str] = "general"):
+    try:
+        import os
+        from pathlib import Path
+        from document_processor import parse_local_file
+
+        user_data_dir = Path("user_data")
+        if not user_data_dir.exists():
+            return {"success": False, "error": "user_data directory does not exist"}
+
+        files = [f for f in user_data_dir.iterdir() if f.is_file()]
+        if not files:
+            return {"success": True, "message": "No files found in user_data directory for ingestion.", "category": category}
+
+        total_ingested = 0
+        all_parsed_data = []
+        for file_path in files:
+            parsed_data = parse_local_file(file_path)
+            for item in parsed_data:
+                if "metadata" not in item:
+                    item["metadata"] = {}
+                if category and category != "general":
+                    item["metadata"]["category"] = category
+                elif "category" not in item["metadata"]:
+                    item["metadata"]["category"] = "general"
+            all_parsed_data.extend(parsed_data)
+
+        if all_parsed_data:
+            success = chroma_wrapper.upsert_questions(all_parsed_data, "global_knowledge")
+            if success:
+                # Delete files after successful ingestion to avoid duplicates
+                for file_path in files:
+                    try:
+                        file_path.unlink()
+                    except Exception as e:
+                        logger.warning(f"Could not delete file {file_path}: {e}")
+                return {"success": True, "message": f"Successfully ingested {len(all_parsed_data)} questions from {len(files)} files.", "category": category}
+            else:
+                return {"success": False, "error": "ChromaDB upsert failed"}
+        
+        return {"success": True, "message": "No valid questions parsed from files.", "category": category}
+
+    except Exception as e:
+        logger.error(f"Local files ingestion failed: {e}")
+        return JSONResponse(status_code=500, content={"success": False, "error": str(e)})
+
 class IngestNotebookRequest(BaseModel):
     workspace_id: str
     questions: List[str]

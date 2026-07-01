@@ -1,7 +1,7 @@
 -- Migration: Update survey_responses for anonymous submissions
 -- Description: Add fields for anonymous/public response tracking
 
-USE NCKH;
+
 
 -- Add columns for anonymous responses
 ALTER TABLE survey_responses 

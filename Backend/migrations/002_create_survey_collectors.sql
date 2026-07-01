@@ -1,7 +1,7 @@
 -- Migration: Create survey_collectors table
 -- Description: Add collectors for public survey links and anonymous responses
 
-USE NCKH;
+
 
 -- Create survey_collectors table
 CREATE TABLE IF NOT EXISTS survey_collectors (
